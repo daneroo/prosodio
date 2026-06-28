@@ -20,5 +20,6 @@ alongside their ebooks on a synchronized timeline.
   - `MARKDOWN.md` — markdown authoring style
   - `CODING-STYLE.md` — code conventions
 - `thoughts/` — plans, research, tickets, reviews
-- `fixtures/` — public test data
-- `data/` — private corpora, gitignored — never commit real corpora
+- `fixtures/` — public test data (committed)
+- `reports/` — generated artifacts (committed)
+- `data/` — gitignored, volatile (outputs, scratch)
