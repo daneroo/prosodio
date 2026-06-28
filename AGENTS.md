@@ -12,14 +12,18 @@ alongside their ebooks on a synchronized timeline.
 
 ## Layout
 
-- `packages/` — logic libs
-- `components/` — React UI
-- `apps/` — runnables
-- `docs/` — reference
-  - `FORMATTING.md` — formatting + linting, with a reproducible proof
-  - `MARKDOWN.md` — markdown authoring style
-  - `CODING-STYLE.md` — code conventions
-- `thoughts/` — plans, research, tickets, reviews
-- `fixtures/` — public test data (committed)
-- `reports/` — generated artifacts (committed)
-- `data/` — gitignored, volatile (outputs, scratch)
+- Code
+  - `packages/` — logic libs
+  - `components/` — React UI
+  - `apps/` — runnables
+- Docs
+  - `docs/` — durable reference
+    - `FORMATTING.md` — formatting + linting, with proof
+    - `MARKDOWN.md` — markdown authoring style
+    - `CODING-STYLE.md` — code conventions
+  - `thoughts/` — plans, research, tickets, reviews
+- Data
+  - `fixtures/` — public test data (committed)
+  - `reports/` — generated artifacts (committed; may not exist yet)
+  - `data/` — gitignored, volatile (outputs, scratch)
+  - external — private corpora (outside the repo, via config)
