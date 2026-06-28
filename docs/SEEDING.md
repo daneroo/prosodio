@@ -20,8 +20,8 @@ Formatting detail: [FORMATTING.md](FORMATTING.md).
 - Dev tooling:
   `bun add -d prettier eslint @eslint/js typescript-eslint markdownlint-cli2`.
   typescript stays a peerDependency.
-- `eslint.config.js`: `js.configs.recommended` + `tseslint.configs.recommended`
-  - an `ignores` block.
+- `eslint.config.js`: recommended configs from `@eslint/js` and
+  `typescript-eslint`, plus an `ignores` block.
 - Formatting: prettier config in package.json (`proseWrap: always`); one
   `.markdownlint-cli2.jsonc` extending `markdownlint/style/prettier`;
   `.prettierignore` for `bun.lock`.
