@@ -35,7 +35,6 @@
     "typescript": "^5"
   },
   "prettier": {
-    "proseWrap": "always",
-    "printWidth": 100
+    "proseWrap": "always"
   }
 }
