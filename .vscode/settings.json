@@ -1,0 +1,34 @@
+{
+  // Make the editor mirror the CLI: save == `bun run fmt` on that file, and
+  // in-editor diagnostics == `bun run lint:md` / eslint. prettier config lives
+  // in package.json (source of truth); this file only routes the editor to it.
+  //
+  // Each language gets its OWN single-language block, never a combined
+  // "[a][b]" block: a single-language block beats a multi-language one BEFORE
+  // scope rules, so a combined workspace block would lose to a user-level
+  // single-language override (a language-specific tier always beats a
+  // non-language one, even a narrower-scoped one). Some user setups route e.g.
+  // [markdown] -> a table formatter or [typescript] -> deno; these single
+  // workspace blocks beat those.
+  //
+  // formatOnSave is asserted once globally (a per-language formatOnSave:false in
+  // user settings could defeat it, but we let the verify reconciler catch drift
+  // rather than re-assert it in every block).
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

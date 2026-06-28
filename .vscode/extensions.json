@@ -1,0 +1,10 @@
+{
+  // The editor mirrors of our three CLI tools (prettier, markdownlint, eslint).
+  // Recommended so a fresh clone is prompted to install them; the CLI remains
+  // ground truth via `bun run ci`.
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "DavidAnson.vscode-markdownlint",
+    "dbaeumer.vscode-eslint"
+  ]
+}
