@@ -29,5 +29,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "prettier": {
+    "proseWrap": "always",
+    "printWidth": 100
   }
 }

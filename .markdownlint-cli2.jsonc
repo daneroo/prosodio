@@ -1,0 +1,12 @@
+{
+  // Single source for markdownlint-cli2: rule config + behavior in one file.
+  // The prettier-compatible preset disables rules that conflict with prettier
+  // (line length, list/indent style, etc.) so the two tools never disagree;
+  // prettier formats, markdownlint catches the structural problems prettier
+  // does not (e.g. duplicate headings, bare URLs). See docs/MARKDOWN.md.
+  // gitignore: true makes globbing skip node_modules, out/, dist/ via .gitignore.
+  "gitignore": true,
+  "config": {
+    "extends": "markdownlint/style/prettier"
+  }
+}
