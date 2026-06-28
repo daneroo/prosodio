@@ -18,10 +18,13 @@
     "check": "tsc --noEmit",
     "fmt": "bunx prettier --write .",
     "fmt:check": "bunx prettier --check .",
-    "lint": "bunx eslint .",
+    "lint": "bun run lint:js && bun run lint:md",
+    "lint:js": "bunx eslint .",
     "lint:md": "bunx markdownlint-cli2 \"**/*.md\"",
-    "ci": "bun run fmt:check && bun run lint && bun run lint:md && bun run check && bun run test",
-    "outdated": "bun outdated -r"
+    "ci": "bun run fmt:check && bun run lint && bun run check && bun run test",
+    "outdated": "bun outdated -r",
+    "outdated:fix": "bun update -i -r",
+    "sanity": "echo \"Validate environment ... coming to a script (very) near you\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
