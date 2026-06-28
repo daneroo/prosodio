@@ -1,14 +1,10 @@
 # Coding style
 
-Code conventions that agents and humans do not adopt by default, so we state
-them explicitly. This file will grow; for now it captures the one that matters
-most.
+Conventions agents don't adopt by default. Will grow.
 
-## Top-down: calling code precedes called code
+## Top-down: caller before callee
 
-Order a file so a reader meets the entry point first and descends into detail,
-rather than scrolling past helpers to find what runs. The caller appears above
-the callee.
+Entry point first, helpers below.
 
 ```txt
 // ENTRY POINT
@@ -28,10 +24,3 @@ async function tokenize(): Promise<void> {
   // Convert cues to words
 }
 ```
-
-This reads like a newspaper: headline first, then the supporting detail. It is
-the opposite of the bottom-up "define everything before you use it" habit.
-
-## Source
-
-Adapted from ai-garden `bun-one/AGENTS.md` (`## Code Structure`).
