@@ -1,31 +1,35 @@
 # AGENTS.md
 
-Canonical instructions for agents and humans working in this repo. `CLAUDE.md`
-points here; keep guidance in one place.
+Canonical instructions for agents and humans in this repo. `CLAUDE.md` points
+here.
 
-## What prosodio is
+prosodio is a Bun monorepo for managing, aligning, and playing audiobooks
+alongside their ebooks on a synchronized timeline.
 
-A Bun monorepo for managing, aligning, and playing audiobooks alongside their
-ebooks on a synchronized timeline. Consolidated from scattered experiments; see
-`thoughts/plans/` for the migration plan once seeded.
+## Quality: run after every edit
 
-## Public/private boundary
+Run `bun run ci` after every edit and before every commit — it lints,
+format-checks, typechecks, and tests. If `ci` fails on formatting, run
+`bun run fmt` to fix it, then re-run `ci`. Keep commits small and reviewable.
 
-- The repo is **public** (MIT). Source, fixtures, and generated public artifacts
-  are committed.
-- Real corpora and any identifying reports stay **private** in gitignored
-  locations. Never commit a real audiobook/ebook or a report naming one.
+## Rules
 
-## Working rules
-
-- Configs are **generated** (`bun init`, `bun add`), never hand-written.
-  Versions come from the registry, never invented.
+- Public repo (MIT). Never commit real corpora, or reports that name them — they
+  stay in gitignored `data/`.
+- Configs are generated (`bun init`, `bun add`), never hand-written; versions
+  come from the registry.
 - Libs export raw `.ts` (no build step); `workspace:*` for internal deps.
-- Run `bun run ci` before committing.
-- Small, reviewable commits — keep state trackable at every step.
 
-## Where things live
+## Layout
 
-- `packages/` logic libs · `components/` React UI · `apps/` runnables
-- `docs/` durable reference · `thoughts/` plans, research, tickets, reviews
-- `fixtures/` committed public test data · `data/` gitignored private corpora
+- `packages/` libs · `components/` React UI · `apps/` runnables
+- `docs/` reference · `thoughts/` plans, research, tickets, reviews
+- `fixtures/` public test data · `data/` gitignored private corpora
+
+## Docs
+
+- [docs/FORMATTING.md](docs/FORMATTING.md) — formatting + lint mechanics, with a
+  reproducible proof section.
+- [docs/MARKDOWN.md](docs/MARKDOWN.md) — markdown authoring style.
+- [docs/CODING-STYLE.md](docs/CODING-STYLE.md) — code conventions (top-down
+  ordering).
