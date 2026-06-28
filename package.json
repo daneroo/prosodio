@@ -8,6 +8,17 @@
       "runtime": {}
     }
   },
+  "scripts": {
+    "test": "bun test",
+    "test:e2e": "RUN_E2E_TESTS=1 bun test",
+    "check": "tsc --noEmit",
+    "fmt": "bunx prettier --write .",
+    "fmt:check": "bunx prettier --check .",
+    "lint": "bunx eslint .",
+    "lint:md": "bunx markdownlint-cli2 \"**/*.md\"",
+    "ci": "bun run fmt:check && bun run lint && bun run lint:md && bun run check && bun run test",
+    "outdated": "bun outdated -r"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
