@@ -7,6 +7,6 @@
   // gitignore: true makes globbing skip node_modules, out/, dist/ via .gitignore.
   "gitignore": true,
   "config": {
-    "extends": "markdownlint/style/prettier"
-  }
+    "extends": "markdownlint/style/prettier",
+  },
 }

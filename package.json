@@ -3,7 +3,11 @@
   "type": "module",
   "private": true,
   "workspaces": {
-    "packages": ["packages/*", "components/*", "apps/*"],
+    "packages": [
+      "packages/*",
+      "components/*",
+      "apps/*"
+    ],
     "catalogs": {
       "runtime": {}
     }
