@@ -2,6 +2,12 @@
   "name": "prosodio",
   "type": "module",
   "private": true,
+  "workspaces": {
+    "packages": ["packages/*", "components/*", "apps/*"],
+    "catalogs": {
+      "runtime": {}
+    }
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
