@@ -21,6 +21,7 @@ alongside their ebooks on a synchronized timeline.
     - `FORMATTING.md` — formatting + linting, with proof
     - `MARKDOWN.md` — markdown authoring style
     - `CODING-STYLE.md` — code conventions
+    - `SEEDING.md` — how this repo was seeded (reusable recipe)
   - `thoughts/` — plans, research, tickets, reviews
 - Data
   - `fixtures/` — public test data (committed)
