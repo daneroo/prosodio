@@ -20,7 +20,7 @@
     "fmt:check": "bunx prettier --check .",
     "lint": "bun run lint:js && bun run lint:md",
     "lint:js": "bunx eslint .",
-    "lint:md": "bunx markdownlint-cli2 \"**/*.md\"",
+    "lint:md": "bunx markdownlint-cli2 \"**/*.md\" \"*.md\"",
     "ci": "bun run fmt:check && bun run lint && bun run check && bun run test",
     "outdated": "bun outdated -r",
     "outdated:fix": "bun update -i -r",
