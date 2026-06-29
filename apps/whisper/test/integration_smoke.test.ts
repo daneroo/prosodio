@@ -15,7 +15,7 @@ import {
   type RunConfig,
   runWhisper,
 } from "../lib/runners.ts";
-import { parseComposition } from "@bun-one/vtt";
+import { parseComposition } from "@prosodio/vtt";
 import {
   cleanupOutputDir,
   createWorkDirCleanup,

@@ -33,10 +33,11 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
         `data/work` (~266G) dropped upstream.
   - [x] Gitignore gate + commit as-is (`9433707`): 36 files stage, zero `data/`;
         byte-identical to ai-garden@7600ed8; ci-RED by construction.
-  - [ ] Go native: declare `@prosodio/vtt` (`workspace:*`), rewrite the 8
-        `@bun-one/vtt` imports -> `@prosodio/vtt`, fix the eslint
-        `preserve-caught-error` finding (`runners.ts:146`), `zod` -> root
-        `runtime` catalog; `bun install`.
+  - [x] Go native: declared `@prosodio/vtt` (`workspace:*`), rewrote the 8
+        `@bun-one/vtt` imports -> `@prosodio/vtt`, fixed the eslint
+        `preserve-caught-error` finding (`runners.ts:146`, chained `cause`),
+        `zod` -> root catalog. Root CI GREEN (125 pass / 4 skip). Name interim
+        `@prosodio/whisper`; dir rename next.
   - [ ] Rename `apps/whisper` -> `apps/transcribe`: `mv` + `git add -A` (not
         `git mv` — carries the ignored `data/`), entry `whisper.ts` ->
         `transcribe.ts`, name `@prosodio/transcribe`, bin `transcribe`, refs;

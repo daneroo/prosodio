@@ -4,7 +4,7 @@ import {
   parseTranscription,
   type VttComposition,
   type VttTranscription,
-} from "@bun-one/vtt";
+} from "@prosodio/vtt";
 import { formatComposition, formatTranscription } from "./vtt-writer.ts";
 
 describe("formatTranscription", () => {

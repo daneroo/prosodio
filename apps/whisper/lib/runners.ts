@@ -15,7 +15,7 @@ import {
   stitchVttConcat,
   type VttComposition,
   type VttTranscription,
-} from "@bun-one/vtt";
+} from "@prosodio/vtt";
 import { writeVttComposition } from "./vtt-writer.ts";
 import {
   executeTask,
@@ -143,7 +143,9 @@ export async function createUniqueRunWorkDir(
       await delay(1000);
       const retryRunWorkDir = refreshRunWorkDirTimestamp(runWorkDir);
       if (!retryRunWorkDir || retryRunWorkDir === runWorkDir) {
-        throw new Error(`workdirAlready exists (too soon?): ${runWorkDir}`);
+        throw new Error(`workdirAlready exists (too soon?): ${runWorkDir}`, {
+          cause: error,
+        });
       }
       await mkdir(retryRunWorkDir);
       return retryRunWorkDir;
@@ -255,7 +257,7 @@ async function runWhisperPipeline(
     }
   }
 
-  // Stitch VTTs: read each segment, call @bun-one/vtt stitcher, write output
+  // Stitch VTTs: read each segment, call @prosodio/vtt stitcher, write output
   if (!config.dryRun) {
     const transcriptions: VttTranscription[] = [];
     for (let i = 0; i < wavSegs.length; i++) {

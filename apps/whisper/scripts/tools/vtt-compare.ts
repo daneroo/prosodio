@@ -7,7 +7,7 @@
  * Run: deno run -A lib/vtt-compare.ts
  */
 
-import { parseRaw, vttTimeToSeconds, type VttCue } from "@bun-one/vtt";
+import { parseRaw, vttTimeToSeconds, type VttCue } from "@prosodio/vtt";
 
 // Global verbose flag for diagnostics
 const verbose = true;

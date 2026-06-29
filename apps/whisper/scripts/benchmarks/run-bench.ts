@@ -24,7 +24,7 @@ import {
   type RunConfig,
   runWhisper,
 } from "../../lib/runners.ts";
-import type { ProvenanceComposition } from "@bun-one/vtt";
+import type { ProvenanceComposition } from "@prosodio/vtt";
 import { formatDuration } from "../../lib/duration.ts";
 
 // ============================================================================

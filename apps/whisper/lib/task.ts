@@ -40,7 +40,7 @@ import {
   parseTranscription,
   type ProvenanceTranscription,
   type VttTranscription,
-} from "@bun-one/vtt";
+} from "@prosodio/vtt";
 import { writeVttTranscription } from "./vtt-writer.ts";
 import { getAudioFileDuration } from "./audio.ts";
 

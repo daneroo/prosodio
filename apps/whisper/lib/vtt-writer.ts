@@ -1,5 +1,5 @@
 /**
- * Serialize typed @bun-one/vtt artifacts to canonical VTT text format.
+ * Serialize typed @prosodio/vtt artifacts to canonical VTT text format.
  *
  * Format: WEBVTT\n\nNOTE Provenance\n{JSON}\n\n...cues...
  *
@@ -13,7 +13,7 @@ import type {
   VttComposition,
   VttCue,
   VttTranscription,
-} from "@bun-one/vtt";
+} from "@prosodio/vtt";
 
 // ENTRY POINTS
 

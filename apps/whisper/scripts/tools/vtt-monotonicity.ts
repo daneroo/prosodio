@@ -20,7 +20,7 @@
  */
 
 import { readdir } from "node:fs/promises";
-import { parseRaw, vttTimeToSeconds, type VttCue } from "@bun-one/vtt";
+import { parseRaw, vttTimeToSeconds, type VttCue } from "@prosodio/vtt";
 
 /**
  * Yield consecutive pairs from an array: [arr[0], arr[1]], [arr[1], arr[2]], ...
