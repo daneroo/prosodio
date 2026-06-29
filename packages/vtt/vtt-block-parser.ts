@@ -9,12 +9,7 @@
  */
 
 export type BlockType =
-  | "SIGNATURE"
-  | "NOTE"
-  | "STYLE"
-  | "REGION"
-  | "CUE"
-  | "UNKNOWN";
+  "SIGNATURE" | "NOTE" | "STYLE" | "REGION" | "CUE" | "UNKNOWN";
 
 export interface VttBlock {
   type: BlockType;

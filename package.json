@@ -9,7 +9,10 @@
       "apps/*"
     ],
     "catalogs": {
-      "runtime": {}
+      "runtime": {
+        "valibot": "^1.2.0",
+        "zod": "^4.3.6"
+      }
     }
   },
   "scripts": {

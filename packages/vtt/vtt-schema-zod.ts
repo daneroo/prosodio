@@ -90,9 +90,7 @@ export type ProvenanceComposition = z.infer<typeof ProvenanceCompositionSchema>;
 // subtype to validate from the artifact context (unlike VttFile where the
 // parser must discriminate).
 export type Provenance =
-  | ProvenanceTranscription
-  | ProvenanceSegment
-  | ProvenanceComposition;
+  ProvenanceTranscription | ProvenanceSegment | ProvenanceComposition;
 
 // Root Types
 export type VttCue = z.infer<typeof VttCueSchema>;

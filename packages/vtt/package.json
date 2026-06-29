@@ -1,5 +1,5 @@
 {
-  "name": "@bun-one/vtt",
+  "name": "@prosodio/vtt",
   "version": "0.1.0",
   "type": "module",
   "main": "./vtt.ts",
@@ -8,6 +8,7 @@
     ".": "./vtt.ts"
   },
   "dependencies": {
+    "@standard-schema/spec": "^1.0.0",
     "valibot": "catalog:runtime",
     "zod": "catalog:runtime"
   }

@@ -98,9 +98,7 @@ export type ProvenanceComposition = v.InferOutput<
 // subtype to validate from the artifact context (unlike VttFile where the
 // parser must discriminate).
 export type Provenance =
-  | ProvenanceTranscription
-  | ProvenanceSegment
-  | ProvenanceComposition;
+  ProvenanceTranscription | ProvenanceSegment | ProvenanceComposition;
 
 // Root Types
 export type VttCue = v.InferOutput<typeof VttCueSchema>;

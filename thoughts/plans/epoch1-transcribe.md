@@ -16,14 +16,15 @@ Decisions (settled at execution): `@prosodio/*` scope across packages and apps;
 vtt schemas ported dual (zod + valibot), the standardize-on-one call left to
 Axis 2; `lib/vtt-writer.ts` stays app-side for now.
 
-- [ ] Port `bun-one/packages/vtt` -> `packages/vtt` as `@prosodio/vtt` — the
+- [x] Port `bun-one/packages/vtt` -> `packages/vtt` as `@prosodio/vtt` — the
       trusted VTT engine. Two-phase, behavior-preserving first.
-  - [ ] Anchor: Daniel rsyncs `bun-one/packages/vtt/` -> `packages/vtt/` (rm its
-        `node_modules` first); gitignore gate; commit as-is = ci-RED anchor
-        (byte-identical; `provenance.md` entry).
-  - [ ] Fix: rename to `@prosodio/vtt`; declare `@standard-schema/spec`; catalog
-        `valibot` in the root `runtime`; `bun install`; its own tests green
-        (pure logic, public-CI-safe), then root CI for the package.
+  - [x] Anchor (`2e833e3`): rsynced `bun-one/packages/vtt/` -> `packages/vtt/`
+        (node_modules excluded); gate clean (21 files, blob OIDs 21/21);
+        committed as-is = ci-RED anchor. `provenance.md` entry.
+  - [x] Fix: renamed to `@prosodio/vtt`; declared `@standard-schema/spec`;
+        cataloged `valibot` in root `runtime`. Self-clean: 55 tests pass,
+        eslint/types clean, prettier-normalized 4 files (byte-identity given
+        up). Contributes to root CI green once the app lands.
 - [ ] Port `bun-one/apps/whisper` -> `apps/transcribe` as
       `@prosodio/transcribe`. Two-phase; the verbatim anchor already landed.
   - [x] Anchor: `rsync -a bun-one/apps/whisper/ apps/whisper/` (verbatim name;
@@ -64,3 +65,9 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   vtt first as `@prosodio/vtt`, adopt `@prosodio/*` scope, fold the
   whisper->transcribe rename into the green push (anchor already preserves
   provenance, so no value postponing).
+- 2026-06-29 — vtt anchor landed (`2e833e3`): Daniel rsynced
+  `bun-one/packages/vtt` (node_modules excluded, dry-run idempotent); gate clean
+  (21 files, blob OIDs 21/21). Fix (uncommitted, pending approval): renamed
+  `@prosodio/vtt`, declared `@standard-schema/spec`, cataloged `valibot`; 55
+  tests pass, eslint/types clean, 4 files prettier-normalized. Root CI still RED
+  only on the app's 8 `@bun-one/vtt` imports (app go-native next).
