@@ -128,10 +128,10 @@ while IFS= read -r name || [[ -n "$name" ]]; do
   for m4b in "${todo_list[@]}"; do
     if [[ "$(basename "$m4b")" == "$name" ]]; then
       if $DRY_RUN; then
-        echo "WOULD RUN: bun run whisper.ts -i \"$m4b\""
+        echo "WOULD RUN: bun run transcribe.ts -i \"$m4b\""
       else
         echo "PROCESSING: ${name%.m4b}"
-        (cd "$SCRIPT_DIR" && bun run whisper.ts -i "$m4b") < /dev/null
+        (cd "$SCRIPT_DIR" && bun run transcribe.ts -i "$m4b") < /dev/null
       fi
       transcribed=$((transcribed + 1))
       break

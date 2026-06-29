@@ -38,14 +38,15 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
         `preserve-caught-error` finding (`runners.ts:146`, chained `cause`),
         `zod` -> root catalog. Root CI GREEN (125 pass / 4 skip). Name interim
         `@prosodio/whisper`; dir rename next.
-  - [ ] Rename `apps/whisper` -> `apps/transcribe`: `mv` + `git add -A` (not
-        `git mv` — carries the ignored `data/`), entry `whisper.ts` ->
-        `transcribe.ts`, name `@prosodio/transcribe`, bin `transcribe`, refs;
-        root CI green.
+  - [x] Renamed `apps/whisper` -> `apps/transcribe` via plain `mv` (ignored
+        `data/` followed: 193 files / 95G intact), entry `transcribe.ts`, name
+        `@prosodio/transcribe`, bin `transcribe`, README/scripts refs updated.
+        CLI smoke (`transcribe.ts -h`) ok; root CI green.
   - [ ] Validate it runs as-is against the populated cache (Daniel).
 - [ ] Point it at the central corpora location and `reports/` output; adjust
       paths only.
-- [ ] Prove the root CI target includes the app.
+- [x] Prove the root CI target includes the app (root `bun test` runs the app +
+      vtt suites; 125 pass / 4 skip).
 - [ ] Use the port to validate runtime-bound package/app conventions.
 - [ ] Acceptance: judged by Daniel at port time (see port strategy in the
       consolidation plan).
@@ -72,3 +73,9 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   `@prosodio/vtt`, declared `@standard-schema/spec`, cataloged `valibot`; 55
   tests pass, eslint/types clean, 4 files prettier-normalized. Root CI still RED
   only on the app's 8 `@bun-one/vtt` imports (app go-native next).
+- 2026-06-29 — vtt fix committed (`1ee13a1`). App go-native (`02e8354`):
+  declared `@prosodio/vtt`, rewrote 8 imports, chained eslint `cause` — root CI
+  GREEN. Then renamed `apps/whisper` -> `apps/transcribe` (plain `mv`; ignored
+  `data/` followed, 193 files / 95G verified intact), entry/name/bin ->
+  transcribe, README/scripts updated. CLI smoke ok; root CI green (125 pass / 4
+  skip). Remaining: Daniel's warm-cache validation, then corpora/reports paths.

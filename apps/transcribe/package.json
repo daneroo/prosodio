@@ -1,9 +1,9 @@
 {
-  "name": "@prosodio/whisper",
+  "name": "@prosodio/transcribe",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "whisper": "./whisper.ts"
+    "transcribe": "./transcribe.ts"
   },
   "dependencies": {
     "@prosodio/vtt": "workspace:*",

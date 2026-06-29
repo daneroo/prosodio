@@ -20,17 +20,17 @@ cd bun-one/apps/whisper
 RUN_E2E_TESTS=1 bun test
 
 # Help and options
-bun run whisper.ts -h
+bun run transcribe.ts -h
 
 # Demo script (full + segmented runs)
 ./scripts/demo/demo.sh
 ## which some of these below
 # Basic transcription (uses cache)
-bun run whisper.ts -i data/samples/hobbit-30m.m4b -m tiny.en --tag demo-basic
+bun run transcribe.ts -i data/samples/hobbit-30m.m4b -m tiny.en --tag demo-basic
 # segmented transcription (uses cache)
-bun run whisper.ts -i data/samples/hobbit-30m.m4b --segment 10m -m tiny.en --tag demo-seg-10m
+bun run transcribe.ts -i data/samples/hobbit-30m.m4b --segment 10m -m tiny.en --tag demo-seg-10m
 # segmented transcription with duration=25m
-bun run whisper.ts -i data/samples/hobbit-30m.m4b --segment 10m -m tiny.en --tag demo-seg-10m-dur-25m --duration 25m
+bun run transcribe.ts -i data/samples/hobbit-30m.m4b --segment 10m -m tiny.en --tag demo-seg-10m-dur-25m --duration 25m
 
 ./scripts/demo/demo.sh
 
@@ -168,12 +168,12 @@ hobbit-seg00-d10m-mtiny-en-wt0.vtt
 
 - **Core implementation:** ~1950 lines (lib/\*.ts)
 - **Tests:** ~371 lines
-- **CLI entry:** 196 lines (whisper.ts)
+- **CLI entry:** 196 lines (transcribe.ts)
 - **Total:** ~2520 lines
 
 ```txt
 apps/whisper/
-├── whisper.ts           # CLI entry point (196 lines)
+├── transcribe.ts           # CLI entry point (196 lines)
 ├── lib/
 │   ├── runners.ts       # Pipeline orchestration (399 lines)
 │   ├── task.ts          # Task abstraction + factories (521 lines)
