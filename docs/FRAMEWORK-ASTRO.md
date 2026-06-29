@@ -1,6 +1,6 @@
-<!-- ported from ai-garden@9b076ed88:bun-one/docs/WORKSPACE-BUN.md -->
-
 # Astro / Starlight (bun)
+
+> Status: not validated in prosodio — ported notes, not yet run here.
 
 Bootstrap specifics only.
 

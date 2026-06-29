@@ -1,6 +1,6 @@
-<!-- ported from ai-garden@9b076ed88:experiments/BUN_TANSTACK.md + bun-one/docs/WORKSPACE-BUN.md -->
-
 # TanStack Start (bun)
+
+> Status: not validated in prosodio — ported notes, not yet run here.
 
 Bootstrap specifics only.
 

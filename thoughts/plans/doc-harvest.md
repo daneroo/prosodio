@@ -71,3 +71,5 @@ examples, app/package `README.md` files, fixtures READMEs. (~74 files.)
 - Tailwind `@source`/`components/` rationale: STYLING.md or WORKSPACE.md layout?
 - dependabot + GitHub Actions: confirm split (Actions->WORKSPACE.md `## CI`,
   dependabot->DEPENDENCY.md).
+- `thoughts/` lifecycle: define the AI-assisted dev loop (how plans/research/
+  tickets/reviews flow) — then document it in FILE-LAYOUT or its own doc.

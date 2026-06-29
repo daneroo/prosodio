@@ -1,5 +1,3 @@
-<!-- ported from ai-garden@9b076ed88:experiments/STYLING.md + bun-one/docs/WORKSPACE-BUN.md -->
-
 # Styling
 
 - Tailwind v4 ignores `node_modules`; scan workspace UI with
