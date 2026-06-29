@@ -3,6 +3,7 @@
 For dev and LLM alike: brevity, accuracy, nothing extra. One fact, one home.
 
 - [FILE-LAYOUT.md](FILE-LAYOUT.md) — where things live
+- [WORKFLOW.md](WORKFLOW.md) — backlog + plan formats, how work flows
 - [WORKSPACE.md](WORKSPACE.md) — quality gate, testing gotchas, seeding
 - [DEPENDENCY.md](DEPENDENCY.md) — adding, workspace imports, catalogs, updates
 - [FORMATTING.md](FORMATTING.md) — formatting + linting

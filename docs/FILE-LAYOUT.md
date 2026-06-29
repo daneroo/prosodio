@@ -6,7 +6,8 @@
   - `apps/` — runnables
 - Docs
   - `docs/` — durable reference (this set)
-  - `thoughts/` — plans, research, tickets, reviews
+  - `thoughts/` — `BACKLOG.md` (persistent) + transient plans/notes; see
+    [WORKFLOW.md](WORKFLOW.md)
 - Data
   - `fixtures/` — public test data (committed)
   - `reports/` — generated artifacts (committed; may not exist yet)
