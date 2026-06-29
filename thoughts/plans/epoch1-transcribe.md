@@ -10,20 +10,22 @@ needed from the dead `whisper-sh` / `whisper-bench`.
       (`lib/vtt-writer.ts`) internal. Two-phase, behavior-preserving first; the
       equivalence/acceptance contract is settled during execution, not
       pre-specified (deferred per Codex).
-  - [ ] Anchor: `rsync -a bun-one/apps/whisper/ apps/whisper/` (verbatim name;
+  - [x] Anchor: `rsync -a bun-one/apps/whisper/ apps/whisper/` (verbatim name;
         `-a` preserves the source files' mtimes, which git drops). Brings the
         gitignored `data/` (warm cache, models, samples) for local validation
         only — it stays gitignored, never committed or published. `data/work`
         (transient scratch, ~266G) is dropped upstream, not ported.
-  - [ ] Gitignore gate, then commit as-is: only the 36 tracked files stage, zero
-        `data/`. The anchor is byte-identical (blob OIDs match
-        ai-garden@7600ed8) and ci-RED by construction (`zod: catalog:runtime`
-        unresolved until the root catalog gains zod). Lineage in
-        `provenance.md`.
-  - [ ] Make it build + green: fix `package.json` (name, deps; `zod` -> root
-        `runtime` catalog), `git mv apps/whisper -> apps/transcribe`, update
-        refs; `bun install`; CI green locally, then green from the root.
-  - [ ] Validate working as-is (scope discussed post-commit).
+  - [x] Gitignore gate, then commit as-is (`9433707`): only the 36 tracked files
+        stage, zero `data/`. Byte-identical (blob OIDs match ai-garden@7600ed8),
+        ci-RED by construction (`zod: catalog:runtime` unresolved until the root
+        catalog gains zod). Lineage in `provenance.md`.
+  - [ ] Fix in place (no rename yet): add `zod` to the root `runtime` catalog,
+        fix `package.json` (name, deps), update refs; `bun install`; CI green
+        locally then from the root. Prettier-normalizing the ported files gives
+        up byte-identity here (noted in `provenance.md`).
+  - [ ] Validate it runs as-is against the populated cache (Daniel).
+  - [ ] Rename `apps/whisper` -> `apps/transcribe` (`git mv`, entry, refs);
+        re-green CI.
 - [ ] Point it at the central corpora location and `reports/` output; adjust
       paths only.
 - [ ] Prove the root CI target includes the app.
