@@ -17,11 +17,7 @@ alongside their ebooks on a synchronized timeline.
   - `components/` — React UI
   - `apps/` — runnables
 - Docs
-  - `docs/` — durable reference
-    - `FORMATTING.md` — formatting + linting, with proof
-    - `MARKDOWN.md` — markdown authoring style
-    - `CODING-STYLE.md` — code conventions
-    - `WORKSPACE.md` — script targets, quality gate, CI, seeding recipe
+  - `docs/` — durable reference (index: [docs/README.md](docs/README.md))
   - `thoughts/` — plans, research, tickets, reviews
 - Data
   - `fixtures/` — public test data (committed)
