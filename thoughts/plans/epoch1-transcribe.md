@@ -37,3 +37,7 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
 
 - 2026-06-29 — Plan staged for Phase A: verbatim ci-RED anchor, gitignore gate,
   two-phase port mechanics (rsync preserves source mtimes git drops).
+- 2026-06-29 — Anchor landed (`9433707`). Daniel dropped `data/work` upstream,
+  then `rsync -avi bun-one/apps/whisper/ prosodio/apps/whisper/` (102G, dry-run
+  re-pass idempotent). Gate: 36 files stage, zero `data/`; blob OIDs match
+  source 36/36. Lineage in `provenance.md`.
