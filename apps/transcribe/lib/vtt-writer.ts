@@ -3,7 +3,7 @@
  *
  * Format: WEBVTT\n\nNOTE Provenance\n{JSON}\n\n...cues...
  *
- * This lives in apps/whisper/lib/ until proven general enough
+ * This lives in apps/transcribe/lib/ until proven general enough
  * to move into packages/vtt.
  */
 

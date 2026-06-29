@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run from apps/whisper
+# Run from apps/transcribe
 if [[ ! -f "transcribe.ts" ]]; then
-  echo "Run this script from apps/whisper"
+  echo "Run this script from apps/transcribe"
   exit 1
 fi
 

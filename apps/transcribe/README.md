@@ -1,4 +1,4 @@
-# Whisper CLI
+# Transcribe
 
 Audio transcription tool using whisper.cpp with automatic segmentation for long
 files.
@@ -6,10 +6,10 @@ files.
 ## Usage
 
 ```bash
-# Navigate to (this) whisper directory
-cd bun-one/apps/whisper
+# Navigate to (this) transcribe directory
+cd apps/transcribe
 
-## Run from workspaces root (../.. == bun-one/)
+## Run from workspaces root (../.. == prosodio repo root)
 # CI (format + lint + check + test)
 (cd ../.. && bun run ci)
 # to fix any formatting errors
@@ -54,8 +54,6 @@ subtitle files with timestamps.
 (max 37 hours each due to WAV format limits), transcribing each segment, then
 stitching results together.
 
-**Current state:** ~2520 total lines after V5 refactor
-
 ---
 
 ## Architecture
@@ -68,21 +66,21 @@ INPUT FILE (any format: mp3, m4b, flac, etc.)
     ├──► ffprobe → getAudioDurationSec()
     │
     ▼
-┌─────────────────────────────────────────────────────────┐
-│  SINGLE SEGMENT (audioDurationSec <= 37h)                  │
+┌────────────────────────────────────────────────────────┐
+│  SINGLE SEGMENT (audioDurationSec <= 37h)              │
 │  ┌─────────────┐    ┌─────────────┐                    │
 │  │  to-wav     │───►│ transcribe  │───► OUTPUT.vtt     │
 │  │  (ffmpeg)   │    │ (whisper)   │                    │
 │  │  [cached]   │    │  [cached]   │                    │
 │  └─────────────┘    └─────────────┘                    │
-└─────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────┘
     │
     ├──► audioDurationSec > 37h ? SPLIT INTO SEGMENTS
     │
     ▼
-┌─────────────────────────────────────────────────────────┐
-│  MULTI-SEGMENT (N segments, N ≥ 2)                      │
-│                                                         │
+┌────────────────────────────────────────────────────────┐
+│  MULTI-SEGMENT (N segments, N ≥ 2)                     │
+│                                                        │
 │  ┌─────────┐   ┌─────────┐                             │
 │  │seg0.wav │──►│seg0.vtt │                             │
 │  │(ffmpeg) │   │(whisper)│                             │
@@ -93,13 +91,13 @@ INPUT FILE (any format: mp3, m4b, flac, etc.)
 │  │(ffmpeg) │   │(whisper)│                             │
 │  │[cached] │   │[cached] │                             │
 │  └─────────┘   └────┬────┘                             │
-│       ...           ...                                 │
+│       ...           ...                                │
 │  ┌─────────┐   ┌─────────┐        ┌─────────┐          │
-│  │segN.wav │──►│segN.vtt │───────►│  stitch │───► OUT │
+│  │segN.wav │──►│segN.vtt │───────►│  stitch │───► OUT  │
 │  │(ffmpeg) │   │(whisper)│        │         │          │
 │  │[cached] │   │[cached] │        └─────────┘          │
 │  └─────────┘   └─────────┘                             │
-└─────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────┘
 ```
 
 ### Stitching
@@ -164,31 +162,28 @@ hobbit-seg00-d10m-mtiny-en-wt0.vtt
 
 ## File Structure
 
-### Current State (Post-V5)
-
-- **Core implementation:** ~1950 lines (lib/\*.ts)
-- **Tests:** ~371 lines
-- **CLI entry:** 196 lines (transcribe.ts)
-- **Total:** ~2520 lines
+VTT parsing, stitching, and schema live in the `@prosodio/vtt` package; this app
+keeps only `lib/vtt-writer.ts`, the serializer over it.
 
 ```txt
-apps/whisper/
-├── transcribe.ts           # CLI entry point (196 lines)
+apps/transcribe/
+├── transcribe.ts             # CLI entry point
 ├── lib/
-│   ├── runners.ts       # Pipeline orchestration (399 lines)
-│   ├── task.ts          # Task abstraction + factories (521 lines)
-│   ├── vtt.ts           # VTT parsing/writing (374 lines)
-│   ├── vtt-stitch.ts    # Multi-segment concatenation (227 lines)
-│   ├── segmentation.ts  # Segment geometry (107 lines)
-│   ├── cache.ts         # WAV/VTT caching (37 lines)
-│   ├── audio.ts         # ffprobe duration check (48 lines)
-│   ├── duration.ts      # Time parsing/formatting (85 lines)
-│   ├── progress.ts      # Progress reporting (84 lines)
-│   ├── preflight.ts     # Dependency checks (49 lines)
-│   └── simpler.ts       # Prototype: simplified segmentation (22 lines)
+│   ├── runners.ts            # Pipeline orchestration
+│   ├── task.ts               # Task abstraction + factories
+│   ├── vtt-writer.ts         # Serialize @prosodio/vtt artifacts to .vtt text
+│   ├── segmentation.ts       # Segment geometry
+│   ├── cache.ts              # WAV/VTT caching
+│   ├── audio.ts              # ffprobe duration check
+│   ├── duration.ts           # Time parsing/formatting
+│   ├── progress.ts           # Progress reporting
+│   ├── preflight.ts          # Dependency checks
+│   └── simpler-recursive.ts  # Prototype: simplified segmentation
 └── scripts/
-    ├── demo/demo.sh     # End-to-end demo
-    └── benchmarks/      # Performance testing
+    ├── demo/                 # End-to-end demo
+    ├── many/                 # Batch transcription
+    ├── tools/                # VTT compare / monotonicity
+    └── benchmarks/           # Performance testing
 ```
 
 ---

@@ -43,9 +43,12 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
         `@prosodio/transcribe`, bin `transcribe`, README/scripts refs updated.
         CLI smoke (`transcribe.ts -h`) ok; root CI green.
   - [x] Validate it runs as-is against the populated cache (Daniel): ran many
-        cached transcriptions; output is BYTE-IDENTICAL to bun-one (e.g.
-        `hobbit-30m.vtt` sha1 `0f7f8a91…` matches source). Stronger than the
-        plan's semantic-equivalence bar. Fresh uncached book running too.
+        cache-replayed transcriptions; output byte-identical to bun-one (e.g.
+        `hobbit-30m.vtt` sha1 `0f7f8a91…`). Caveat: fresh output is never
+        byte-identical by construction (the `NOTE Provenance` header embeds a
+        wall-clock `generated` + per-run `elapsedMs`; whisper.cpp also
+        non-deterministic) — so this is cache-replay equivalence, at/above the
+        plan's semantic-equivalence bar.
 - [ ] Point it at the central corpora location and `reports/` output; adjust
       paths only.
 - [x] Prove the root CI target includes the app (root `bun test` runs the app +

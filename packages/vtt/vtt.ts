@@ -1,8 +1,8 @@
 /**
- * @bun-one/vtt — public API
+ * @prosodio/vtt — public API
  *
  * Re-exports from internal modules. Consumers should import from
- * "@bun-one/vtt" rather than reaching into individual files.
+ * "@prosodio/vtt" rather than reaching into individual files.
  */
 
 // Time utilities

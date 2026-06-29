@@ -1,18 +1,19 @@
-# @bun-one/vtt
+# @prosodio/vtt
 
 Standalone VTT parsing and utility package for this monorepo.
 
 ## Usage
 
-All imports come from `@bun-one/vtt`. The package hides Standard Schema plumbing
-— callers select a schema by name (`"zod"` or `"valibot"`, defaults to `"zod"`).
+All imports come from `@prosodio/vtt`. The package hides Standard Schema
+plumbing — callers select a schema by name (`"zod"` or `"valibot"`, defaults to
+`"zod"`).
 
 ### Convenience functions (typical use)
 
 When you know what to expect — strict mode, narrowed return type:
 
 ```ts
-import { parseTranscription, parseComposition } from "@bun-one/vtt";
+import { parseTranscription, parseComposition } from "@prosodio/vtt";
 
 // Returns VttTranscription directly — throws on any warning or type mismatch
 const { value } = parseTranscription(vttText);
@@ -28,7 +29,7 @@ console.log(comp.segments.length);
 When validating files you didn't write, or collecting warnings without throwing:
 
 ```ts
-import { parseVtt } from "@bun-one/vtt";
+import { parseVtt } from "@prosodio/vtt";
 
 const { value: classified, warnings } = parseVtt(vttText);
 
