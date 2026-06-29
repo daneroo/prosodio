@@ -42,12 +42,18 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
         `data/` followed: 193 files / 95G intact), entry `transcribe.ts`, name
         `@prosodio/transcribe`, bin `transcribe`, README/scripts refs updated.
         CLI smoke (`transcribe.ts -h`) ok; root CI green.
-  - [ ] Validate it runs as-is against the populated cache (Daniel).
+  - [x] Validate it runs as-is against the populated cache (Daniel): ran many
+        cached transcriptions; output is BYTE-IDENTICAL to bun-one (e.g.
+        `hobbit-30m.vtt` sha1 `0f7f8a91…` matches source). Stronger than the
+        plan's semantic-equivalence bar. Fresh uncached book running too.
 - [ ] Point it at the central corpora location and `reports/` output; adjust
       paths only.
 - [x] Prove the root CI target includes the app (root `bun test` runs the app +
       vtt suites; 125 pass / 4 skip).
-- [ ] Use the port to validate runtime-bound package/app conventions.
+- [x] Use the port to validate runtime-bound package/app conventions: pure
+      `@prosodio/vtt` (`packages/*`, no runtime binding) feeds the runtime-bound
+      `@prosodio/transcribe` (`apps/*`, shells out to ffmpeg/whisper-cli) —
+      `workspace:*` + catalog resolve from root, CI green.
 - [ ] Acceptance: judged by Daniel at port time (see port strategy in the
       consolidation plan).
 
@@ -79,3 +85,8 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   `data/` followed, 193 files / 95G verified intact), entry/name/bin ->
   transcribe, README/scripts updated. CLI smoke ok; root CI green (125 pass / 4
   skip). Remaining: Daniel's warm-cache validation, then corpora/reports paths.
+- 2026-06-29 — Validation PASSED (Daniel): ran many cached transcriptions,
+  output byte-identical to bun-one (`hobbit-30m.vtt` sha1 `0f7f8a91…` matches);
+  fresh uncached book running. Stronger than the planned semantic-equivalence
+  bar. Both ports done + green; only Phase-B corpora/`reports/` path
+  normalization left in Epoch 1 (plus Daniel's final acceptance).

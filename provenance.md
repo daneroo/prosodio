@@ -19,7 +19,9 @@ later commits normalize (rename, paths, config).
 - equivalence: 36 tracked files, blob OIDs identical to source at anchor; root
   CI green after fix (125 pass / 4 skip, the skips RUN_E2E_TESTS-gated). ci-RED
   at anchor by construction (`zod: catalog:runtime` unresolved, name
-  `@bun-one/whisper`).
+  `@bun-one/whisper`). Runtime (Daniel): cached transcriptions byte-identical to
+  bun-one — e.g. `hobbit-30m.vtt` sha1 `0f7f8a91…` matches source; CI also runs
+  a real `jfk` transcription on the public fixture.
 - deviations: name -> `@prosodio/transcribe`; declared the phantom
   `@prosodio/vtt` dep + rewrote 8 imports; entry `whisper.ts` ->
   `transcribe.ts`, bin `transcribe`; eslint `cause` chained at `runners.ts:146`;
