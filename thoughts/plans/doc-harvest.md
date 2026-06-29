@@ -14,18 +14,18 @@ SEPARATE commit; then refactor/rename. Reconcile overlaps last.
 
 ## Target `docs/` set
 
-| file                   | purpose                                       | status / sources                                                                       |
-| ---------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `README.md`            | index of `docs/` (what covers what)           | NEW — built from this table                                                             |
-| `FILE-LAYOUT.md`       | dir tree + what goes where                    | NEW — extract from current `AGENTS.md` Layout; AGENTS keeps a pointer                   |
-| `WORKSPACE.md`         | all script targets, `ci`/`fmt` gate, CI, exceptions; last section `## Seeding this repository` | merge `bun-one/docs/WORKSPACE-BUN.md` + current `docs/SEEDING.md`     |
-| `DEPENDENCY.md`        | adding deps, `workspace:*`, `--filter`, catalogs, outdated/update, dependabot | from WORKSPACE-BUN.md dep sections                                       |
-| `FORMATTING.md`        | formatting + linting (with proof)             | EXISTS — keep                                                                           |
-| `MARKDOWN.md`          | markdown authoring style                      | EXISTS — keep (experiments/MARKDOWN already covered, no merge)                          |
-| `CODING-STYLE.md`      | code conventions (top-down)                   | EXISTS — keep                                                                           |
-| `STYLING.md`           | theming + Tailwind `@source`/components rule  | `experiments/STYLING.md` + Tailwind bits of WORKSPACE-BUN.md                            |
-| `FRAMEWORK-TANSTACK.md`| TanStack Start bootstrap (bun specifics)      | merge `experiments/BUN_TANSTACK.md` + tan-one section of WORKSPACE-BUN.md               |
-| `FRAMEWORK-ASTRO.md`   | Astro/Starlight bootstrap (bun specifics)     | Astro Starlight section of WORKSPACE-BUN.md                                              |
+| file                    | purpose                                                                                        | status / sources                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `README.md`             | index of `docs/` (what covers what)                                                            | NEW — built from this table                                               |
+| `FILE-LAYOUT.md`        | dir tree + what goes where                                                                     | NEW — extract from current `AGENTS.md` Layout; AGENTS keeps a pointer     |
+| `WORKSPACE.md`          | all script targets, `ci`/`fmt` gate, CI, exceptions; last section `## Seeding this repository` | merge `bun-one/docs/WORKSPACE-BUN.md` + current `docs/SEEDING.md`         |
+| `DEPENDENCY.md`         | adding deps, `workspace:*`, `--filter`, catalogs, outdated/update, dependabot                  | from WORKSPACE-BUN.md dep sections                                        |
+| `FORMATTING.md`         | formatting + linting (with proof)                                                              | EXISTS — keep                                                             |
+| `MARKDOWN.md`           | markdown authoring style                                                                       | EXISTS — keep (experiments/MARKDOWN already covered, no merge)            |
+| `CODING-STYLE.md`       | code conventions (top-down)                                                                    | EXISTS — keep                                                             |
+| `STYLING.md`            | theming + Tailwind `@source`/components rule                                                   | `experiments/STYLING.md` + Tailwind bits of WORKSPACE-BUN.md              |
+| `FRAMEWORK-TANSTACK.md` | TanStack Start bootstrap (bun specifics)                                                       | merge `experiments/BUN_TANSTACK.md` + tan-one section of WORKSPACE-BUN.md |
+| `FRAMEWORK-ASTRO.md`    | Astro/Starlight bootstrap (bun specifics)                                                      | Astro Starlight section of WORKSPACE-BUN.md                               |
 
 FRAMEWORK-* scope: bootstrap/seeding only. Deeper runtime notes get added back
 when we recreate the experiments (bookfinder/bookplayer) as ports into prosodio.
@@ -36,12 +36,12 @@ when we recreate the experiments (bookfinder/bookplayer) as ports into prosodio.
 
 ### Keep / merge (real durable content)
 
-| source                              | -> destination                                  |
-| ----------------------------------- | ----------------------------------------------- |
-| `bun-one/docs/WORKSPACE-BUN.md`     | WORKSPACE.md + DEPENDENCY.md + FRAMEWORK-* + STYLING.md (Tailwind) |
-| `experiments/STYLING.md`            | STYLING.md                                       |
-| `experiments/BUN_TANSTACK.md`       | FRAMEWORK-TANSTACK.md                             |
-| current `docs/SEEDING.md`           | WORKSPACE.md `## Seeding this repository`         |
+| source                          | -> destination                                                     |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `bun-one/docs/WORKSPACE-BUN.md` | WORKSPACE.md + DEPENDENCY.md + FRAMEWORK-* + STYLING.md (Tailwind) |
+| `experiments/STYLING.md`        | STYLING.md                                                         |
+| `experiments/BUN_TANSTACK.md`   | FRAMEWORK-TANSTACK.md                                              |
+| current `docs/SEEDING.md`       | WORKSPACE.md `## Seeding this repository`                          |
 
 ### Drop (placeholder / meta / not-prosodio)
 
