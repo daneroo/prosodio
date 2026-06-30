@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { config } from "./config.ts";
 
-const CACHE_ROOT = join(import.meta.dir, "..", "data", "cache");
+const CACHE_ROOT = config.cacheDir;
 
 function ensureDir(dir: string): void {
   if (!existsSync(dir)) {

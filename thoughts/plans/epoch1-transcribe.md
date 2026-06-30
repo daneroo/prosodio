@@ -49,8 +49,22 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
         wall-clock `generated` + per-run `elapsedMs`; whisper.cpp also
         non-deterministic) — so this is cache-replay equivalence, at/above the
         plan's semantic-equivalence bar.
-- [ ] Point it at the central corpora location and `reports/` output; adjust
-      paths only.
+- [ ] Point it at the central corpora location and `reports/` output. Scope grew
+      (Daniel) to FILE-LAYOUT conformance — done now, pre-merge:
+  - [x] Single `lib/config.ts`: a `config` object, one `DATA_DIR` root deriving
+        `{cache,work,output,models,sampleDir}`; repointed `transcribe.ts`,
+        `lib/cache.ts`, `lib/runners.ts` AND all six test files (the move
+        surfaced hardcoded test paths). Daniel-tested.
+  - [x] Repoint `DATA_DIR` -> top-level `data/transcribe`; `mv`d the real
+        content (warm cache + 17G samples intact); `apps/transcribe` is now
+        data-free. Daniel-tested (cached + do-series runs good).
+  - [ ] Later: promote `lib/config.ts` -> `packages/config`; env overrides
+        (`DATA_DIR`, `CORPORA_DIR`).
+  - [~] Scripts: `demo.sh`, `do-series.sh`, `show-performance.sh` repointed
+    (self-location-derived, help interpolated). Remaining: `run-bench.ts`
+    repoint; triage/drop `tools/{vtt-compare,vtt-monotonicity}`.
+  - [ ] Later: augment `FILE-LAYOUT.md` with `data/<app>/<category>` once
+        satisfied; revisit `samples` -> fixtures/corpora.
 - [x] Prove the root CI target includes the app (root `bun test` runs the app +
       vtt suites; 125 pass / 4 skip).
 - [x] Use the port to validate runtime-bound package/app conventions: pure

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-DEFAULT_DIR="$SCRIPT_DIR/data/output"
+DEFAULT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)/data/transcribe/output"
 
 VTT_DIR="$DEFAULT_DIR"
 SEARCH=""
@@ -15,7 +15,7 @@ usage() {
   echo "X axis: Audio Duration (hours)  Y axis: Execution Time (hours)"
   echo ""
   echo "Options:"
-  echo "  -d DIR     Directory to search for .vtt files (default: data/output)"
+  echo "  -d DIR     Directory to search for .vtt files (default: $DEFAULT_DIR)"
   echo "  -s TERMS   Filter filenames by search terms (case-insensitive, each word must match)"
   echo "  -o FILE    Save plot to FILE instead of displaying with plt.show()"
   echo "  -h         Show this help"
@@ -23,7 +23,7 @@ usage() {
   echo "Examples:"
   echo "  $0"
   echo "  $0 -s culture"
-  echo "  $0 -d data/output/benchmarks -o /tmp/perf.png"
+  echo "  $0 -d data/transcribe/output/benchmarks -o /tmp/perf.png"
   exit 0
 }
 

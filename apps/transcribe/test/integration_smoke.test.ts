@@ -16,17 +16,17 @@ import {
   runWhisper,
 } from "../lib/runners.ts";
 import { parseComposition } from "@prosodio/vtt";
+import { config } from "../lib/config.ts";
 import {
   cleanupOutputDir,
   createWorkDirCleanup,
   FIXTURE_JFK,
-  PACKAGE_ROOT,
   resetOutputDir,
   TEST_WORK_DIR_ROOT,
   warmupWhisperCli,
 } from "./helpers.ts";
 
-const TEST_OUTPUT_DIR = join(PACKAGE_ROOT, "data/output/smoke-test");
+const TEST_OUTPUT_DIR = join(config.outputDir, "smoke-test");
 
 const workDirCleanup = createWorkDirCleanup();
 

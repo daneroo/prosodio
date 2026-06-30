@@ -18,16 +18,16 @@ import {
   type RunConfig,
   runWhisper,
 } from "../lib/runners.ts";
+import { config } from "../lib/config.ts";
 import {
   cleanupOutputDir,
   createWorkDirCleanup,
-  PACKAGE_ROOT,
   resetOutputDir,
   TEST_WORK_DIR_ROOT,
 } from "./helpers.ts";
 
-const TEST_OUTPUT_DIR = join(PACKAGE_ROOT, "data/output/e2e-basic-test");
-const FIXTURE_HOBBIT = join(PACKAGE_ROOT, "data/samples/hobbit-30m.m4b");
+const TEST_OUTPUT_DIR = join(config.outputDir, "e2e-basic-test");
+const FIXTURE_HOBBIT = join(config.sampleDir, "hobbit-30m.m4b");
 const E2E_TIMEOUT_PER_TEST_MS = 2 * 60 * 1000;
 
 const workDirCleanup = createWorkDirCleanup();

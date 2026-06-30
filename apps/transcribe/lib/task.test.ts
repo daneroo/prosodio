@@ -9,11 +9,12 @@ import {
 
 import { join, resolve } from "node:path";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { config } from "./config.ts";
 
-// Resolve paths relative to this file (lib/task_test.ts)
+// Resolve paths relative to this file (lib/task.test.ts)
 const PKG_ROOT = resolve(import.meta.dirname, "..");
 const FIXTURES_DIR = join(PKG_ROOT, "test", "fixtures");
-const WORK_DIR = join(PKG_ROOT, "data", "work", "unit-test-task");
+const WORK_DIR = join(config.workDir, "unit-test-task");
 
 // Ensure work dir exists
 mkdirSync(WORK_DIR, { recursive: true });

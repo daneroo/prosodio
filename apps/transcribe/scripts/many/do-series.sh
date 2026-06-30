@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-OUTPUT_DIR="$SCRIPT_DIR/data/output"
+OUTPUT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)/data/transcribe/output"
 AUDIOBOOKS="${AUDIOBOOKS:-/Volumes/Space/Reading/audiobooks}"
 
 DRY_RUN=false
@@ -12,7 +12,7 @@ usage() {
   echo "Usage: $0 [-n|--dry-run] [-h|--help] -s \"search terms\""
   echo ""
   echo "Find and transcribe .m4b audiobooks from $AUDIOBOOKS."
-  echo "Skips books whose .vtt already exists in data/output/."
+  echo "Skips books whose .vtt already exists in $OUTPUT_DIR/."
   echo "Shows matches, lets you pick, then runs."
   echo ""
   echo "Options:"

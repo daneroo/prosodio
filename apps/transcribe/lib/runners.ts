@@ -1,7 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { basename, dirname, extname, join } from "node:path";
+import { basename, dirname, extname } from "node:path";
 import { existsSync } from "node:fs";
 import { getVttCachePath, getWavCachePath } from "./cache.ts";
+import { config } from "./config.ts";
 import { getAudioFileDuration } from "./audio.ts";
 import {
   createNullProgressReporter,
@@ -26,9 +27,8 @@ import {
 import { buildSequences } from "./segmentation.ts";
 import { formatDuration } from "./duration.ts";
 
-// Model directory for whisper-cpp (absolute path)
-// TODO:this will probably need to evolve with an ENV based configuration
-const WHISPER_CPP_MODELS = join(import.meta.dir, "..", "data", "models");
+// Model directory for whisper-cpp (absolute path); see lib/config.ts
+const WHISPER_CPP_MODELS = config.modelsDir;
 
 // Maximum WAV duration due to RIFF 32-bit size limit (~37h for 16kHz mono 16-bit)
 const MAX_WAV_DURATION_SEC = 37 * 3600;

@@ -7,8 +7,13 @@ if [[ ! -f "transcribe.ts" ]]; then
   exit 1
 fi
 
-INPUT="data/samples/hobbit-30m.m4b"
-OUTPUT_DIR="data/output/demo"
+# Data lives at the repo-root data/transcribe (see lib/config.ts), resolved from
+# this script's own location so it works regardless of cwd.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DATA_DIR="$(cd "$SELF_DIR/../../../.." && pwd)/data/transcribe"
+
+INPUT="$DATA_DIR/samples/hobbit-30m.m4b"
+OUTPUT_DIR="$DATA_DIR/output/demo"
 
 echo "== Whisper demo: full run (no cache) =="
 bun run transcribe.ts -i "$INPUT" -m tiny.en --output "$OUTPUT_DIR" --tag demo-full --no-cache

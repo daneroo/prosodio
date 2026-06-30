@@ -1,5 +1,6 @@
 import yargs from "yargs";
 import process from "node:process";
+import { join } from "node:path";
 import {
   createRunWorkDir,
   getRequiredCommands,
@@ -10,12 +11,13 @@ import {
 } from "./lib/runners.ts";
 import { preflightCheck } from "./lib/preflight.ts";
 import { parseDuration } from "./lib/duration.ts";
+import { config } from "./lib/config.ts";
 
 // Configuration defaults
-const DEFAULT_INPUT = "data/samples/hobbit-30m.mp3";
+const DEFAULT_INPUT = join(config.sampleDir, "hobbit-30m.mp3");
 const DEFAULT_MODEL = "tiny.en";
-const DEFAULT_OUTPUT_DIR = "data/output";
-const DEFAULT_WORKDIR_ROOT = "data/work";
+const DEFAULT_OUTPUT_DIR = config.outputDir;
+const DEFAULT_WORKDIR_ROOT = config.workDir;
 const DEFAULT_THREADS = 6;
 const DEFAULT_DURATION = "0s";
 const DEFAULT_ITERATIONS = 1;

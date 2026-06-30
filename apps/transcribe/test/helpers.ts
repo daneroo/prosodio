@@ -6,10 +6,11 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { execSync } from "node:child_process";
+import { config } from "../lib/config.ts";
 
 // Common paths
 export const PACKAGE_ROOT = join(import.meta.dir, "..");
-export const TEST_WORK_DIR_ROOT = join(PACKAGE_ROOT, "data/work");
+export const TEST_WORK_DIR_ROOT = config.workDir;
 
 // Test fixtures
 export const FIXTURE_JFK = join(PACKAGE_ROOT, "test/fixtures/jfk.m4b");

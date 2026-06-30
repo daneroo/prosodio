@@ -24,18 +24,18 @@ import {
   type RunConfig,
   runWhisper,
 } from "../lib/runners.ts";
+import { config } from "../lib/config.ts";
 import {
   cleanupOutputDir,
   createWorkDirCleanup,
   FIXTURE_JFK,
-  PACKAGE_ROOT,
   resetOutputDir,
   TEST_WORK_DIR_ROOT,
   warmupWhisperCli,
 } from "./helpers.ts";
 
-const TEST_OUTPUT_DIR = join(PACKAGE_ROOT, "data/output/cache-bypass-test");
-const CACHE_DIR = join(PACKAGE_ROOT, "data/cache");
+const TEST_OUTPUT_DIR = join(config.outputDir, "cache-bypass-test");
+const CACHE_DIR = config.cacheDir;
 
 const workDirCleanup = createWorkDirCleanup();
 

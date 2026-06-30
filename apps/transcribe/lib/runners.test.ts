@@ -10,14 +10,15 @@ import {
   type RunDeps,
   runWhisper,
 } from "./runners.ts";
+import { config } from "./config.ts";
 
 const mockConfig: RunConfig = {
   input: "test.mp3",
   modelShortName: "tiny.en",
   threads: 4,
   durationSec: 0,
-  outputDir: "data/output",
-  runWorkDir: "data/work/test-2025-01-01T00-00-00Z",
+  outputDir: config.outputDir,
+  runWorkDir: join(config.workDir, "test-2025-01-01T00-00-00Z"),
   verbosity: 1,
   dryRun: true, // Always dry-run for unit tests
   wordTimestamps: false,
