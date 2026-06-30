@@ -63,6 +63,24 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
   - [~] Scripts: `demo.sh`, `do-series.sh`, `show-performance.sh` repointed
     (self-location-derived, help interpolated). Remaining: `run-bench.ts`
     repoint; triage/drop `tools/{vtt-compare,vtt-monotonicity}`.
+  - [ ] Reproducible fixtures (replaces the private `hobbit` samples;
+        cross-epoch — feeds epub/alignment too, may graduate to its own
+        issue/plan). Structure mirrors corpora:
+        `fixtures/audiobooks/<Author - Title>/{epub,     m4b}`; small audio-only
+        smoke fixtures in `fixtures/audio/`.
+    - [ ] jfk -> `fixtures/audio/`: digest the source mp3 (whisper.cpp sample);
+          PRODUCE the m4b via ffmpeg (no digest — conversion not
+          bit-reproducible); soft-validate instead (e.g. audio duration
+          matches).
+    - [ ] Alice pair, fetched directly + digest-pinned (no conversion, so
+          stable): m4b from archive.org, epub3 from Gutenberg #11, into
+          `fixtures/audiobooks/Lewis Carroll - Alices Adventures in Wonderland/`.
+    - [ ] GATED DECISION: `.gitignore` rules under `fixtures/audiobooks/` (which
+          media is fetched-and-ignored vs committed) — decide deliberately.
+    - [ ] `check-fixtures`: idempotent ensure-present-and-valid (verify digest /
+          download / produce+soft-check, in dependency order). Bash first,
+          convert to `.ts` if it gets messy. Per-fixture `provenance.json`
+          (preferred) over `manifest.json`.
   - [ ] Later: augment `FILE-LAYOUT.md` with `data/<app>/<category>` once
         satisfied; revisit `samples` -> fixtures/corpora.
 - [x] Prove the root CI target includes the app (root `bun test` runs the app +
