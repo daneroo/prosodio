@@ -10,7 +10,7 @@
   - `docs/` — durable reference (this set)
   - `thoughts/` — `BACKLOG.md` (persistent) + transient plans/notes; see
     [WORKFLOW.md](WORKFLOW.md)
-- Data
+- Data (what may be committed vs kept private: [PRIVACY.md](PRIVACY.md))
   - `fixtures/` — public test data (committed, reproducible — see `scripts/`):
     - `audio/` — small smoke clips + produced `.m4b`
     - `audiobooks/<Author - Title>/` — the `.epub` (committed) beside its large
