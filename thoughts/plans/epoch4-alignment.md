@@ -1,5 +1,7 @@
 # epoch4-alignment — Alignment research
 
+Status: planned
+
 Goal: design the synchronization engine fresh, informed by the now-real
 transcription and EPUB APIs.
 

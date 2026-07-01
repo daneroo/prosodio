@@ -1,5 +1,7 @@
 # epoch3-audiobook-validation — Audiobook collection validation
 
+Status: planned
+
 Goal: assess and port the useful parts of `nx-audiobook`.
 
 - [ ] Assess and port the useful `nx-audiobook/apps/validate`, `validators`, and

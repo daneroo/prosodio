@@ -1,0 +1,16 @@
+# Privacy — public/private data boundary
+
+What may be committed to this public repo, and what must not. Where things live:
+[FILE-LAYOUT.md](FILE-LAYOUT.md).
+
+- Committed `fixtures/` — public test data. The location is the contract:
+  placing a file under `fixtures/` declares it safe/legal to expose. Large
+  binaries are fetched + verified via `fixtures/manifest.jsonc`, not committed.
+- Volatile `data/<app>/…` — gitignored: outputs, caches, scratch.
+- External private corpora — outside the worktree, via config (`CORPORA_DIR`,
+  provisional; the shared config lib isn't promoted yet — see
+  `promote-app-config` in [BACKLOG](../thoughts/BACKLOG.md)).
+
+Rule the reports leak taught: anything derived from private corpora is itself
+private — it carries filenames/metadata. No standing committed artifact dir;
+promotion to public is deliberate and identity-stripping.

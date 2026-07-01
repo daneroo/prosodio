@@ -1,5 +1,7 @@
 # epoch2-epub — EPUB parsing and validation
 
+Status: planned
+
 Goal: port `epub-validate` intact and introduce the smallest justified
 production EPUB abstraction.
 

@@ -1,5 +1,7 @@
 # Provenance
 
+Transient: delete when the consolidation port is complete.
+
 Clean-port lineage. Each component records where it came from and how
 equivalence was shown. Behavior-preserving anchors are byte-identical to source;
 later commits normalize (rename, paths, config).

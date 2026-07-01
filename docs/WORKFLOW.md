@@ -29,17 +29,22 @@ Written when an issue is scheduled. One issue, small enough for clear steps.
 ```md
 # <id> — <title>
 
+Status: planned | active | done
+
 Goal: <one line>.
 
 - [ ] step
 - [ ] step
 ```
 
+- Status: `planned` (not started) -> `active` (in progress) -> `done` (closed).
 - Steps are checkboxes — the agent's live progress tracker; tick as you go.
 - Optional notes beside it: `<id>-research.md`, `<id>-review.md`, only if
   warranted.
 - Closing: tick `[x]` in BACKLOG and commit that; a _separate_ commit deletes
-  the plan (and notes). The backlog keeps the record.
+  the plan (and notes) — the backlog keeps the record. Default is deletion on
+  `done`; a `done` plan may linger briefly if it still interacts with ongoing
+  work (e.g. sibling epochs), then gets deleted.
 
 ## Scale-up path
 

@@ -1,5 +1,8 @@
 # epoch1-transcribe — Transcribe (first port)
 
+Status: done (retained until the consolidation completes; interacts with epochs
+2-4)
+
 Goal: a working reproduction of whisper as `apps/transcribe` plus its real
 dependency `@prosodio/vtt` (the trusted VTT engine, ported from
 `bun-one/packages/vtt`). NOT an end-to-end player.
