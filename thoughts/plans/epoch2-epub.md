@@ -15,6 +15,12 @@ new `epoch2` branch.
       intact (see its FINDINGS doc); keep `ParserOutput` as the parser-parity
       contract. The SPLIT shape is NOT pre-specified — decide it here, from the
       code.
+- [ ] Reconcile epub-validate's `docs/` — it is a planning folder (its
+      `thoughts/` analogue; `docs/archive/` holds done/historical plans). After
+      the anchor, prune the archive + done plans (they don't graduate). One
+      keeper: `DESIGN-epub-indexing` is actually a sketch of epoch 4's
+      alignment/indexing work — route it to `epoch4-alignment.md`, don't
+      discard.
 - [ ] Copy `apps/transcribe/lib/config.ts` into the epub app as its own path
       config (a second consumer). This makes the later lift to `packages/config`
       easier and keeps it independent — see BACKLOG `promote-app-config`.
