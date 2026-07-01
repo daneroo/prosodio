@@ -1,7 +1,7 @@
 /**
  * E2E test for whisper pipeline using longer audio sample.
  *
- * Tests demo.sh scenarios with hobbit-30m.m4b (~30 minutes).
+ * Tests demo.sh scenarios with alice-30m.m4b (~30 minutes).
  * Requirements: whisper-cli, ffmpeg, tiny.en model.
  *
  * Run with: RUN_E2E_TESTS=1 bun test
@@ -27,7 +27,7 @@ import {
 } from "./helpers.ts";
 
 const TEST_OUTPUT_DIR = join(config.outputDir, "e2e-basic-test");
-const FIXTURE_HOBBIT = join(config.sampleDir, "hobbit-30m.m4b");
+const FIXTURE_ALICE = join(config.fixturesDir, "audio", "alice-30m.m4b");
 const E2E_TIMEOUT_PER_TEST_MS = 2 * 60 * 1000;
 
 const workDirCleanup = createWorkDirCleanup();
@@ -43,17 +43,17 @@ describe.skipIf(!process.env.RUN_E2E_TESTS)("e2e: demo scenarios", () => {
   });
 
   test(
-    "full: hobbit-30m transcription produces VTT",
+    "full: alice-30m transcription produces VTT",
     async () => {
       const runWorkDir = createRunWorkDir({
         workDirRoot: TEST_WORK_DIR_ROOT,
-        inputPath: FIXTURE_HOBBIT,
+        inputPath: FIXTURE_ALICE,
         tag: "e2e-full",
       });
       workDirCleanup.track(runWorkDir);
 
       const config: RunConfig = {
-        input: FIXTURE_HOBBIT,
+        input: FIXTURE_ALICE,
         modelShortName: "tiny.en",
         threads: 4,
         durationSec: 0,
@@ -94,17 +94,17 @@ describe.skipIf(!process.env.RUN_E2E_TESTS)("e2e: demo scenarios", () => {
   );
 
   test(
-    "segmented: hobbit-30m with 10m segments produces stitched VTT",
+    "segmented: alice-30m with 10m segments produces stitched VTT",
     async () => {
       const runWorkDir = createRunWorkDir({
         workDirRoot: TEST_WORK_DIR_ROOT,
-        inputPath: FIXTURE_HOBBIT,
+        inputPath: FIXTURE_ALICE,
         tag: "e2e-seg-10m",
       });
       workDirCleanup.track(runWorkDir);
 
       const config: RunConfig = {
-        input: FIXTURE_HOBBIT,
+        input: FIXTURE_ALICE,
         modelShortName: "tiny.en",
         threads: 4,
         durationSec: 0,

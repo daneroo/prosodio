@@ -25,7 +25,7 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
         cataloged `valibot` in root `runtime`. Self-clean: 55 tests pass,
         eslint/types clean, prettier-normalized 4 files (byte-identity given
         up). Contributes to root CI green once the app lands.
-- [ ] Port `bun-one/apps/whisper` -> `apps/transcribe` as
+- [x] Port `bun-one/apps/whisper` -> `apps/transcribe` as
       `@prosodio/transcribe`. Two-phase; the verbatim anchor already landed.
   - [x] Anchor: `rsync -a bun-one/apps/whisper/ apps/whisper/` (verbatim name;
         `-a` preserves source mtimes git drops). Gitignored `data/` (warm cache,
@@ -49,8 +49,10 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
         wall-clock `generated` + per-run `elapsedMs`; whisper.cpp also
         non-deterministic) — so this is cache-replay equivalence, at/above the
         plan's semantic-equivalence bar.
-- [ ] Point it at the central corpora location and `reports/` output. Scope grew
-      (Daniel) to FILE-LAYOUT conformance — done now, pre-merge:
+- [x] Point it at the central corpora location and `reports/` output. Scope grew
+      (Daniel) to FILE-LAYOUT conformance. Two deferrals carried OUT of this
+      plan: `packages/config` promotion -> `BACKLOG.md` (`promote-app-config`);
+      vtt tools triage -> `epoch4-alignment.md`.
   - [x] Single `lib/config.ts`: a `config` object, one `DATA_DIR` root deriving
         `{cache,work,output,models,sampleDir}`; repointed `transcribe.ts`,
         `lib/cache.ts`, `lib/runners.ts` AND all six test files (the move
@@ -58,14 +60,11 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
   - [x] Repoint `DATA_DIR` -> top-level `data/transcribe`; `mv`d the real
         content (warm cache + 17G samples intact); `apps/transcribe` is now
         data-free. Daniel-tested (cached + do-series runs good).
-  - [ ] Later: promote `lib/config.ts` -> `packages/config`; env overrides
-        (`DATA_DIR`, `CORPORA_DIR`).
-  - [~] Scripts: `demo.sh`, `do-series.sh`, `show-performance.sh` repointed
-    (self-location-derived, help interpolated); all three Daniel-tested good.
-    `run-bench.ts` dropped — superseded by the `.vtt` provenance NOTE headers
-    (`show-performance.sh` scatters straight from them; run-bench also pinned
-    private samples). Remaining: triage/drop
-    `tools/{vtt-compare,vtt-monotonicity}`.
+  - [x] Scripts: `demo.sh`, `do-series.sh`, `show-performance.sh` repointed
+        (self-location-derived, help interpolated); all three Daniel-tested
+        good. `run-bench.ts` dropped — superseded by the `.vtt` provenance NOTE
+        headers (`show-performance.sh` scatters straight from them; run-bench
+        also pinned private samples).
   - [x] Reproducible fixtures (replaces the private `hobbit` samples;
         cross-epoch — feeds epub/alignment too). Structure mirrors corpora:
         `fixtures/audiobooks/<Author - Title>/` holds the `.epub` + `.m4b`;
@@ -94,8 +93,8 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
           script (~1800s, no digest). Chose to make `-i` `demandOption`
           (required) over defaulting to alice — nothing relied on the default
           (scripts/tests pass input explicitly); dropped `DEFAULT_INPUT`, the
-          private `hobbit-30m` path, and the now-unused `join` import. README
-          hobbit examples remain (doc cleanup, separate).
+          private `hobbit-30m` path, and the now-unused `join` import. (README
+          examples later updated to alice by Daniel.)
     - [x] Migration: deleted `test/fixtures/` wholesale — repointed
           `FIXTURE_JFK` (helpers) and `task.test.ts`'s `FIXTURES_DIR` at the
           committed `fixtures/audio/jfk.m4b` via a new `config.fixturesDir`
@@ -105,16 +104,18 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
           `FIXTURE_ROADNOTTAKEN` export and its `.m4b`, plus dead `jfk.wav`, the
           `jfk.mp3` dup (digest matched the manifest), and the old
           `sha256sums.txt`/`README`. E2E 71/0, CI green.
-  - [ ] Later: augment `FILE-LAYOUT.md` with `data/<app>/<category>` once
-        satisfied; revisit `samples` -> fixtures/corpora.
+  - [x] Augmented `FILE-LAYOUT.md`: documented `data/<app>/<category>`
+        (config-anchored) and the `fixtures/{audio,audiobooks}` substructure.
+        (`samples` -> fixtures/corpora remains a future revisit.)
 - [x] Prove the root CI target includes the app (root `bun test` runs the app +
       vtt suites; 125 pass / 4 skip).
 - [x] Use the port to validate runtime-bound package/app conventions: pure
       `@prosodio/vtt` (`packages/*`, no runtime binding) feeds the runtime-bound
       `@prosodio/transcribe` (`apps/*`, shells out to ffmpeg/whisper-cli) —
       `workspace:*` + catalog resolve from root, CI green.
-- [ ] Acceptance: judged by Daniel at port time (see port strategy in the
-      consolidation plan).
+- [x] Acceptance (Daniel, 2026-07-01): accepted for merge to `main`. Both ports
+      green + validated (warm-cache byte-identical, alice E2E 2/0); private
+      samples retired; deferrals carried to `BACKLOG.md`/`epoch4-alignment.md`.
 
 ## Progress log
 
@@ -170,3 +171,16 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   jfk; (d) the smoke tests assert files-produced, not exact transcription, so
   pointing them at the re-encoded produced `jfk.m4b` is safe. E2E 71/0, CI
   green.
+- 2026-07-01 — Closed the corpora/FILE-LAYOUT step: augmented `FILE-LAYOUT.md`
+  (`data/<app>/<category>`, `fixtures/{audio,audiobooks}`) in-epoch. Carried the
+  two remaining deferrals OUT of this plan: `packages/config` promotion ->
+  `BACKLOG.md` (`promote-app-config`); the vtt tools triage (reuse
+  `vtt-compare.ts`, remove superseded `vtt-monotonicity.ts`) ->
+  `epoch4-alignment.md`. Epoch-1 substantive work now all `[x]`; only Daniel's
+  acceptance + merge remain.
+- 2026-07-01 — Retired the last private samples: Daniel `rm -rf`'d
+  `data/transcribe/samples/` (+ fixed README examples). Dropped the orphaned
+  `config.sampleDir`, repointed `e2e_basic` hobbit -> committed `alice-30m.m4b`
+  (2/0 pass, 47s real full+segmented), and adjusted `FILE-LAYOUT.md` (dropped
+  `samples`; gave `scripts/` its own entry). No `hobbit`/`sampleDir` left in
+  live code (only mock path strings + the deferred `vtt-compare`).

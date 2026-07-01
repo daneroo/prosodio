@@ -3,6 +3,14 @@
 Unscheduled work. Format: see [docs/WORKFLOW.md](../docs/WORKFLOW.md). Ported
 as-is from the consolidation plan's "Issues to address later"; triage pending.
 
+- [ ] promote-app-config — promote transcribe's `lib/config.ts` to a shared
+      `packages/config`
+  - state: deferred out of epoch1-transcribe
+  - today it is single-app path config: a `DATA_DIR`-rooted `data/<app>/…` tree
+    plus a REPO_ROOT-anchored `fixturesDir`. Promote to `packages/config` with
+    `DATA_DIR` / `CORPORA_DIR` env overrides.
+  - revisit-when: a second app (epub/alignment) needs shared path config.
+
 - [ ] agents-md-convention — are AGENTS.md/CLAUDE.md required and respected, and
       which wins?
   - state: provisional

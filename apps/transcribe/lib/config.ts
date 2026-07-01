@@ -19,8 +19,4 @@ export const config = {
   // Committed public test fixtures (scripts/fetch-and-check-fixtures.ts) — NOT
   // volatile data, so anchored at REPO_ROOT rather than DATA_DIR.
   fixturesDir: join(REPO_ROOT, "fixtures"),
-  // Under DATA_DIR with the rest for now. Samples are public-reconstructible
-  // input (not volatile data); their eventual home is fixtures/ or external
-  // corpora — likely to MOVE or be DEPRECATED, but not today.
-  sampleDir: join(DATA_DIR, "samples"),
 };

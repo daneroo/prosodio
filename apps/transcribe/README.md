@@ -22,16 +22,7 @@ RUN_E2E_TESTS=1 bun test
 # Help and options
 bun run transcribe.ts -h
 
-# Demo script (full + segmented runs)
-./scripts/demo/demo.sh
-## which some of these below
-# Basic transcription (uses cache)
-bun run transcribe.ts -i data/samples/hobbit-30m.m4b -m tiny.en --tag demo-basic
-# segmented transcription (uses cache)
-bun run transcribe.ts -i data/samples/hobbit-30m.m4b --segment 10m -m tiny.en --tag demo-seg-10m
-# segmented transcription with duration=25m
-bun run transcribe.ts -i data/samples/hobbit-30m.m4b --segment 10m -m tiny.en --tag demo-seg-10m-dur-25m --duration 25m
-
+# Demo script (full + segmented runs w/wo cache)
 ./scripts/demo/demo.sh
 
 # Batch transcribe audiobooks (search, pick, skips existing .vtt)
