@@ -1,6 +1,5 @@
 import yargs from "yargs";
 import process from "node:process";
-import { join } from "node:path";
 import {
   createRunWorkDir,
   getRequiredCommands,
@@ -14,7 +13,6 @@ import { parseDuration } from "./lib/duration.ts";
 import { config } from "./lib/config.ts";
 
 // Configuration defaults
-const DEFAULT_INPUT = join(config.sampleDir, "hobbit-30m.mp3");
 const DEFAULT_MODEL = "tiny.en";
 const DEFAULT_OUTPUT_DIR = config.outputDir;
 const DEFAULT_WORKDIR_ROOT = config.workDir;
@@ -40,7 +38,7 @@ async function main(): Promise<void> {
     .option("input", {
       alias: "i",
       type: "string",
-      default: DEFAULT_INPUT,
+      demandOption: true,
       describe: "Path to the audio file to transcribe",
     })
     .option("model", {

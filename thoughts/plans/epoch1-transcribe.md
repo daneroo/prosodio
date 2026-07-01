@@ -86,8 +86,13 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
           the dangerous broad boilerplate ignores (`out`/`dist`, `coverage`,
           `logs`/`*.log`, caches, `.idea`) — they hide files under `git add .`;
           kept only specific, visible ignores.
-    - [ ] `alice-30m.m4b` becomes the demo / `DEFAULT_INPUT` (replaces
-          `hobbit-30m`); soft-validate by duration (~1800s), no digest.
+    - [x] Demo uses `alice-30m.m4b` (committed fixture; input from `fixtures/`,
+          output to volatile `data/`). Duration soft-validated in the fetch
+          script (~1800s, no digest). Chose to make `-i` `demandOption`
+          (required) over defaulting to alice — nothing relied on the default
+          (scripts/tests pass input explicitly); dropped `DEFAULT_INPUT`, the
+          private `hobbit-30m` path, and the now-unused `join` import. README
+          hobbit examples remain (doc cleanup, separate).
     - [ ] Migration: relocate committed jfk `test/fixtures/` ->
           `fixtures/audio/`, repoint tests, handle `roadnottaken.m4b`.
   - [ ] Later: augment `FILE-LAYOUT.md` with `data/<app>/<category>` once
