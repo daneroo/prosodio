@@ -10,7 +10,11 @@ production EPUB abstraction.
       production packages.
 - [ ] Keep browser (Playwright) and Storyteller machinery out of production
       dependency graphs.
-- [ ] Move full-corpus reports to the private workflow; keep public
-      deterministic fixtures/summaries sufficient to test the tool.
+- [ ] Reports/generated artifacts: default them to volatile `data/<app>/…`
+      (gitignored). Artifacts derived from private corpora ARE private (they
+      carry filenames/metadata) — a committed `reports/` leaked corpus metadata
+      before, so there is no standing committed reports dir. Only deterministic
+      public-fixture summaries may be committed, via a deliberate promotion that
+      strips identity. Design that promotion here if a real need appears.
 - [ ] Use this port to exercise dependency sharing, runtime isolation, and
       dead-dependency checks deliberately.

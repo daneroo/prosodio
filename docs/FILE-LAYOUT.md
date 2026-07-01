@@ -15,7 +15,6 @@
     - `audio/` — small smoke clips + produced `.m4b`
     - `audiobooks/<Author - Title>/` — the `.epub` (committed) beside its large
       `.m4b` (gitignored, refetched)
-  - `reports/` — generated artifacts (committed; may not exist yet)
   - `data/` — gitignored, volatile. One tree per app: `data/<app>/<category>`
     (e.g. `data/transcribe/{cache,work,output,models}`), anchored by that app's
     `lib/config.ts` so the layout cannot drift
