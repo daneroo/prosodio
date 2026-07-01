@@ -9,15 +9,10 @@ import { execSync } from "node:child_process";
 import { config } from "../lib/config.ts";
 
 // Common paths
-export const PACKAGE_ROOT = join(import.meta.dir, "..");
 export const TEST_WORK_DIR_ROOT = config.workDir;
 
-// Test fixtures
-export const FIXTURE_JFK = join(PACKAGE_ROOT, "test/fixtures/jfk.m4b");
-export const FIXTURE_ROADNOTTAKEN = join(
-  PACKAGE_ROOT,
-  "test/fixtures/roadnottaken.m4b",
-);
+// Committed public fixtures (scripts/fetch-and-check-fixtures.ts).
+export const FIXTURE_JFK = join(config.fixturesDir, "audio", "jfk.m4b");
 
 /**
  * Track work directories for cleanup in afterAll.

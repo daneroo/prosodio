@@ -7,13 +7,12 @@ import {
   type TaskEvent,
 } from "./task.ts";
 
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { config } from "./config.ts";
 
-// Resolve paths relative to this file (lib/task.test.ts)
-const PKG_ROOT = resolve(import.meta.dirname, "..");
-const FIXTURES_DIR = join(PKG_ROOT, "test", "fixtures");
+// Committed public fixtures (scripts/fetch-and-check-fixtures.ts).
+const FIXTURES_DIR = join(config.fixturesDir, "audio");
 const WORK_DIR = join(config.workDir, "unit-test-task");
 
 // Ensure work dir exists

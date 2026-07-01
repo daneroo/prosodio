@@ -61,12 +61,15 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
   - [ ] Later: promote `lib/config.ts` -> `packages/config`; env overrides
         (`DATA_DIR`, `CORPORA_DIR`).
   - [~] Scripts: `demo.sh`, `do-series.sh`, `show-performance.sh` repointed
-    (self-location-derived, help interpolated). Remaining: `run-bench.ts`
-    repoint; triage/drop `tools/{vtt-compare,vtt-monotonicity}`.
-  - [~] Reproducible fixtures (replaces the private `hobbit` samples;
-    cross-epoch — feeds epub/alignment too). Structure mirrors corpora:
-    `fixtures/audiobooks/<Author - Title>/` holds the `.epub` + `.m4b`; small
-    audio smoke fixtures in `fixtures/audio/`.
+    (self-location-derived, help interpolated); all three Daniel-tested good.
+    `run-bench.ts` dropped — superseded by the `.vtt` provenance NOTE headers
+    (`show-performance.sh` scatters straight from them; run-bench also pinned
+    private samples). Remaining: triage/drop
+    `tools/{vtt-compare,vtt-monotonicity}`.
+  - [x] Reproducible fixtures (replaces the private `hobbit` samples;
+        cross-epoch — feeds epub/alignment too). Structure mirrors corpora:
+        `fixtures/audiobooks/<Author - Title>/` holds the `.epub` + `.m4b`;
+        small audio smoke fixtures in `fixtures/audio/`.
     - [x] `fixtures/manifest.jsonc`: bare array of `{url, path, sha256}` —
           fetch + verify only, no ops in the manifest. jsonc (JSON + `//`
           notes), loaded via `Bun.JSON5.parse` (jsonc ⊊ json5; `.json()` is
@@ -93,8 +96,15 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
           (scripts/tests pass input explicitly); dropped `DEFAULT_INPUT`, the
           private `hobbit-30m` path, and the now-unused `join` import. README
           hobbit examples remain (doc cleanup, separate).
-    - [ ] Migration: relocate committed jfk `test/fixtures/` ->
-          `fixtures/audio/`, repoint tests, handle `roadnottaken.m4b`.
+    - [x] Migration: deleted `test/fixtures/` wholesale — repointed
+          `FIXTURE_JFK` (helpers) and `task.test.ts`'s `FIXTURES_DIR` at the
+          committed `fixtures/audio/jfk.m4b` via a new `config.fixturesDir`
+          (single source; anchored at REPO_ROOT, not DATA_DIR, since fixtures
+          are committed not volatile). Smoke tests assert files-produced not
+          exact-transcription, so the re-encode is fine. Dropped the unused
+          `FIXTURE_ROADNOTTAKEN` export and its `.m4b`, plus dead `jfk.wav`, the
+          `jfk.mp3` dup (digest matched the manifest), and the old
+          `sha256sums.txt`/`README`. E2E 71/0, CI green.
   - [ ] Later: augment `FILE-LAYOUT.md` with `data/<app>/<category>` once
         satisfied; revisit `samples` -> fixtures/corpora.
 - [x] Prove the root CI target includes the app (root `bun test` runs the app +
@@ -147,3 +157,16 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   ignores. Committed the epub (Gutenberg was down mid-session — outage-proof).
   CI green (125/4). Next: `alice-30m` as demo `DEFAULT_INPUT`; jfk
   `test/fixtures/` -> `fixtures/audio/` migration.
+- 2026-07-01 — Fixtures committed (`3c91d43`, epub note amended in). Demo/`-i`
+  (`96877c4`): demo runs off committed `alice-30m.m4b`; Daniel validated all
+  three scenarios (~91-94x) plus do-series/show-performance. `-i` made required.
+- 2026-07-01 — Cleanup (staged, pending commit): dropped `run-bench.ts`
+  (superseded by `.vtt` provenance headers) and deleted `test/fixtures/`,
+  repointing tests at `fixtures/audio/` via a new `config.fixturesDir`.
+  Findings: (a) `config.fixturesDir` anchors at REPO_ROOT, not DATA_DIR —
+  committed fixtures are a distinct category from volatile data; (b) the
+  migration surfaced dead exports `FIXTURE_ROADNOTTAKEN` and `PACKAGE_ROOT`
+  (both removed); (c) `test/fixtures/jfk.mp3` was byte-identical to the manifest
+  jfk; (d) the smoke tests assert files-produced, not exact transcription, so
+  pointing them at the re-encoded produced `jfk.m4b` is safe. E2E 71/0, CI
+  green.

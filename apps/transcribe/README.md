@@ -38,9 +38,8 @@ bun run transcribe.ts -i data/samples/hobbit-30m.m4b --segment 10m -m tiny.en --
 ./scripts/many/do-series.sh -h
 ./scripts/many/do-series.sh -n -s "culture banks"
 
-# Benchmarks
-bun run scripts/benchmarks/run-bench.ts
-# Output: ../../reports/benchmarks/summary.md, execution-time.png, speedup.png
+# Performance chart (scatter plot derived from .vtt provenance headers)
+./scripts/many/show-performance.sh -o /tmp/perf.png
 ```
 
 ---
@@ -181,9 +180,8 @@ apps/transcribe/
 │   └── simpler-recursive.ts  # Prototype: simplified segmentation
 └── scripts/
     ├── demo/                 # End-to-end demo
-    ├── many/                 # Batch transcription
-    ├── tools/                # VTT compare / monotonicity
-    └── benchmarks/           # Performance testing
+    ├── many/                 # Batch transcription + show-performance
+    └── tools/                # VTT compare / monotonicity
 ```
 
 ---
