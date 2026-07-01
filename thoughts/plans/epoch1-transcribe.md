@@ -63,24 +63,25 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
   - [~] Scripts: `demo.sh`, `do-series.sh`, `show-performance.sh` repointed
     (self-location-derived, help interpolated). Remaining: `run-bench.ts`
     repoint; triage/drop `tools/{vtt-compare,vtt-monotonicity}`.
-  - [ ] Reproducible fixtures (replaces the private `hobbit` samples;
-        cross-epoch — feeds epub/alignment too, may graduate to its own
-        issue/plan). Structure mirrors corpora:
-        `fixtures/audiobooks/<Author - Title>/{epub,     m4b}`; small audio-only
-        smoke fixtures in `fixtures/audio/`.
-    - [ ] jfk -> `fixtures/audio/`: digest the source mp3 (whisper.cpp sample);
-          PRODUCE the m4b via ffmpeg (no digest — conversion not
-          bit-reproducible); soft-validate instead (e.g. audio duration
-          matches).
-    - [ ] Alice pair, fetched directly + digest-pinned (no conversion, so
-          stable): m4b from archive.org, epub3 from Gutenberg #11, into
-          `fixtures/audiobooks/Lewis Carroll - Alices Adventures in Wonderland/`.
-    - [ ] GATED DECISION: `.gitignore` rules under `fixtures/audiobooks/` (which
-          media is fetched-and-ignored vs committed) — decide deliberately.
-    - [ ] `check-fixtures`: idempotent ensure-present-and-valid (verify digest /
-          download / produce+soft-check, in dependency order). Bash first,
-          convert to `.ts` if it gets messy. Per-fixture `provenance.json`
-          (preferred) over `manifest.json`.
+  - [~] Reproducible fixtures (replaces the private `hobbit` samples;
+    cross-epoch — feeds epub/alignment too). Structure mirrors corpora:
+    `fixtures/audiobooks/<Author - Title>/` holds the `.epub` + `.m4b`; small
+    audio smoke fixtures in `fixtures/audio/`.
+    - [x] `fixtures/manifest.json`: bare array of `{url, path, sha256}` —
+          fetch + verify only, no ops in the manifest. Entries: jfk.mp3
+          (whisper.cpp), Alice `.m4b` (archive.org), Alice `.epub` (Gutenberg
+          #11); digests pinned from Daniel's downloads.
+    - [ ] `scripts/fetch-and-check-fixtures.sh`: fetch-if-missing ->
+          `sha256sum     -c` (Bun reads the manifest, no jq) -> 2 hardcoded
+          ffmpeg derivations: `jfk.m4b` <- `jfk.mp3`;
+          `fixtures/audio/alice-30m.m4b` <- full Alice (`-t 1800 -c copy`).
+          Refactor to `.ts` / manifest-driven only if it gets messy.
+    - [ ] `.gitignore` (decided — option B): ignore `fixtures/audiobooks/` and
+          `fixtures/audio/*.m4b` (produced); commit `manifest.json` + `jfk.mp3`.
+    - [ ] `alice-30m.m4b` becomes the demo / `DEFAULT_INPUT` (replaces
+          `hobbit-30m`); soft-validate by duration (~1800s), no digest.
+    - [ ] Migration: relocate committed jfk `test/fixtures/` ->
+          `fixtures/audio/`, repoint tests, handle `roadnottaken.m4b`.
   - [ ] Later: augment `FILE-LAYOUT.md` with `data/<app>/<category>` once
         satisfied; revisit `samples` -> fixtures/corpora.
 - [x] Prove the root CI target includes the app (root `bun test` runs the app +
