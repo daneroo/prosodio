@@ -1,0 +1,27 @@
+{
+  "name": "epub-validate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:browser": "bun build src/browser/entry.ts --target=browser --format=iife --outfile=dist/epubts-browser.js",
+    "validate": "bun run build:browser && bun run src/index.ts",
+    "postinstall": "playwright install chromium",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "ci": "bun run typecheck && bun run test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "@types/jsdom": "^28.0.3",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@likecoin/epub-ts": "^0.6.7",
+    "@storyteller-platform/epub": "^0.6.2",
+    "jsdom": "^29.1.1",
+    "linkedom": "^0.18.12",
+    "playwright": "^1.61.0",
+    "zod": "^4.4.3"
+  }
+}

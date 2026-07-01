@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 5,
+  "meta": {
+    "parser": "epubts-node",
+    "parserVersion": "0.6.7",
+    "domParser": "jsdom",
+    "openStatus": "opened"
+  },
+  "content": {
+    "metadata": {
+      "title": "Revelation Space",
+      "creator": "Alastair Reynolds",
+      "date": null
+    },
+    "spine": [
+      { "href": "chapter01.xhtml", "linear": true }
+    ],
+    "manifest": [
+      { "id": "ch01", "href": "chapter01.xhtml", "mediaType": "application/xhtml+xml" }
+    ],
+    "toc": [],
+    "spineHashes": [
+      { "href": "chapter01.xhtml", "sha256": "abc123" }
+    ]
+  }
+}

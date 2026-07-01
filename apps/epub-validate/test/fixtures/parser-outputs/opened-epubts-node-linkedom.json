@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 5,
+  "meta": {
+    "parser": "epubts-node",
+    "parserVersion": "0.6.7",
+    "domParser": "linkedom",
+    "openStatus": "opened"
+  },
+  "content": {
+    "metadata": {
+      "title": "Flatland",
+      "creator": "Edwin A. Abbott",
+      "date": "1884-01-01"
+    },
+    "spine": [
+      { "href": "wrap0000.html", "linear": true },
+      { "href": "wrap0001.html", "linear": true }
+    ],
+    "manifest": [
+      { "id": "item1", "href": "wrap0000.html", "mediaType": "application/xhtml+xml" },
+      { "id": "item2", "href": "wrap0001.html", "mediaType": "application/xhtml+xml" }
+    ],
+    "toc": [],
+    "spineHashes": [
+      { "href": "wrap0000.html", "sha256": "abc123" },
+      { "href": "wrap0001.html", "sha256": "def456" }
+    ]
+  }
+}
