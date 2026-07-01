@@ -1,0 +1,20 @@
+[
+  {
+    // checked in - but fetch is reproducible
+    "url": "https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.mp3",
+    "path": "audio/jfk.mp3",
+    "sha256": "20d3323a2bcce6f25498b8911a397503a0a99fa92b6ba58d62788cb42b6e5459",
+  },
+  {
+    // too large to check in (98MB)
+    "url": "https://archive.org/download/aliceinwonderland_2106_librivox/AliceWonderland8_librivox.m4b",
+    "path": "audiobooks/Lewis Carroll - Alices Adventures in Wonderland/Lewis Carroll - Alices Adventures in Wonderland.m4b",
+    "sha256": "03eb8e8733d2255c4dac0f0f6807cb67a30a9b869d56666137962678595f6039",
+  },
+  {
+    // checked in - but fetch is reproducible
+    "url": "https://www.gutenberg.org/ebooks/11.epub3.images",
+    "path": "audiobooks/Lewis Carroll - Alices Adventures in Wonderland/Lewis Carroll - Alices Adventures in Wonderland.epub",
+    "sha256": "b976d473e774aff4d2279ec3372708d7740baa7fcee3154187997986b3325bae",
+  },
+]

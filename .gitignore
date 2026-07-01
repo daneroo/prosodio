@@ -1,37 +1,20 @@
+# volatile local outputs / scratch
+data
+
+# test fixtures (recreate via scripts/fetch-and-check-fixtures.ts): ignore only
+# the large fetched audiobook .m4b (~98MB). The small produced audio m4b, the
+# epub, jfk.mp3, and the manifest are all committed.
+fixtures/audiobooks/**/*.m4b
+
 # dependencies (bun install)
 node_modules
 
-# output
-out
-dist
-*.tgz
-
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
 # dotenv environment variable files
 .env
-.env.development.local
-.env.test.local
-.env.production.local
 .env.local
-
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
-.idea
+# .env.development.local
+# .env.test.local
+# .env.production.local
 
 # Finder (MacOS) folder config
 .DS_Store
-
-# volatile local outputs / scratch
-data

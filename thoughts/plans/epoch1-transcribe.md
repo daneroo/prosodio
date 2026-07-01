@@ -67,17 +67,25 @@ Axis 2; `lib/vtt-writer.ts` stays app-side for now.
     cross-epoch — feeds epub/alignment too). Structure mirrors corpora:
     `fixtures/audiobooks/<Author - Title>/` holds the `.epub` + `.m4b`; small
     audio smoke fixtures in `fixtures/audio/`.
-    - [x] `fixtures/manifest.json`: bare array of `{url, path, sha256}` —
-          fetch + verify only, no ops in the manifest. Entries: jfk.mp3
-          (whisper.cpp), Alice `.m4b` (archive.org), Alice `.epub` (Gutenberg
-          #11); digests pinned from Daniel's downloads.
-    - [ ] `scripts/fetch-and-check-fixtures.sh`: fetch-if-missing ->
-          `sha256sum     -c` (Bun reads the manifest, no jq) -> 2 hardcoded
-          ffmpeg derivations: `jfk.m4b` <- `jfk.mp3`;
-          `fixtures/audio/alice-30m.m4b` <- full Alice (`-t 1800 -c copy`).
-          Refactor to `.ts` / manifest-driven only if it gets messy.
-    - [ ] `.gitignore` (decided — option B): ignore `fixtures/audiobooks/` and
-          `fixtures/audio/*.m4b` (produced); commit `manifest.json` + `jfk.mp3`.
+    - [x] `fixtures/manifest.jsonc`: bare array of `{url, path, sha256}` —
+          fetch + verify only, no ops in the manifest. jsonc (JSON + `//`
+          notes), loaded via `Bun.JSON5.parse` (jsonc ⊊ json5; `.json()` is
+          strict). Entries: jfk.mp3 (whisper.cpp), Alice `.m4b` (archive.org),
+          Alice `.epub` (Gutenberg #11); digests pinned from Daniel's downloads.
+    - [x] `scripts/fetch-and-check-fixtures.ts`: top-down reconciler (desired =
+          manifest + 2 derived, actual = disk). Fetch-if-missing via `curl`
+          (fetch+Bun.write stalls on large streams) -> verify sha256 ->
+          quarantine mismatch; then 2 ffmpeg derivations: `jfk.m4b` <-
+          `jfk.mp3`; `alice-30m.m4b` <- full Alice (`-t 1800 -c copy`,
+          duration-checked). Output split fetch/derive sections.
+    - [x] `.gitignore` (decided — final): ignore only the large fetched
+          audiobook `.m4b` (`audiobooks/**/*.m4b`, ~98MB); commit the rest —
+          `manifest.jsonc`, `jfk.mp3`, the `.epub`, and the small produced audio
+          m4b (`jfk.m4b` 94K, `alice-30m.m4b` 14M; revisit for CI). Gutenberg
+          outage-proofed the epub by committing it. Same pass (Daniel) pruned
+          the dangerous broad boilerplate ignores (`out`/`dist`, `coverage`,
+          `logs`/`*.log`, caches, `.idea`) — they hide files under `git add .`;
+          kept only specific, visible ignores.
     - [ ] `alice-30m.m4b` becomes the demo / `DEFAULT_INPUT` (replaces
           `hobbit-30m`); soft-validate by duration (~1800s), no digest.
     - [ ] Migration: relocate committed jfk `test/fixtures/` ->
@@ -126,3 +134,11 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   fresh uncached book running. Stronger than the planned semantic-equivalence
   bar. Both ports done + green; only Phase-B corpora/`reports/` path
   normalization left in Epoch 1 (plus Daniel's final acceptance).
+- 2026-07-01 — Reproducible fixtures landed (staged, pending commit): manifest
+  `.jsonc` (JSON5-parsed) + `scripts/fetch-and-check-fixtures.ts` reconciler
+  (curl fetch -> sha256 verify -> quarantine -> 2 ffmpeg derivations, split
+  output). `.gitignore`: commit seeds + small produced audio, ignore only the
+  98MB fetched audiobook m4b; Daniel also pruned the dangerous broad boilerplate
+  ignores. Committed the epub (Gutenberg was down mid-session — outage-proof).
+  CI green (125/4). Next: `alice-30m` as demo `DEFAULT_INPUT`; jfk
+  `test/fixtures/` -> `fixtures/audio/` migration.
