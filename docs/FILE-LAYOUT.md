@@ -8,13 +8,18 @@
     sha256 verify + derive)
 - Docs
   - `docs/` — durable reference (this set)
-  - `thoughts/` — `BACKLOG.md` (persistent) + transient plans/notes; see
+  - `thoughts/` — `BACKLOG.md` (persistent) + transient work; see
     [WORKFLOW.md](WORKFLOW.md)
+    - `plans/<id>.md` — executable checkbox plan
+    - `design/<id>-design.md` — preferred name for the plan's working design
+    - `research/`, `reviews/`, `tickets/` — optional supporting notes
 - Data (what may be committed vs kept private: [PRIVACY.md](PRIVACY.md))
   - `fixtures/` — public test data (committed, reproducible — see `scripts/`):
     - `audio/` — small smoke clips + produced `.m4b`
     - `audiobooks/<Author - Title>/` — the `.epub` (committed) beside its large
       `.m4b` (gitignored, refetched)
+    - `transcriptions/<Author - Title>.vtt` — committed public VTT fixtures
+      paired with books under `audiobooks/`
   - `data/` — gitignored, volatile. One tree per app: `data/<app>/<category>`
     (e.g. `data/transcribe/{cache,work,output,models}`), anchored by that app's
     `lib/config.ts` so the layout cannot drift

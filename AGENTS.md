@@ -18,7 +18,7 @@ alongside their ebooks on a synchronized timeline.
   - `apps/` — runnables
 - Docs
   - `docs/` — durable reference (index: [docs/README.md](docs/README.md))
-  - `thoughts/` — plans, research, tickets, reviews
+  - `thoughts/` — plans, designs, research, tickets, reviews
 - Data
   - `fixtures/` — public test data (committed)
   - `data/` — gitignored, volatile (outputs, scratch)

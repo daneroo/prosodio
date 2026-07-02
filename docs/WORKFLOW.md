@@ -46,6 +46,21 @@ Goal: <one line>.
   `done`; a `done` plan may linger briefly if it still interacts with ongoing
   work (e.g. sibling epochs), then gets deleted.
 
+## Design — `thoughts/design/<id>-design.md`
+
+Working system design: problem, constraints, alternatives, decisions, and open
+questions. Designs explain what should be built and why; plans turn the chosen
+design into executable checkboxes.
+
+- Prefer the plan's exact `<id>` plus `-design`, so `plans/epoch4-alignment.md`
+  and `design/epoch4-alignment-design.md` sort and search together naturally.
+- A design may span several plan steps, but should still have one clear topic.
+- Superseded design drafts are consolidated rather than accumulated; Git keeps
+  their history.
+- When implementation settles the design, move any still-useful operational
+  facts into code, tests, package/app documentation, or durable `docs/` as
+  appropriate, then delete the transient design.
+
 ## Scale-up path
 
 When the flat backlog hurts — real dependencies between issues, or it outgrows a
