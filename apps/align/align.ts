@@ -1,14 +1,26 @@
-// Entry point for sparse VTT–EPUB alignment (epoch 4). Grows with the plan:
-// discovery/matching -> contracts -> Pass 1 -> multipass proof.
+// Entry point for sparse VTT–EPUB alignment (epoch 4): discover matched
+// (vtt, epub, m4b) triplets per configured root, run the two-pass alignment,
+// and write private reports (see docs/PRIVACY.md).
 import process from "node:process";
 import yargs from "yargs";
+import { alignBook } from "./lib/align-book.ts";
 import { config } from "./lib/config.ts";
 import {
   filterBySearch,
   scanRoot,
   type Exclusion,
   type RootScan,
+  type Triplet,
 } from "./lib/discovery.ts";
+import {
+  cleanReports,
+  ensureReportsRepo,
+  summarizeBook,
+  writeBookReport,
+  writeRunSummary,
+  type RunSummary,
+} from "./lib/report.ts";
+import { buildAlignmentResult } from "./lib/result.ts";
 
 export const APP_NAME = "align";
 
@@ -47,7 +59,8 @@ async function main(): Promise<void> {
       describe: "List matched triplets and exclusions without aligning",
     })
     .example('$0 --list -s "culture banks"', "show matching triplets")
-    .example("$0 -r fixtures --list", "show the committed fixture triplet")
+    .example("$0 -r fixtures", "align the committed fixture triplet")
+    .example("$0", "align every matched book in every root")
     .strict()
     .help()
     .parse();
@@ -55,15 +68,73 @@ async function main(): Promise<void> {
   const roots = config.roots.filter(
     (r) => argv.root === "all" || r.name === argv.root,
   );
-  for (const root of roots) {
-    const scan = scanRoot(root);
-    printScan(scan, argv.search ?? "");
+  const scans = roots.map((root) => scanRoot(root));
+  const search = argv.search ?? "";
+
+  for (const scan of scans) {
+    printScan(scan, search);
   }
-  if (!argv.list) {
-    console.log(
-      "\nAlignment is not implemented yet (epoch 4 in progress); output above is the --list view.",
-    );
+  if (argv.list) return;
+
+  await runAlignments(scans, search, argv.root === "all");
+}
+
+async function runAlignments(
+  scans: RootScan[],
+  search: string,
+  allRoots: boolean,
+): Promise<void> {
+  ensureReportsRepo(config.reportsDir);
+  // An unfiltered all-roots run is a full regeneration: drop stale reports,
+  // preserve the nested .git. Filtered runs upsert only what they process.
+  if (allRoots && search.trim().length === 0) {
+    cleanReports(config.reportsDir);
   }
+
+  const summary: RunSummary = {
+    books: [],
+    exclusions: scans.flatMap((scan) =>
+      scan.exclusions.map((e) => ({
+        root: e.root,
+        kind: e.kind,
+        base: e.base,
+      })),
+    ),
+    search: search.trim().length > 0 ? search : null,
+  };
+
+  console.log("");
+  for (const scan of scans) {
+    for (const triplet of filterBySearch(scan.matched, search)) {
+      const result = await alignTriplet(triplet);
+      summary.books.push(result);
+    }
+  }
+  const summaryPath = writeRunSummary(config.reportsDir, summary);
+  console.log(`\nRun summary: ${summaryPath}`);
+  console.log(`Books aligned: ${summary.books.length}`);
+}
+
+async function alignTriplet(
+  triplet: Triplet,
+): Promise<ReturnType<typeof summarizeBook>> {
+  const vttText = await Bun.file(triplet.vtt).text();
+  const alignment = await alignBook(vttText, triplet.epub);
+  const result = buildAlignmentResult(alignment, {
+    root: triplet.root,
+    base: triplet.base,
+    vttPath: triplet.vtt,
+    epubPath: triplet.epub,
+    m4bPath: triplet.m4b,
+  });
+  const path = writeBookReport(config.reportsDir, result);
+  const m = result.metrics;
+  console.log(
+    `  ${triplet.base}: spans=${result.spans.length} ` +
+      `vtt=${(m.vttCoverage * 100).toFixed(1)}% epub=${(m.epubCoverage * 100).toFixed(1)}% ` +
+      `anomalies=${m.anomalies.length} -> ${path}`,
+  );
+  return summarizeBook(result);
 }
 
 function printScan(scan: RootScan, search: string): void {

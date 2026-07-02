@@ -1,0 +1,4 @@
+# Alignment reports: derived from private corpora, therefore PRIVATE (see
+# docs/PRIVACY.md). Contains a nested LOCAL-ONLY git repo (never pushed) for
+# regression history without publication — regeneration preserves its .git.
+reports/

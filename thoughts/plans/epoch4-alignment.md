@@ -136,7 +136,7 @@ Types and the three input builders, each with tests, before any matching.
       normalized text, offset map, and token sequence via the same normalizer;
       record extraction flags (`linear="no"` included in the baseline, as
       recorded configuration). Test against the committed Alice EPUB.
-- [ ] Define the sparse result schema: VTT/EPUB provenance, normalization and
+- [x] Define the sparse result schema: VTT/EPUB provenance, normalization and
       extraction config echo, ordered spans (VTT offset range, EPUB offset
       range, resolved `EpubTextAddress`, approximate time range, pass evidence),
       residual gaps, metrics, warnings. Deterministic serialization (no
@@ -167,10 +167,10 @@ Types and the three input builders, each with tests, before any matching.
 
 ## 6 — Run wiring and private reports
 
-- [ ] Wire `bun run align`: default processes every unambiguous match across all
+- [x] Wire `bun run align`: default processes every unambiguous match across all
       configured roots (missing roots skip); `-s`/`-r` filter; results and a run
       summary go under `apps/align/reports/`.
-- [ ] Create the private results dir as a nested LOCAL-ONLY git repo inside
+- [x] Create the private results dir as a nested LOCAL-ONLY git repo inside
       gitignored `apps/align/reports/` (per docs/PRIVACY.md); regeneration
       deletes stale generated files but preserves the nested `.git`.
 
@@ -255,3 +255,11 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   gap-scoped candidates, survival 0.988, 55 added spans, coverage VTT 0.331 ->
   0.340 / EPUB 0.684 -> 0.703; every Pass 1 span byte-identical; all added spans
   inside Pass 1 gaps, exact matches, combined set monotonic.
+- 2026-07-02 — Section 6 + the deferred result schema landed: zod strictObject
+  `alignmentResultSchema` (spans with addresses/time ranges/evidence, gaps,
+  metrics, config echo, source provenance; no wall-clock values); report writer
+  creates the nested LOCAL-ONLY git repo in gitignored `apps/align/reports/`
+  (git check-ignore verified), cleans all-but-.git only on unfiltered all-roots
+  runs, upserts on filtered runs; `bun run align` aligns every matched triplet
+  and writes per-book reports + summary.json. Fixtures smoke run: Alice 440
+  spans, VTT 34.0% / EPUB 70.3%.

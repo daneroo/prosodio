@@ -2,3 +2,4 @@
 bun.lock
 apps/epub-validate/dist/
 apps/epub-validate/reports/
+apps/align/reports/
