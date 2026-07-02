@@ -32,29 +32,37 @@ every commit.
 
 ## Remaining
 
-- [ ] Config: align `src/config.ts` to the transcribe pattern (single `config`
-      object, REPO_ROOT anchor) as the second consumer for the future
-      `packages/config` lift (BACKLOG `promote-app-config`). Corpus roots stay.
-- [ ] Package contract: rename to `@prosodio/epub-validate`; drop app-local
-      `ci`/`typecheck` escape hatches (root `ci` covers them); remove nested
-      `bun.lock` + `knip.json` (no callers).
-- [ ] Timeout test cost: node timeout is env-injectable
-      (`NODE_OPEN_TIMEOUT_MS`); add the browser equivalent and inject short
-      timeouts in tests — preserve explicit timeout coverage, cut the ~40s of CI
-      waits.
-- [ ] `cleanReportDir`: confirm smallest clear implementation that preserves
-      `.git` (review, likely no change).
-- [ ] Boundary close-out: document `dist/` exclusion rationale (generated
-      bundle) and keep `reports/` fully excluded (deterministic prettier-clean
-      reports not worth it); document the nested LOCAL-ONLY reports repo durably
-      in `docs/PRIVACY.md` + a `.gitignore` comment.
-- [ ] README: triage the inherited TODO list item by item (drop done / keep
-      epoch-2 / route epoch-4 / BACKLOG); update Operations (no app-local ci).
-- [ ] Production EPUB abstraction: DECISION — defer to epoch 4 (just-in-time; no
-      consumer exists yet). Playwright/Storyteller isolation is thereby
-      satisfied: they stay app-internal; no production package exists.
-- [ ] Final: root `bun run ci` green; Daniel runs full private-corpus
-      `bun run validate` and accepts the epoch.
+- [x] Config: aligned `src/config.ts` to the transcribe pattern (`3312c83`) —
+      single `config` object, REPO_ROOT/APP_DIR anchors; second consumer for
+      `promote-app-config`. Corpus roots unchanged.
+- [x] Package contract (`8530c84`): `@prosodio/epub-validate`; app-local
+      `test`/`typecheck`/`ci` hatches dropped (root ci covers); app
+      `typescript@6`/`@types/bun` devDeps dropped (root supplies); nested
+      `bun.lock` + `knip.json` removed.
+- [x] Timeout test cost (`4fd193d`): `BROWSER_OPEN_TIMEOUT_MS` race bound added
+      (default 30s — a stalled open now fails as Timeout instead of unbounded);
+      `NODE_OPEN_TIMEOUT_MS` read at call time; malformed tests inject 500ms/2s.
+      Root ci 45s -> 8s, timeout coverage preserved.
+- [x] `cleanReportDir` reviewed: already minimal (delete all but `.git`); no
+      change.
+- [x] Boundary close-out (`9ccc5b0`): nested LOCAL-ONLY reports repo documented
+      durably in `docs/PRIVACY.md` + explanatory `.gitignore` comments; `dist/`
+      = generated (rebuilt every validate run), excluded from git/prettier/
+      eslint; `reports/` stays fully excluded (deterministic prettier-clean
+      reports judged not worth it).
+- [x] README triaged (`9ccc5b0`): 2 TODOs done (markdown lint, prosodio
+      migration), 1 folded into `promote-app-config`, 1 standing practice
+      (problematic-books inventory -> Documents note), 5 -> BACKLOG
+      (epub-text-extraction-gate, epub-toc-href-validation,
+      storyteller-package-doc-failures, epubts-node-jsdom-always,
+      epub-report-html). Operations updated.
+- [x] Production EPUB abstraction: DEFERRED to epoch 4 (just-in-time; no
+      consumer exists yet). Playwright/Storyteller isolation thereby satisfied:
+      both stay app-internal; no production package exists to pollute.
+- [ ] Final: root `bun run ci` green (8s, 221 tests) — Daniel runs full
+      private-corpus `bun run validate` and accepts the epoch. NOTE for the run:
+      the browser path now has an explicit 30s bound; any book that previously
+      stalled past 30s reports category Timeout.
 
 ## Progress log
 
@@ -122,3 +130,12 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   compressed into a Done trace (commits preserved), remaining work flattened
   into one list. Decisions folded in: production abstraction DEFERRED to epoch 4
   (no consumer yet); `reports/` stays fully prettier-excluded.
+- 2026-07-02 — Normalization completed in four commits: `3312c83` config pattern
+  (second promote-app-config consumer), `8530c84` package contract (@prosodio
+  scope, hatches + divergent typescript@6 devDep dropped, orphan
+  bun.lock/knip.json removed), `4fd193d` injectable open timeouts (browser gains
+  an explicit 30s default bound, category Timeout; tests inject 500ms/2s; root
+  ci 45s -> 8s), `9ccc5b0` boundary docs (PRIVACY.md nested-repo pattern)
+  - full README TODO triage (5 issues -> BACKLOG). provenance.md records all
+    normalization deviations. Awaiting Daniel's full-corpus validation run —
+    watch for new category-Timeout rows from the explicit browser bound.

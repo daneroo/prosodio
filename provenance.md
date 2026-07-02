@@ -29,6 +29,14 @@ later commits normalize (rename, paths, config).
   reports explicitly ignored; report replacement preserves the nested `.git`
   while deleting stale generated files; temporary `test` corpus path points to
   ai-garden fixtures.
+- native normalization deviations: name -> `@prosodio/epub-validate`; app-local
+  `test`/`typecheck`/`ci` scripts and `typescript@6`/`@types/bun` devDeps
+  removed (root ci owns the gate); nested `bun.lock`/`knip.json` removed;
+  `src/config.ts` restructured to the transcribe config-object pattern; `test`
+  corpus root -> committed `fixtures/epub/`; open timeouts made env-injectable
+  (`NODE_OPEN_TIMEOUT_MS` call-time read, new `BROWSER_OPEN_TIMEOUT_MS` bound,
+  default 30s) — a stalled browser open now fails as category Timeout instead of
+  stalling unbounded.
 
 ## transcribe (port of bun-one/apps/whisper)
 
