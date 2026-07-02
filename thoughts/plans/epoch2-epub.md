@@ -1,6 +1,6 @@
 # epoch2-epub — EPUB parsing and validation
 
-Status: active
+Status: done (retained for consolidation history and epoch-4 inputs)
 
 Goal: port `epub-validate` intact, then introduce the smallest justified
 production EPUB abstraction.
@@ -59,7 +59,7 @@ every commit.
 - [x] Production EPUB abstraction: DEFERRED to epoch 4 (just-in-time; no
       consumer exists yet). Playwright/Storyteller isolation thereby satisfied:
       both stay app-internal; no production package exists to pollute.
-- [ ] Final: root `bun run ci` green (8s, 221 tests) — Daniel runs full
+- [x] Final: root `bun run ci` green (8s, 221 tests) — Daniel runs full
       private-corpus `bun run validate` and accepts the epoch. NOTE for the run:
       the browser path now has an explicit 30s bound; any book that previously
       stalled past 30s reports category Timeout.
@@ -139,3 +139,6 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   - full README TODO triage (5 issues -> BACKLOG). provenance.md records all
     normalization deviations. Awaiting Daniel's full-corpus validation run —
     watch for new category-Timeout rows from the explicit browser bound.
+- 2026-07-02 — Daniel reran the full private-corpus `bun run validate`; reports
+  were green and accepted. Epoch 2 complete; plan retained as the execution
+  record and because its EPUB indexing design feeds epoch 4.
