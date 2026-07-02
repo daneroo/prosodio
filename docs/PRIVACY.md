@@ -14,3 +14,8 @@ What may be committed to this public repo, and what must not. Where things live:
 Rule the reports leak taught: anything derived from private corpora is itself
 private — it carries filenames/metadata. No standing committed artifact dir;
 promotion to public is deliberate and identity-stripping.
+
+Private regression history: a private artifact dir may be version-tracked as a
+NESTED git repo inside its gitignored folder (own `git init`, LOCAL-ONLY, never
+pushed) — git history without publication. Exemplar:
+`apps/epub-validate/reports/`. Regeneration must preserve the nested `.git`.

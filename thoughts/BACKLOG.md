@@ -5,11 +5,36 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
 
 - [ ] promote-app-config — promote transcribe's `lib/config.ts` to a shared
       `packages/config`
-  - state: deferred out of epoch1-transcribe
+  - state: deferred out of epoch1-transcribe; epub-validate's `src/config.ts`
+    now mirrors the pattern (second consumer, epoch 2)
   - today it is single-app path config: a `DATA_DIR`-rooted `data/<app>/…` tree
     plus a REPO_ROOT-anchored `fixturesDir`. Promote to `packages/config` with
     `DATA_DIR` / `CORPORA_DIR` env overrides.
-  - revisit-when: a second app (epub/alignment) needs shared path config.
+  - fold epub-validate's loose values in at the same time (open-timeout
+    defaults, concurrency limits — the inherited "move loose config values"
+    TODO).
+  - revisit-when: a third consumer, or the CORPORA_DIR override becomes real.
+
+- [ ] epub-text-extraction-gate — add text-content extraction (Gate 10B) to
+      epub-validate
+  - state: deferred — raw spine bytes already agree across all parsers
+  - revisit-when: downstream (alignment, epoch 4) needs extracted text.
+
+- [ ] epub-toc-href-validation — validate TOC -> content through the parser
+  - resolve nav hrefs against manifest/spine; would settle the TOC href-baseline
+    ambiguity flagged in the FINDINGS doc.
+
+- [ ] storyteller-package-doc-failures — investigate Storyteller "could not read
+      the package document" failures (17 books)
+  - not EPUB 2; both epub.ts paths open them. Was 18; the repaired _Circe_ now
+    opens.
+
+- [ ] epubts-node-jsdom-always — consider forcing jsdom always
+  - jsdom opens every book LinkeDOM hangs on (9-book fallback today); dropping
+    the LinkeDOM-first hybrid simplifies epubts-node at some speed cost.
+
+- [ ] epub-report-html — static self-contained HTML report
+  - replace the file-tree markdown report output with a single HTML view.
 
 - [ ] agents-md-convention — are AGENTS.md/CLAUDE.md required and respected, and
       which wins?
