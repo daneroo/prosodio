@@ -71,4 +71,19 @@ export const config = {
     // Structurally unambiguous non-content excluded from text extraction.
     excludedElements: ["head", "script", "style"],
   },
+  // Review-worklist thresholds. Anomalies flag spans/gaps/documents for manual
+  // review; they never prove an anchor correct or remove content from metrics.
+  metrics: {
+    // Spine documents below this match ratio are flagged (zero-match always).
+    lowMatchRatio: 0.1,
+    // Rolling anchor density bucket, in narration minutes.
+    densityBucketMinutes: 10,
+    // Implied narration words-per-minute plausibility band across a gap.
+    anomalyWpmMin: 80,
+    anomalyWpmMax: 260,
+    // EPUB/VTT token-count ratio band across a gap (checked above a floor).
+    anomalyWordRatioMin: 0.5,
+    anomalyWordRatioMax: 2,
+    anomalyGapMinTokens: 20,
+  },
 };

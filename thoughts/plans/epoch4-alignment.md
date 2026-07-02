@@ -144,24 +144,24 @@ Types and the three input builders, each with tests, before any matching.
 
 ## 5 — Pass framework and Pass 1
 
-- [ ] Implement the pass framework: passes receive immutable sequences,
+- [x] Implement the pass framework: passes receive immutable sequences,
       already-accepted spans, and residual gaps; they emit candidates with
       evidence; a shared reconciliation step enforces bounds, monotonicity, and
       non-overlap before accepting spans.
-- [ ] Pass 1 candidate generation: sliding `k = 6` n-grams over both complete
+- [x] Pass 1 candidate generation: sliding `k = 6` n-grams over both complete
       token streams; keep keys unique in both; intersect to
       `(vttOffset, epubOffset)` candidates; verify token arrays on every hash
       hit.
-- [ ] Monotonic selection: LIS over epubOffset in vttOffset order (O(M log M)).
-- [ ] Coalesce same-diagonal overlapping/adjacent n-grams into exact spans;
+- [x] Monotonic selection: LIS over epubOffset in vttOffset order (O(M log M)).
+- [x] Coalesce same-diagonal overlapping/adjacent n-grams into exact spans;
       extend outward while normalized tokens match, bounded by neighboring
       spans; merge spans whose extensions meet with no mismatch.
-- [ ] Metrics: candidate/accepted counts and survival rate per pass; VTT and
+- [x] Metrics: candidate/accepted counts and survival rate per pass; VTT and
       EPUB matched-token coverage; gross per-spine word/match/anchor stats
       (zero-match documents included, never silently excluded); gap
       distributions (VTT words, EPUB words, time); rolling anchor density; local
       WPM and word-ratio anomalies; deterministic zero/low-match warnings.
-- [ ] Alice end-to-end integration test on the committed triplet: pipeline runs,
+- [x] Alice end-to-end integration test on the committed triplet: pipeline runs,
       spans are ordered/in-bounds/non-overlapping, and repeated runs are
       byte-identical.
 
@@ -239,3 +239,12 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   tokens) while the LibriVox narration reads the full #11 text (~27k words) —
   the public fixture is deliberately a hard alignment case, not a happy path;
   anchor coverage expectations must account for it.
+- 2026-07-02 — Sections 4-5 landed: normalizer, contracts, VTT sequence, EPUB
+  extraction, LIS, exact pass (k-parameterized, window-scoped for gap reuse),
+  shared reconciliation + gaps, metrics, Alice end-to-end test. BUG found by the
+  reconcile gate on real data then fixed in the pass: consecutive spans on
+  different diagonals can overlap by up to k-1 tokens after LIS; trimOverlaps
+  now trims the later span's start on both axes. Alice Pass 1: 7,108 candidates,
+  survival 0.9994, 385 spans, coverage VTT 0.331 / EPUB 0.684, 0 rejections,
+  deterministic across runs. Serialized result schema deferred to section 6
+  (design: just-in-time for its first consumer).
