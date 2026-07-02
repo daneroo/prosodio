@@ -69,12 +69,13 @@ increments.
 
 ## 1 — Scaffold
 
-- [ ] Scaffold `apps/align` (`@prosodio/align`): `package.json` declaring
+- [x] Scaffold `apps/align` (`@prosodio/align`): `package.json` declaring
       `@prosodio/vtt` (`workspace:*`), minimal runnable `align.ts` entry, one
-      placeholder test; prove root `bun run ci` covers the new workspace.
-- [ ] Expose `bun run align` from `apps/align/package.json` as the documented
+      placeholder test; root `bun run ci` covers the new workspace (222 tests /
+      22 files, up from 221/21).
+- [x] Expose `bun run align` from `apps/align/package.json` as the documented
       app invocation (mirrors epub-validate's `validate`); quality checks stay
-      in the root `ci` target only.
+      in the root `ci` target only. Smoke-ran from `apps/align/`.
 
 ## 2 — Config
 

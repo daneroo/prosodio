@@ -1,0 +1,12 @@
+{
+  "name": "@prosodio/align",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "align": "bun run align.ts"
+  },
+  "dependencies": {
+    "@prosodio/vtt": "workspace:*"
+  }
+}
