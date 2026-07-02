@@ -79,7 +79,7 @@ increments.
 
 ## 2 — Config
 
-- [ ] Add `apps/align/lib/config.ts` as the only source for paths and
+- [x] Add `apps/align/lib/config.ts` as the only source for paths and
       parameters, following `apps/transcribe/lib/config.ts` and
       `apps/epub-validate/src/config.ts`: repo-root anchoring; public
       `fixturesDir` plus the Alice triplet fixture paths; app-local gitignored
