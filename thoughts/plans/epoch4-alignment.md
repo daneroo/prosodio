@@ -40,6 +40,12 @@ increments.
   Epoch 4 implementation source.
 - `apps/transcribe/scripts/tools/vtt-compare.ts` is context for a possible
   future VTT/VTT alignment capability, not an Epoch 4 implementation source.
+- `scripts/match-vtt.sh` (repo root) is the working reference for triplet
+  discovery: named root sets pairing a flat transcriptions dir with a nested
+  corpora dir (`fixtures`: `fixtures/transcriptions` + `fixtures/audiobooks`;
+  `private`: `data/transcribe/output` + the external corpora root); `.m4b` files
+  indexed by basename; the EPUB resolved as the m4b's same-basename sibling;
+  `-s` AND filter; `-r all|fixtures|private` root selector.
 - `apps/transcribe/scripts/many/do-series.sh` is the usage reference for `-s`
   multi-term, case-insensitive AND filtering over audiobook paths. Unlike that
   interactive transcription script, `align` makes search optional and defaults
@@ -53,8 +59,9 @@ increments.
   manifest-fetched M4B under `fixtures/audiobooks/`.
 - The Alice VTT is committed under `fixtures/transcriptions/`. Its provenance
   uses basenames and `wordTimestamps: false`, so it exercises the interpolation
-  path. The Alice triplet enters through config/tests as explicit fixture paths
-  — corpus discovery never sees `fixtures/`.
+  path. The Alice triplet is discovered via the `fixtures` root; the committed
+  end-to-end integration test feeds the VTT + EPUB paths directly (no m4b needed
+  to align, so CI works without the gitignored fetched m4b).
 - Private evaluation defaults to every `data/transcribe/output/*.vtt` with an
   unambiguous basename match in the configured external audiobook corpus. The
   current local corpus root is `/Volumes/Space/Reading/audiobooks`;
@@ -76,30 +83,34 @@ increments.
       `apps/epub-validate/src/config.ts`: repo-root anchoring; public
       `fixturesDir` plus the Alice triplet fixture paths; app-local gitignored
       `apps/align/reports/` output root (`reportsDir`, mirroring epub-validate);
-      the transcription root (default `data/transcribe/output`); the external
-      corpora root (the `/Volumes/Space/Reading/audiobooks` value lives here,
-      never elsewhere in source); alignment pass parameters (Pass 1 `k = 6`,
-      proof pass `k = 4`, normalization policy id, extraction flags).
+      named root sets pairing transcriptions + corpora dirs (`fixtures`,
+      `private` — the `/Volumes/Space/Reading/audiobooks` value lives here,
+      never elsewhere in source; cf. epub-validate's `roots`); alignment pass
+      parameters (Pass 1 `k = 6`, proof pass `k = 4`, normalization policy id,
+      extraction flags).
 
 ## 3 — Discovery and matching
 
 Runnable before any alignment exists: `align --list` reports the matched set.
+Reference implementation: `scripts/match-vtt.sh`.
 
-- [ ] Discover VTT files from the configured transcription root (`*.vtt`,
-      non-recursive).
-- [ ] Recursively index `.m4b` files under the configured external corpora root;
-      pair VTT to M4B by exact basename; resolve the EPUB belonging to each
-      matched audiobook from its corpus entry.
+- [ ] Discover triplets per configured root set: flat `*.vtt` scan of the root's
+      transcriptions dir; recursive `.m4b` index of its corpora dir keyed by
+      basename; exact-basename VTT->M4B pairing; EPUB resolved as the m4b's
+      same-basename sibling. Missing roots skip with a warning (the private
+      corpus is not always mounted).
 - [ ] Report unmatched, duplicate, and ambiguous VTT/M4B/EPUB candidates
-      deterministically instead of choosing one silently.
+      deterministically instead of choosing one silently (match-vtt.sh's matched
+      / no-epub / no-m4b buckets, plus duplicate-basename detection).
 - [ ] Add `-s, --search <terms>`: deterministic case-insensitive AND matching —
       split on whitespace, require every term in the combined relative corpus
       path and basename. Search filters the already-matched set; it never
-      changes pairing. Follow `do-series.sh` syntax/help/summary style without
-      its required-search or interactive-selection behavior.
-- [ ] Add `--list` to print the matched triplets and exclusions without
-      aligning; cover discovery/matching/search with unit tests on synthetic
-      paths (no private corpus needed in CI).
+      changes pairing. Follow match-vtt.sh/do-series.sh syntax and summary style
+      without do-series's required-search or interactive selection.
+- [ ] Add `--list` (plus a `-r <root>` selector, default all roots) to print
+      matched triplets and exclusions without aligning; cover
+      discovery/matching/search with unit tests on synthetic paths (no private
+      corpus needed in CI).
 
 ## 4 — Contracts and sequence builders
 
@@ -155,9 +166,9 @@ Types and the three input builders, each with tests, before any matching.
 
 ## 6 — Run wiring and private reports
 
-- [ ] Wire `bun run align`: default processes every unambiguous private-corpus
-      match; `-s` filters; results and a run summary go under
-      `apps/align/reports/`.
+- [ ] Wire `bun run align`: default processes every unambiguous match across all
+      configured roots (missing roots skip); `-s`/`-r` filter; results and a run
+      summary go under `apps/align/reports/`.
 - [ ] Create the private results dir as a nested LOCAL-ONLY git repo inside
       gitignored `apps/align/reports/` (per docs/PRIVACY.md); regeneration
       deletes stale generated files but preserves the nested `.git`.
@@ -209,3 +220,8 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   `data/align/`; `@prosodio/vtt` (`workspace:*`) is the declared VTT engine.
   Autonomy granted: commit and proceed per step unless his judgement is truly
   needed.
+- 2026-07-02 — Discovery model corrected to Daniel's `scripts/match-vtt.sh`
+  demonstrator: named root sets (`fixtures`, `private`) each pairing a flat
+  transcriptions dir with a nested corpora dir; EPUB = the m4b's same-basename
+  sibling; `-r` root selector added; Alice is discovered via the `fixtures` root
+  (the integration test still feeds VTT+EPUB directly — no m4b needed to align).
