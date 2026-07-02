@@ -78,10 +78,8 @@ The three-way comparison is really **two pairs with different purposes**:
 
 ### Documents
 
-`docs/` holds the retained findings and designs:
+`docs/` holds the retained findings:
 [`FINDINGS-epub-validate-2026-06-24.md`](docs/FINDINGS-epub-validate-2026-06-24.md)
 (consolidated findings + problematic-books inventory, maintained as the corpus
-evolves) and [`DESIGN-epub-indexing.md`](docs/DESIGN-epub-indexing.md) (an early
-sketch of the epoch-4 alignment/indexing work). Historical plans were pruned at
-port time; work tracking follows the root `docs/WORKFLOW.md` (BACKLOG +
-thoughts/plans).
+evolves). Historical plans were pruned at port time; work tracking follows the
+root `docs/WORKFLOW.md` using `thoughts/BACKLOG.md` and `thoughts/plans/`.

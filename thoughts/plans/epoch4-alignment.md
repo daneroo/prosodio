@@ -16,9 +16,10 @@ transcription and EPUB APIs.
       alignment/eval tooling; `vtt-monotonicity.ts` — remove (superseded, its
       check lives in `@prosodio/vtt` as `checkCueMonotonicity`).
 
-- [ ] Reference: epub-validate's `DESIGN-epub-indexing` (carried in from
-      epoch 2) is an early sketch of this alignment/indexing work — mine it as
-      input.
+- [ ] Mine
+      [`epoch4-alignment-design-1.md`](../design/epoch4-alignment-design-1.md),
+      carried in from epub-validate, as an early sketch of this
+      alignment/indexing work.
 
 Player, finder, TTS, and search remain later capability decisions, not implied
 members of an initial release.

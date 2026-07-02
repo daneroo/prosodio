@@ -27,8 +27,9 @@ every commit.
       manifest provenance URLs + strict hashes; Gutenberg endpoints are MUTABLE
       (committed bytes are the source of truth); no path reaches into ai-garden.
       Daniel corpus-validated (only Alice's content key changed, intentionally).
-- [x] `DESIGN-epub-indexing.md` retained at `apps/epub-validate/docs/`;
-      `epoch4-alignment.md` references it (epoch-4 input).
+- [x] EPUB indexing design retained as
+      `thoughts/design/epoch4-alignment-design-1.md`; `epoch4-alignment.md`
+      references it (epoch-4 input).
 
 ## Remaining
 
