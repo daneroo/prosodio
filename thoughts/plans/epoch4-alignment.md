@@ -82,9 +82,6 @@ Canonical design:
 
 ## Design and contracts
 
-- [x] Consolidate the two initial drafts into the canonical design; reject DOM
-      paths/IDs, recursive bisection, automatic zero-match exclusions, and
-      premature viewer design.
 - [ ] Define the VTT token sequence contract, including optional interpolation
       and timing provenance.
 - [ ] Define the EPUB extraction contract, normalized offset map, opaque
