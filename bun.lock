@@ -21,6 +21,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@prosodio/vtt": "workspace:*",
+        "@types/yargs": "^17.0.35",
+        "yargs": "^18.0.0",
       },
     },
     "apps/epub-validate": {

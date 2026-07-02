@@ -95,20 +95,20 @@ increments.
 Runnable before any alignment exists: `align --list` reports the matched set.
 Reference implementation: `scripts/match-vtt.sh`.
 
-- [ ] Discover triplets per configured root set: flat `*.vtt` scan of the root's
+- [x] Discover triplets per configured root set: flat `*.vtt` scan of the root's
       transcriptions dir; recursive `.m4b` index of its corpora dir keyed by
       basename; exact-basename VTT->M4B pairing; EPUB resolved as the m4b's
       same-basename sibling. Missing roots skip with a warning (the private
       corpus is not always mounted).
-- [ ] Report unmatched, duplicate, and ambiguous VTT/M4B/EPUB candidates
+- [x] Report unmatched, duplicate, and ambiguous VTT/M4B/EPUB candidates
       deterministically instead of choosing one silently (match-vtt.sh's matched
       / no-epub / no-m4b buckets, plus duplicate-basename detection).
-- [ ] Add `-s, --search <terms>`: deterministic case-insensitive AND matching —
+- [x] Add `-s, --search <terms>`: deterministic case-insensitive AND matching —
       split on whitespace, require every term in the combined relative corpus
       path and basename. Search filters the already-matched set; it never
       changes pairing. Follow match-vtt.sh/do-series.sh syntax and summary style
       without do-series's required-search or interactive selection.
-- [ ] Add `--list` (plus a `-r <root>` selector, default all roots) to print
+- [x] Add `--list` (plus a `-r <root>` selector, default all roots) to print
       matched triplets and exclusions without aligning; cover
       discovery/matching/search with unit tests on synthetic paths (no private
       corpus needed in CI).
