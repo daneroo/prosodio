@@ -2,8 +2,8 @@
 # Regenerates the crafted EPUB fixtures used by unit/integration tests.
 #
 # These are NOT a corpus root — they are deliberately small, hand-built inputs
-# loaded directly by tests. The `test` corpus root (../test-books) stays valid
-# EPUBs only; malformed inputs live here.
+# loaded directly by tests through src/config.ts. The public `test` corpus root
+# stays valid EPUBs only; malformed inputs live here.
 #
 # The committed .epub files are the artifacts; this script documents how they
 # were made and lets us rebuild them. EPUB requires the `mimetype` entry first

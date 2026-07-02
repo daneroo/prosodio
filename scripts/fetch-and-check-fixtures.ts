@@ -4,11 +4,16 @@ import { existsSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 
-// Reconcile the public test fixtures. Desired state = fixtures/manifest.jsonc
-// (files that must exist with a given sha256) plus two derived files; actual
-// state = what is on disk. Each step converges the diff and is idempotent.
+// Reconcile the public test fixtures. `url` records upstream provenance;
+// `fetchIfMissing` marks large, gitignored fixtures that must be downloaded on
+// a fresh machine. Every fixture is verified strictly by sha256.
 
-type Entry = { url: string; path: string; sha256: string };
+type Entry = {
+  path: string;
+  sha256: string;
+  url: string;
+  fetchIfMissing?: boolean;
+};
 
 const FIXTURES = join(import.meta.dir, "..", "fixtures");
 const tty = process.stdout.isTTY;
@@ -25,7 +30,7 @@ async function main(): Promise<void> {
   console.log("# Fetch and Check Fixtures\n");
   const manifest = await loadManifest();
 
-  console.log("- fetch + verify (./fixtures/ vs manifest)\n");
+  console.log("- verify + fetch missing external fixtures\n");
   await reconcileManifest(manifest);
 
   console.log("\n- derive (ffmpeg)\n");
@@ -42,9 +47,9 @@ async function loadManifest(): Promise<Entry[]> {
   ) as Entry[];
 }
 
-// Fetch-if-missing and verify are one unit: an entry is reconciled only when it
-// is present AND its sha256 matches. A bad download is quarantined, not left in
-// place, so a re-run refetches it.
+// An entry is reconciled only when it is present AND its sha256 matches. Missing
+// checked-in fixtures must be restored with Git. A bad external download is
+// quarantined, so a re-run refetches it.
 async function reconcileManifest(manifest: Entry[]): Promise<void> {
   let ok = true;
   for (const entry of manifest) {
@@ -54,6 +59,7 @@ async function reconcileManifest(manifest: Entry[]): Promise<void> {
 }
 
 async function ensureEntry({
+  fetchIfMissing = false,
   url,
   path,
   sha256: want,
@@ -61,11 +67,17 @@ async function ensureEntry({
   const target = join(FIXTURES, path);
   const fresh = !existsSync(target);
   if (fresh) {
+    if (!fetchIfMissing) {
+      console.log(
+        `  ${red("✗")} ${path} ${dim(": missing checked-in fixture; restore it with Git")}`,
+      );
+      return false;
+    }
     console.log(`  ${dim("↓")} ${path}`);
     await mkdir(dirname(target), { recursive: true });
     // curl (not fetch+Bun.write, which stalls on large streams): -f fails on
-    // HTTP errors, -L follows archive.org/Gutenberg redirects, --retry retries.
-    await $`curl -fL --retry 3 -o ${target} ${url}`;
+    // HTTP errors, -L follows redirects, --retry retries transient failures.
+    await $`curl -fL --connect-timeout 15 --retry 3 -o ${target} ${url}`;
   }
 
   const got = await sha256(target);

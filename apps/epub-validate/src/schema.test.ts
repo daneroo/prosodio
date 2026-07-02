@@ -1,15 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
+import { APP_TEST_FIXTURES_DIRECTORY } from "./config.ts";
 import { parserOutputSchema, type ParserOutput } from "./schema.ts";
 
-const FIXTURE_DIR = join(
-  import.meta.dir,
-  "..",
-  "test",
-  "fixtures",
-  "parser-outputs",
-);
+const FIXTURE_DIR = join(APP_TEST_FIXTURES_DIRECTORY, "parser-outputs");
 
 // The committed sample ParserOutputs — one per openStatus and per domParser
 // variant. Each must validate and round-trip (strict schema does not transform,

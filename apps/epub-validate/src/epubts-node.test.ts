@@ -1,15 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 
+import {
+  APP_TEST_FIXTURES_DIRECTORY,
+  EPUB_FIXTURES_DIRECTORY,
+} from "./config.ts";
 import { openNode } from "./epubts-node.ts";
-
-const FIXTURES = resolve(import.meta.dir, "../test/fixtures");
-// TODO: move these test books into ../../fixtures/epub with config.ts
-const TEST_BOOKS = resolve(import.meta.dir, "../../../../test-books");
 
 describe("openNode", () => {
   test("opens a committed EPUB 3 test book", async () => {
-    const output = await openNode(resolve(TEST_BOOKS, "abbott-flatland.epub"));
+    const output = await openNode(
+      resolve(EPUB_FIXTURES_DIRECTORY, "gutenberg-201-flatland.epub"),
+    );
     expect(output.meta.openStatus).toBe("opened");
     expect(output.meta.parser).toBe("epubts-node");
     expect(output.meta.parserVersion).toMatch(/^\d+\.\d+\.\d+/);
@@ -18,14 +20,16 @@ describe("openNode", () => {
   }, 30_000);
 
   test("opens EPUB 2 (epubts-node does not reject it)", async () => {
-    const output = await openNode(resolve(FIXTURES, "epub2-minimal.epub"));
+    const output = await openNode(
+      resolve(APP_TEST_FIXTURES_DIRECTORY, "epub2-minimal.epub"),
+    );
     expect(output.meta.openStatus).toBe("opened");
     expect(output.content?.metadata.title).toBe("Epub Two Minimal");
   }, 30_000);
 
   test("malformed-truncated-zip.epub returns open-failed", async () => {
     const output = await openNode(
-      resolve(FIXTURES, "malformed-truncated-zip.epub"),
+      resolve(APP_TEST_FIXTURES_DIRECTORY, "malformed-truncated-zip.epub"),
     );
     expect(output.meta.openStatus).toBe("open-failed");
     expect(output.meta.openFailure).toBeDefined();
@@ -36,7 +40,10 @@ describe("openNode", () => {
     // buildParserOutput throws if the output is invalid, so any output we get
     // here is already Zod-valid. Spot-check a few schema invariants.
     const output = await openNode(
-      resolve(TEST_BOOKS, "aristotle-nicomachean-ethics.epub"),
+      resolve(
+        EPUB_FIXTURES_DIRECTORY,
+        "gutenberg-8438-nicomachean-ethics.epub",
+      ),
     );
     expect(output.schemaVersion).toBe(5);
     expect(["opened", "open-failed", "epub2-unsupported"]).toContain(

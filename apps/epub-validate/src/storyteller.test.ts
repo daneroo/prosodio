@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 
+import {
+  APP_TEST_FIXTURES_DIRECTORY,
+  EPUB_FIXTURES_DIRECTORY,
+} from "./config.ts";
 import { openStoryteller } from "./storyteller.ts";
-
-const FIXTURES = resolve(import.meta.dir, "../test/fixtures");
-// TODO: move these test books into ../../fixtures/epub with config.ts
-const TEST_BOOKS = resolve(import.meta.dir, "../../../../test-books");
 
 describe("openStoryteller", () => {
   test("opens a committed EPUB 3 test book", async () => {
     const output = await openStoryteller(
-      resolve(TEST_BOOKS, "abbott-flatland.epub"),
+      resolve(EPUB_FIXTURES_DIRECTORY, "gutenberg-201-flatland.epub"),
     );
     expect(output.meta.openStatus).toBe("opened");
     expect(output.meta.parser).toBe("storyteller");
@@ -20,7 +20,7 @@ describe("openStoryteller", () => {
 
   test("EPUB 2 returns epub2-unsupported (not open-failed)", async () => {
     const output = await openStoryteller(
-      resolve(FIXTURES, "epub2-minimal.epub"),
+      resolve(APP_TEST_FIXTURES_DIRECTORY, "epub2-minimal.epub"),
     );
     expect(output.meta.openStatus).toBe("epub2-unsupported");
     expect(output.content).toBeUndefined();
@@ -29,7 +29,7 @@ describe("openStoryteller", () => {
 
   test("malformed-truncated-zip.epub returns open-failed", async () => {
     const output = await openStoryteller(
-      resolve(FIXTURES, "malformed-truncated-zip.epub"),
+      resolve(APP_TEST_FIXTURES_DIRECTORY, "malformed-truncated-zip.epub"),
     );
     expect(output.meta.openStatus).toBe("open-failed");
     expect(output.meta.openFailure).toBeDefined();
@@ -38,7 +38,10 @@ describe("openStoryteller", () => {
 
   test("output satisfies ParserOutput schema invariants (Zod-validated by buildParserOutput)", async () => {
     const output = await openStoryteller(
-      resolve(TEST_BOOKS, "aristotle-nicomachean-ethics.epub"),
+      resolve(
+        EPUB_FIXTURES_DIRECTORY,
+        "gutenberg-8438-nicomachean-ethics.epub",
+      ),
     );
     expect(output.schemaVersion).toBe(5);
     expect(["opened", "open-failed", "epub2-unsupported"]).toContain(

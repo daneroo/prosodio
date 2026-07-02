@@ -48,11 +48,11 @@ new `epoch2` branch.
     - [ ] `reports/`: test whether the report writer can emit deterministic,
           Prettier-clean output; then decide whether root format CI should check
           it or the nested private repo should remain fully excluded.
-  - [ ] Port ai-garden's four public `test-books/` EPUBs into prosodio's
+  - [x] Port ai-garden's four public `test-books/` EPUBs into prosodio's
         committed fixtures layout. Merge their download sources into
         `fixtures/manifest.jsonc` and `scripts/fetch-and-check-fixtures.ts`,
         reconciling the existing Alice fixture rather than duplicating it.
-  - [ ] Replace the temporary ai-garden fixture path in app config/tests with
+  - [x] Replace the temporary ai-garden fixture path in app config/tests with
         the prosodio fixture paths.
   - [ ] Document the ignored, nested LOCAL-ONLY reports repo and its privacy
         boundary. Treat it as an explicit local exception pending the later
@@ -66,6 +66,11 @@ new `epoch2` branch.
         `openNode`. Preserve explicit timeout coverage while shortening routine
         root CI if the production timeout can be injected or otherwise bounded
         safely in tests.
+  - [ ] Triage the inherited `apps/epub-validate/README.md` TODO list item by
+        item. Remove work already completed, keep active Epoch 2 obligations in
+        this plan, route alignment-dependent work to Epoch 4, and move genuinely
+        unscheduled work to `thoughts/BACKLOG.md` in its canonical issue format.
+        Update the README only after every old TODO has an explicit disposition.
   - [ ] Remove the nested lockfile, superseded scripts/config, archived plans,
         and dead dependencies only after their replacements are exercised.
   - [ ] Make root `bun run ci` green and prove it covers epub-validate.
@@ -105,3 +110,30 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   because fixed Circe now opens. Remaining report diffs are attributable to the
   repaired Circe and Roger Ackroyd content hashes; the nested reports repo holds
   the private comparison evidence.
+- 2026-07-01 — Established the provisional generated-output boundary in
+  `9011dfe`: root Prettier excludes the built browser `dist/` and the ignored,
+  private nested `reports/` worktree; the app ignore file now documents those
+  two outputs and no longer names the retired `.reports-next/` and
+  `.reports-previous/` swap directories. Both exclusions remain explicit
+  pre-close review items.
+- 2026-07-02 — Normalized the anchored port and restored green root CI in
+  `c4615ff`. Reformatted the source, tests, parser-output fixtures, README, and
+  retained findings/design docs; removed `CLAUDE-review.md` and completed or
+  historical `docs/archive/` planning material; and fixed the two
+  `no-useless-assignment` findings in the parser worker wrappers. The test-book
+  path remains a documented temporary pointer into ai-garden and must move to
+  prosodio `fixtures/epub/`. Root `bun run ci` passed with 216 tests passing and
+  zero failures. Follow-ups record the package-script audit and the 30-second
+  browser / 10-second node timeout-test cost.
+- 2026-07-02 — Migrated the public EPUB corpus fully inside prosodio.
+  Gutenberg's generated EPUB endpoints proved mutable: current rsync-mirror
+  artifacts had different hashes from the ai-garden copies. Manifest URLs
+  uniformly record provenance; only the large gitignored M4B sets
+  `fetchIfMissing`, and hashes remain strict for every entry. Kept one Alice
+  EPUB: the illustrated Gordon Robinson Gutenberg #19033 edition now replaces
+  #11 beside the audiobook and participates in epub-validate's recursive
+  public-fixture corpus. The other three current Gutenberg fixtures live under
+  `fixtures/epub/` with stable ID-bearing names. App runtime and all tests now
+  obtain public and crafted fixture roots from `src/config.ts`; no path reaches
+  into ai-garden. Fixture reconciliation passed, as did ESLint, TypeScript, and
+  10 focused parser/schema fixture tests.

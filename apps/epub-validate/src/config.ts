@@ -19,12 +19,23 @@ export const BROWSER_BUNDLE_PATH = resolve(
   "dist/epubts-browser.js",
 );
 export const REPORTS_DIRECTORY = resolve(VALIDATE_DIRECTORY, "reports");
+export const PUBLIC_FIXTURES_DIRECTORY = resolve(
+  VALIDATE_DIRECTORY,
+  "../../fixtures",
+);
+export const EPUB_FIXTURES_DIRECTORY = resolve(
+  PUBLIC_FIXTURES_DIRECTORY,
+  "epub",
+);
+export const APP_TEST_FIXTURES_DIRECTORY = resolve(
+  VALIDATE_DIRECTORY,
+  "test/fixtures",
+);
 
 export const ROOTS: readonly RootConfig[] = [
   {
-    // TODO: these need to move to ../../../fixtures/epub
     name: "test",
-    path: resolve(VALIDATE_DIRECTORY, "../../..", "test-books"),
+    path: PUBLIC_FIXTURES_DIRECTORY,
   },
   {
     name: "space",

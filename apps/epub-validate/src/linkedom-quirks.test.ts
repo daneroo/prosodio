@@ -1,9 +1,8 @@
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
 
+import { APP_TEST_FIXTURES_DIRECTORY } from "./config.ts";
 import { openNode } from "./epubts-node.ts";
-
-const FIXTURES = resolve(import.meta.dir, "../test/fixtures");
 
 // QUIRK 1 — entity truncation (Gate 3: now a real test with the adapter live).
 // On the node path, LinkeDOM truncates a metadata value at the first character
@@ -15,7 +14,7 @@ const FIXTURES = resolve(import.meta.dir, "../test/fixtures");
 // than normalize it away (compareField is exact-lexical ===).
 test("epubts-node truncates 'Legends & Lattes' to 'Legends' on entity-ampersand-in-title.epub", async () => {
   const output = await openNode(
-    resolve(FIXTURES, "entity-ampersand-in-title.epub"),
+    resolve(APP_TEST_FIXTURES_DIRECTORY, "entity-ampersand-in-title.epub"),
   );
   expect(output.meta.openStatus).toBe("opened");
   expect(output.content?.metadata.title).toBe("Legends ");

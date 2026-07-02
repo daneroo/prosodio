@@ -1,6 +1,6 @@
 [
   {
-    // checked in - but fetch is reproducible
+    // checked in; URL records provenance
     "url": "https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.mp3",
     "path": "audio/jfk.mp3",
     "sha256": "20d3323a2bcce6f25498b8911a397503a0a99fa92b6ba58d62788cb42b6e5459",
@@ -8,13 +8,33 @@
   {
     // too large to check in (98MB)
     "url": "https://archive.org/download/aliceinwonderland_2106_librivox/AliceWonderland8_librivox.m4b",
+    "fetchIfMissing": true,
     "path": "audiobooks/Lewis Carroll - Alices Adventures in Wonderland/Lewis Carroll - Alices Adventures in Wonderland.m4b",
     "sha256": "03eb8e8733d2255c4dac0f0f6807cb67a30a9b869d56666137962678595f6039",
   },
   {
-    // checked in - but fetch is reproducible
-    "url": "https://www.gutenberg.org/ebooks/11.epub3.images",
+    // Checked-in illustrated Gordon Robinson edition, paired with the audiobook
+    // and included in epub-validate's recursive public-fixture corpus.
+    "url": "https://www.gutenberg.org/ebooks/19033",
     "path": "audiobooks/Lewis Carroll - Alices Adventures in Wonderland/Lewis Carroll - Alices Adventures in Wonderland.epub",
-    "sha256": "b976d473e774aff4d2279ec3372708d7740baa7fcee3154187997986b3325bae",
+    "sha256": "fe83b1b3074302a850cbee582b10004e824ca3cfc30074753b1eaebf95da2919",
+  },
+  // Checked-in Project Gutenberg EPUB 3 parser corpus; public domain in the
+  // United States. Gutenberg regenerates these artifacts, so URLs are
+  // provenance only; Git and the digests preserve the exact fixture bytes.
+  {
+    "url": "https://www.gutenberg.org/ebooks/201",
+    "path": "epub/gutenberg-201-flatland.epub",
+    "sha256": "303adff2a3b7c009535c3da23b74a7fe25685cbcb6ca5cb70e1aa83edc296adf",
+  },
+  {
+    "url": "https://www.gutenberg.org/ebooks/8438",
+    "path": "epub/gutenberg-8438-nicomachean-ethics.epub",
+    "sha256": "0d4d25831887250282990dd43d8e656a6764bf103cfadda2b970e11a40ae11d2",
+  },
+  {
+    "url": "https://www.gutenberg.org/ebooks/98",
+    "path": "epub/gutenberg-98-a-tale-of-two-cities.epub",
+    "sha256": "a99bbdf4495411b46f346d7804d5eebfd9134aa64d99d2ab95de9af5496caf2a",
   },
 ]
