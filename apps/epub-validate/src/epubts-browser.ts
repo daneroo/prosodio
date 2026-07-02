@@ -1,7 +1,7 @@
 import { chromium, type Browser } from "playwright";
 
 import { buildParserOutput } from "./adapter.ts";
-import { BROWSER_BUNDLE_PATH } from "./config.ts";
+import { config } from "./config.ts";
 import type { ParserOutput } from "./schema.ts";
 import type {
   BrowserHarnessResult,
@@ -101,7 +101,7 @@ export class BrowserTransport {
     try {
       const page = await context.newPage();
       await page.goto(this.#origin);
-      await page.addScriptTag({ path: BROWSER_BUNDLE_PATH });
+      await page.addScriptTag({ path: config.browserBundlePath });
       const raw: unknown = await page.evaluate(async () =>
         globalThis.epubInspect.transport("/book.epub"),
       );
@@ -273,7 +273,7 @@ function isValidManifest(value: unknown): boolean {
 }
 
 async function verifyBrowserBundle(): Promise<void> {
-  const bundle = await Bun.file(BROWSER_BUNDLE_PATH).text();
+  const bundle = await Bun.file(config.browserBundlePath).text();
   if (/linkedom/i.test(bundle)) {
     throw new Error("Browser bundle unexpectedly contains LinkeDOM");
   }

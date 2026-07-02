@@ -2,10 +2,7 @@ import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 
-import {
-  APP_TEST_FIXTURES_DIRECTORY,
-  EPUB_FIXTURES_DIRECTORY,
-} from "./config.ts";
+import { config } from "./config.ts";
 import { BrowserTransport } from "./epubts-browser.ts";
 
 async function bookInfo(
@@ -28,7 +25,7 @@ describe("BrowserTransport.open", () => {
   }, 5_000);
 
   test("opens a committed EPUB 3 test book", async () => {
-    const path = resolve(EPUB_FIXTURES_DIRECTORY, "abbott-flatland.epub");
+    const path = resolve(config.epubFixturesDir, "abbott-flatland.epub");
     const { sha256, size } = await bookInfo(path);
     const output = await transport.open(path, sha256, size);
     expect(output.meta.openStatus).toBe("opened");
@@ -38,7 +35,7 @@ describe("BrowserTransport.open", () => {
   }, 60_000);
 
   test("opens EPUB 2 (epubts-browser does not reject it)", async () => {
-    const path = resolve(APP_TEST_FIXTURES_DIRECTORY, "epub2-minimal.epub");
+    const path = resolve(config.appTestFixturesDir, "epub2-minimal.epub");
     const { sha256, size } = await bookInfo(path);
     const output = await transport.open(path, sha256, size);
     expect(output.meta.openStatus).toBe("opened");
@@ -47,7 +44,7 @@ describe("BrowserTransport.open", () => {
 
   test("malformed-truncated-zip.epub returns open-failed", async () => {
     const path = resolve(
-      APP_TEST_FIXTURES_DIRECTORY,
+      config.appTestFixturesDir,
       "malformed-truncated-zip.epub",
     );
     const { sha256, size } = await bookInfo(path);
@@ -59,7 +56,7 @@ describe("BrowserTransport.open", () => {
 
   test("output satisfies ParserOutput schema invariants (Zod-validated by buildParserOutput)", async () => {
     const path = resolve(
-      EPUB_FIXTURES_DIRECTORY,
+      config.epubFixturesDir,
       "aristotle-nicomachean-ethics.epub",
     );
     const { sha256, size } = await bookInfo(path);

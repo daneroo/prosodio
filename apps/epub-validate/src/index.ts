@@ -1,7 +1,7 @@
 import { join } from "node:path";
 
 import { discoverInventory, type CorpusEntry } from "./corpus.ts";
-import { VALIDATE_DIRECTORY, REPORTS_DIRECTORY, ROOTS } from "./config.ts";
+import { config } from "./config.ts";
 import { compareBook } from "./compare.ts";
 import { BrowserTransport } from "./epubts-browser.ts";
 import { openNode } from "./epubts-node.ts";
@@ -22,7 +22,7 @@ if (process.argv.length > 2) {
 }
 
 const runnerPkg = JSON.parse(
-  await Bun.file(join(VALIDATE_DIRECTORY, "package.json")).text(),
+  await Bun.file(join(config.appDir, "package.json")).text(),
 ) as { version: string };
 
 console.error("Launching browser...");
@@ -43,7 +43,7 @@ const provenance: RunProvenance = {
 };
 
 console.error("Discovering corpus...");
-const inventory = await discoverInventory(ROOTS);
+const inventory = await discoverInventory(config.roots);
 const totalOcc = inventory.roots.reduce((sum, r) => sum + r.found, 0);
 console.error(
   `  ${totalOcc} occurrences, ${inventory.entries.length} distinct books`,
@@ -144,15 +144,15 @@ const input: ReportInput = {
 };
 
 console.error("Writing reports...");
-await writeReport(REPORTS_DIRECTORY, input);
-console.log(`Wrote ${inventory.entries.length} books → ${REPORTS_DIRECTORY}`);
+await writeReport(config.reportsDir, input);
+console.log(`Wrote ${inventory.entries.length} books → ${config.reportsDir}`);
 
 process.exit(0);
 
 function entryAbsolutePath(entry: CorpusEntry): string {
   const occ = entry.occurrences[0];
   if (!occ) throw new Error(`Entry ${entry.sha256} has no occurrences`);
-  const root = ROOTS.find((r) => r.name === occ.root);
+  const root = config.roots.find((r) => r.name === occ.root);
   if (!root) throw new Error(`Root not found: ${occ.root}`);
   return join(root.path, occ.relativePath);
 }

@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 
-import {
-  APP_TEST_FIXTURES_DIRECTORY,
-  EPUB_FIXTURES_DIRECTORY,
-} from "./config.ts";
+import { config } from "./config.ts";
 import { openNode } from "./epubts-node.ts";
 
 describe("openNode", () => {
   test("opens a committed EPUB 3 test book", async () => {
     const output = await openNode(
-      resolve(EPUB_FIXTURES_DIRECTORY, "abbott-flatland.epub"),
+      resolve(config.epubFixturesDir, "abbott-flatland.epub"),
     );
     expect(output.meta.openStatus).toBe("opened");
     expect(output.meta.parser).toBe("epubts-node");
@@ -21,7 +18,7 @@ describe("openNode", () => {
 
   test("opens EPUB 2 (epubts-node does not reject it)", async () => {
     const output = await openNode(
-      resolve(APP_TEST_FIXTURES_DIRECTORY, "epub2-minimal.epub"),
+      resolve(config.appTestFixturesDir, "epub2-minimal.epub"),
     );
     expect(output.meta.openStatus).toBe("opened");
     expect(output.content?.metadata.title).toBe("Epub Two Minimal");
@@ -29,7 +26,7 @@ describe("openNode", () => {
 
   test("malformed-truncated-zip.epub returns open-failed", async () => {
     const output = await openNode(
-      resolve(APP_TEST_FIXTURES_DIRECTORY, "malformed-truncated-zip.epub"),
+      resolve(config.appTestFixturesDir, "malformed-truncated-zip.epub"),
     );
     expect(output.meta.openStatus).toBe("open-failed");
     expect(output.meta.openFailure).toBeDefined();
@@ -40,7 +37,7 @@ describe("openNode", () => {
     // buildParserOutput throws if the output is invalid, so any output we get
     // here is already Zod-valid. Spot-check a few schema invariants.
     const output = await openNode(
-      resolve(EPUB_FIXTURES_DIRECTORY, "aristotle-nicomachean-ethics.epub"),
+      resolve(config.epubFixturesDir, "aristotle-nicomachean-ethics.epub"),
     );
     expect(output.schemaVersion).toBe(5);
     expect(["opened", "open-failed", "epub2-unsupported"]).toContain(
