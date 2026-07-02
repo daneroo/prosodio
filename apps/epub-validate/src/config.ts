@@ -11,19 +11,19 @@ export interface RootConfig {
 
 export const VALIDATE_DIRECTORY = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  ".."
+  "..",
 );
 
 export const BROWSER_BUNDLE_PATH = resolve(
   VALIDATE_DIRECTORY,
-  "dist/epubts-browser.js"
+  "dist/epubts-browser.js",
 );
 export const REPORTS_DIRECTORY = resolve(VALIDATE_DIRECTORY, "reports");
 
 export const ROOTS: readonly RootConfig[] = [
   {
     name: "test",
-    path: resolve(VALIDATE_DIRECTORY, "..", "test-books"),
+    path: resolve(VALIDATE_DIRECTORY, "../../..", "test-books"),
   },
   {
     name: "space",
@@ -34,4 +34,3 @@ export const ROOTS: readonly RootConfig[] = [
     path: resolve(homedir(), "Library/CloudStorage/Dropbox/A-Reading/EBook"),
   },
 ];
-

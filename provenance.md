@@ -6,6 +6,30 @@ Clean-port lineage. Each component records where it came from and how
 equivalence was shown. Behavior-preserving anchors are byte-identical to source;
 later commits normalize (rename, paths, config).
 
+## epub-validate (port of epub-validate)
+
+- source: ai-garden, `epub-validate`
+- source commit: `7600ed8a664223db4d9d392109ee80596a21ab13` (worktree clean)
+- target: `apps/epub-validate`
+- anchor commit: `02b4fe7`
+- transport: `rsync -avi epub-validate/ prosodio/apps/epub-validate/`;
+  `reports/` and `node_modules/` were present locally but excluded from the
+  prosodio index.
+- equivalence: 49 tracked non-report files, blob OIDs 49/49 identical at the
+  anchor. Daniel ran the full private corpus after the minimal dependency/path
+  fixes: 1,304 occurrences / 756 distinct books; epubts-node and browser opened
+  all 756 with complete structural agreement. Report changes were traced to
+  repaired corpus bytes for _Circe_ and _The Murder of Roger Ackroyd_, not the
+  port. Storyteller improved from 213 opened / 18 failed to 214 / 17 because
+  repaired Circe now opens.
+- private evidence: `apps/epub-validate/reports/` is ignored by prosodio and is
+  a nested LOCAL-ONLY Git repo, never pushed. Commits `5e83966` (ai-garden
+  baseline) and `f801084` (reproduced prosodio baseline) retain the comparison.
+- deviations before native normalization: `zod` -> root `runtime` catalog;
+  reports explicitly ignored; report replacement preserves the nested `.git`
+  while deleting stale generated files; temporary `test` corpus path points to
+  ai-garden fixtures.
+
 ## transcribe (port of bun-one/apps/whisper)
 
 - source: ai-garden, `bun-one/apps/whisper`

@@ -1,6 +1,6 @@
 # epoch2-epub — EPUB parsing and validation
 
-Status: planned
+Status: active
 
 Goal: port `epub-validate` intact, then introduce the smallest justified
 production EPUB abstraction.
@@ -30,6 +30,37 @@ new `epoch2` branch.
       we want git history to catch report regressions, make `reports/` a NESTED
       LOCAL-ONLY git repo (its own `git init` inside the gitignored folder,
       never pushed) — the same nesting trick prosodio uses inside ai-garden.
+- [ ] Normalize the port onto the monorepo contract, in reviewable commits:
+  - [ ] Commit mechanical prettier reformatting separately from behavior and
+        configuration changes.
+  - [ ] Align the package name and script targets with prosodio; every required
+        build, typecheck, lint, and test path must be reached coherently by the
+        root commands, with no app-local CI escape hatch.
+  - [ ] Set a provisional root-format boundary for the private `reports/`
+        worktree and generated browser `dist/`; Git ignore alone does not keep
+        prettier from traversing them.
+  - [ ] Before Epoch 2 closes, revalidate that boundary with evidence:
+    - [ ] `dist/`: confirm exclusion is the right ownership model for the
+          generated browser bundle and document why.
+    - [ ] `reports/`: test whether the report writer can emit deterministic,
+          Prettier-clean output; then decide whether root format CI should check
+          it or the nested private repo should remain fully excluded.
+  - [ ] Port ai-garden's four public `test-books/` EPUBs into prosodio's
+        committed fixtures layout. Merge their download sources into
+        `fixtures/manifest.jsonc` and `scripts/fetch-and-check-fixtures.ts`,
+        reconciling the existing Alice fixture rather than duplicating it.
+  - [ ] Replace the temporary ai-garden fixture path in app config/tests with
+        the prosodio fixture paths.
+  - [ ] Document the ignored, nested LOCAL-ONLY reports repo and its privacy
+        boundary. Treat it as an explicit local exception pending the later
+        keep/move/drop decision; justify direct replacement of generated files
+        so report regeneration preserves `.git`.
+  - [ ] Revisit `cleanReportDir` during normalization: keep the smallest clear
+        implementation that preserves `.git`, deletes stale generated files, and
+        changes no parser/comparison behavior.
+  - [ ] Remove the nested lockfile, superseded scripts/config, archived plans,
+        and dead dependencies only after their replacements are exercised.
+  - [ ] Make root `bun run ci` green and prove it covers epub-validate.
 - [ ] Introduce the smallest production EPUB abstraction an actual consumer
       justifies — do not turn validation adapter boundaries directly into
       production packages.
@@ -37,3 +68,32 @@ new `epoch2` branch.
       dependency graphs.
 - [ ] Use this port to exercise dependency sharing, runtime isolation, and
       dead-dependency checks deliberately.
+
+## Progress log
+
+Append-only; newest at the bottom. Each entry: date, step, command/commit.
+
+- 2026-07-01 — Phase-A anchor. Daniel rsynced `ai-garden/epub-validate/` to
+  `apps/epub-validate/`; prosodio `02b4fe7` committed the source as-ported
+  (ci-RED by construction, CI deliberately skipped). Gate: 49 staged source
+  files, blob OIDs 49/49 identical to ai-garden `7600ed8`; zero reports and zero
+  `node_modules` committed.
+- 2026-07-01 — Minimal surgery to reproduce the private reports before native
+  normalization: `zod` -> `catalog:runtime`, root `bun install` updated the root
+  lock, and `reports/` became an explicitly ignored, nested LOCAL-ONLY Git repo.
+  The imported atomic report swap renamed and deleted the entire old `reports/`,
+  including its `.git`; changed only the report replacement mechanics to
+  validate/sanitize in memory, delete every report entry except `.git`, then
+  write directly. The temporary `test` root points back to ai-garden's fixtures;
+  fixture migration comes later.
+- 2026-07-01 — Full private-corpus regression run exposed corpus drift rather
+  than a port regression: the Space copy of _Circe_ and the sole _Murder of
+  Roger Ackroyd_ had changed bytes, while the Dropbox copy of _Circe_ was still
+  old. The split Circe hashes temporarily changed 1,304 occurrences from 756 to
+  757 distinct books (deduped 548 -> 547). Daniel synchronized the fixed Space
+  Circe to Dropbox and reran `bun run validate` (5m05.870s): 1,304 occurrences /
+  756 distinct; epubts-node and browser opened all 756 with full structural
+  agreement. Storyteller improved from 213 opened / 18 failed to 214 / 17
+  because fixed Circe now opens. Remaining report diffs are attributable to the
+  repaired Circe and Roger Ackroyd content hashes; the nested reports repo holds
+  the private comparison evidence.

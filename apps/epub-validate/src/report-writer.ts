@@ -1,4 +1,4 @@
-import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import type { CorpusEntry, CorpusInventory } from "./corpus.ts";
@@ -64,24 +64,22 @@ export async function writeReport(
   outputDir: string,
   input: ReportInput
 ): Promise<void> {
-  const tempDir = `${outputDir}.next`;
-  const backupDir = `${outputDir}.previous`;
-
-  await rm(tempDir, { recursive: true, force: true });
-  await mkdir(tempDir, { recursive: true });
+  const tempDir = outputDir;
 
   const rendered = renderFiles(input);
   const files = new Map(
     [...rendered].map(([path, contents]) => [path, sanitizeTempPaths(contents)])
   );
+
+  assertNoMachinePaths(files);
+  await mkdir(tempDir, { recursive: true });
+  await cleanReportDir(tempDir);
+
   for (const [relativePath, contents] of files) {
     const target = join(tempDir, relativePath);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, contents, "utf8");
   }
-
-  assertNoMachinePaths(files);
-  await swapIntoPlace(outputDir, tempDir, backupDir);
 }
 
 // ── rendering (pure: input -> ordered map of relative path -> file contents) ──
@@ -884,23 +882,10 @@ function assertNoMachinePaths(files: ReadonlyMap<string, string>): void {
   }
 }
 
-async function swapIntoPlace(
-  outputDir: string,
-  tempDir: string,
-  backupDir: string
-): Promise<void> {
-  await rm(backupDir, { recursive: true, force: true });
-  const hadPrevious = await isDirectory(outputDir);
-  if (hadPrevious) await rename(outputDir, backupDir);
-  try {
-    await rename(tempDir, outputDir);
-  } catch (error) {
-    if (hadPrevious) await rename(backupDir, outputDir);
-    throw error;
+async function cleanReportDir(outputDir: string): Promise<void> {
+  for (const entry of await readdir(outputDir)) {
+    if (entry !== ".git") {
+      await rm(join(outputDir, entry), { recursive: true, force: true });
+    }
   }
-  await rm(backupDir, { recursive: true, force: true });
-}
-
-async function isDirectory(path: string): Promise<boolean> {
-  return (await stat(path).catch(() => undefined))?.isDirectory() ?? false;
 }
