@@ -6,22 +6,34 @@ import { compareBook } from "./compare.ts";
 import { BrowserTransport } from "./epubts-browser.ts";
 import { openNode } from "./epubts-node.ts";
 import { openStoryteller, STORYTELLER_VERSION } from "./storyteller.ts";
-import { writeReport, pairKey, type ParserPair, type ReportInput, type RunProvenance } from "./report-writer.ts";
+import {
+  writeReport,
+  pairKey,
+  type ParserPair,
+  type ReportInput,
+  type RunProvenance,
+} from "./report-writer.ts";
 import type { ComparisonResult, ParserName, ParserOutput } from "./schema.ts";
 
 if (process.argv.length > 2) {
-  throw new Error("epub-validate takes no arguments; every run processes all roots");
+  throw new Error(
+    "epub-validate takes no arguments; every run processes all roots",
+  );
 }
 
 const runnerPkg = JSON.parse(
-  await Bun.file(join(VALIDATE_DIRECTORY, "package.json")).text()
+  await Bun.file(join(VALIDATE_DIRECTORY, "package.json")).text(),
 ) as { version: string };
 
 console.error("Launching browser...");
 const transport = await BrowserTransport.launch();
 
 const provenance: RunProvenance = {
-  runner: { name: "epub-validate", version: runnerPkg.version, bun: Bun.version },
+  runner: {
+    name: "epub-validate",
+    version: runnerPkg.version,
+    bun: Bun.version,
+  },
   packages: {
     epubts: transport.parserVersion,
     storyteller: STORYTELLER_VERSION,
@@ -33,7 +45,9 @@ const provenance: RunProvenance = {
 console.error("Discovering corpus...");
 const inventory = await discoverInventory(ROOTS);
 const totalOcc = inventory.roots.reduce((sum, r) => sum + r.found, 0);
-console.error(`  ${totalOcc} occurrences, ${inventory.entries.length} distinct books`);
+console.error(
+  `  ${totalOcc} occurrences, ${inventory.entries.length} distinct books`,
+);
 
 const parserOutputs = new Map<string, Map<ParserName, ParserOutput>>();
 
@@ -41,9 +55,15 @@ console.error(`- epubts-node: ${inventory.entries.length} distinct books`);
 for (let i = 0; i < inventory.entries.length; i++) {
   const entry = inventory.entries[i];
   if (!entry) throw new Error(`Missing inventory entry at index ${i}`);
-  writeProgress("node", i + 1, inventory.entries.length, entry.occurrences[0]?.relativePath ?? "");
+  writeProgress(
+    "node",
+    i + 1,
+    inventory.entries.length,
+    entry.occurrences[0]?.relativePath ?? "",
+  );
   const output = await openNode(entryAbsolutePath(entry));
-  const map = parserOutputs.get(entry.sha256) ?? new Map<ParserName, ParserOutput>();
+  const map =
+    parserOutputs.get(entry.sha256) ?? new Map<ParserName, ParserOutput>();
   map.set("epubts-node", output);
   parserOutputs.set(entry.sha256, map);
 }
@@ -53,9 +73,19 @@ console.error(`- epubts-browser: ${inventory.entries.length} distinct books`);
 for (let i = 0; i < inventory.entries.length; i++) {
   const entry = inventory.entries[i];
   if (!entry) throw new Error(`Missing inventory entry at index ${i}`);
-  writeProgress("browser", i + 1, inventory.entries.length, entry.occurrences[0]?.relativePath ?? "");
-  const output = await transport.open(entryAbsolutePath(entry), entry.sha256, entry.size);
-  const map = parserOutputs.get(entry.sha256) ?? new Map<ParserName, ParserOutput>();
+  writeProgress(
+    "browser",
+    i + 1,
+    inventory.entries.length,
+    entry.occurrences[0]?.relativePath ?? "",
+  );
+  const output = await transport.open(
+    entryAbsolutePath(entry),
+    entry.sha256,
+    entry.size,
+  );
+  const map =
+    parserOutputs.get(entry.sha256) ?? new Map<ParserName, ParserOutput>();
   map.set("epubts-browser", output);
   parserOutputs.set(entry.sha256, map);
 }
@@ -67,9 +97,15 @@ console.error(`- storyteller: ${inventory.entries.length} distinct books`);
 for (let i = 0; i < inventory.entries.length; i++) {
   const entry = inventory.entries[i];
   if (!entry) throw new Error(`Missing inventory entry at index ${i}`);
-  writeProgress("storyteller", i + 1, inventory.entries.length, entry.occurrences[0]?.relativePath ?? "");
+  writeProgress(
+    "storyteller",
+    i + 1,
+    inventory.entries.length,
+    entry.occurrences[0]?.relativePath ?? "",
+  );
   const output = await openStoryteller(entryAbsolutePath(entry));
-  const map = parserOutputs.get(entry.sha256) ?? new Map<ParserName, ParserOutput>();
+  const map =
+    parserOutputs.get(entry.sha256) ?? new Map<ParserName, ParserOutput>();
   map.set("storyteller", output);
   parserOutputs.set(entry.sha256, map);
 }
@@ -85,9 +121,13 @@ for (const entry of inventory.entries) {
   for (const pair of PAIRS) {
     const aOutput = parserOutputs.get(entry.sha256)?.get(pair.a);
     const bOutput = parserOutputs.get(entry.sha256)?.get(pair.b);
-    if (aOutput?.meta.openStatus === "opened" && bOutput?.meta.openStatus === "opened") {
+    if (
+      aOutput?.meta.openStatus === "opened" &&
+      bOutput?.meta.openStatus === "opened"
+    ) {
       const result = compareBook(aOutput, bOutput);
-      const pairMap = comparisons.get(entry.sha256) ?? new Map<string, ComparisonResult>();
+      const pairMap =
+        comparisons.get(entry.sha256) ?? new Map<string, ComparisonResult>();
       pairMap.set(pairKey(pair), result);
       comparisons.set(entry.sha256, pairMap);
     }
@@ -117,7 +157,12 @@ function entryAbsolutePath(entry: CorpusEntry): string {
   return join(root.path, occ.relativePath);
 }
 
-function writeProgress(label: string, current: number, total: number, path: string): void {
+function writeProgress(
+  label: string,
+  current: number,
+  total: number,
+  path: string,
+): void {
   if (!process.stderr.isTTY) {
     if (current === 1 || current === total || current % 100 === 0) {
       console.error(`  ${label}: ${current}/${total}`);
@@ -125,7 +170,8 @@ function writeProgress(label: string, current: number, total: number, path: stri
     return;
   }
   const width = Math.max(20, (process.stderr.columns ?? 100) - 35);
-  const name = path.length > width ? `${path.slice(0, Math.max(1, width - 1))}…` : path;
+  const name =
+    path.length > width ? `${path.slice(0, Math.max(1, width - 1))}…` : path;
   process.stderr.write(`\r\x1b[2K${label} ${current}/${total} ${name}`);
 }
 

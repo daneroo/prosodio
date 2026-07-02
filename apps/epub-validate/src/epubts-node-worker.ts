@@ -17,19 +17,27 @@ const domParser = process.argv[3] === "jsdom" ? "jsdom" : "linkedom";
 const parserVersion = process.argv[4] ?? "unknown";
 
 if (!path) {
-  process.stderr.write("usage: epubts-node-worker <epub-path> [linkedom|jsdom] <parserVersion>\n");
+  process.stderr.write(
+    "usage: epubts-node-worker <epub-path> [linkedom|jsdom] <parserVersion>\n",
+  );
   process.exit(2);
 }
 
 if (domParser === "jsdom") {
   const { JSDOM } = await import("jsdom");
-  (globalThis as { DOMParser?: unknown }).DOMParser = new JSDOM("").window.DOMParser;
+  (globalThis as { DOMParser?: unknown }).DOMParser = new JSDOM(
+    "",
+  ).window.DOMParser;
 }
 
 const { Book } = await import("@likecoin/epub-ts/node");
 
 type RawNavItem = { label: string; href?: string; subitems?: RawNavItem[] };
-type NormalizedTocItem = { label: string; href: string | null; subitems: NormalizedTocItem[] };
+type NormalizedTocItem = {
+  label: string;
+  href: string | null;
+  subitems: NormalizedTocItem[];
+};
 
 function normalizeToc(items: RawNavItem[]): NormalizedTocItem[] {
   return items.map((item) => ({
@@ -64,7 +72,11 @@ try {
     linear: item.linear !== "no",
   }));
   const manifest = Object.entries(packaging?.manifest ?? {})
-    .map(([id, item]) => ({ id, href: item.href, mediaType: item.type ?? null }))
+    .map(([id, item]) => ({
+      id,
+      href: item.href,
+      mediaType: item.type ?? null,
+    }))
     .sort((a, b) => a.id.localeCompare(b.id));
   // book.path.resolve(href) uses epub-ts's own path resolver which always
   // produces an absolute "/" -prefixed result (it anchors to "/" when no
@@ -73,16 +85,28 @@ try {
   // and OEBPS-layout epubs, and correctly normalises any "../" hrefs.
   const spineHashes = await Promise.all(
     spine.map(async (item) => {
-      const archiveUrl = bookAny.path?.resolve(item.href) ?? ("/" + item.href);
+      const archiveUrl = bookAny.path?.resolve(item.href) ?? "/" + item.href;
       const content = await bookAny.archive?.getText(archiveUrl);
-      const sha256 = content != null
-        ? createHash("sha256").update(content).digest("hex")
-        : "<unreadable>";
+      const sha256 =
+        content != null
+          ? createHash("sha256").update(content).digest("hex")
+          : "<unreadable>";
       return { href: item.href, sha256 };
-    })
+    }),
   );
   const toc = normalizeToc(bookAny.navigation?.toc ?? []);
-  process.stdout.write(JSON.stringify({ ok: true, parserVersion, domParser, metadata, spine, manifest, spineHashes, toc }));
+  process.stdout.write(
+    JSON.stringify({
+      ok: true,
+      parserVersion,
+      domParser,
+      metadata,
+      spine,
+      manifest,
+      spineHashes,
+      toc,
+    }),
+  );
   book.destroy();
 } catch (error: unknown) {
   process.stdout.write(
@@ -90,7 +114,7 @@ try {
       ok: false,
       category: error instanceof Error ? error.name : "UnknownError",
       message: error instanceof Error ? error.message : String(error),
-    })
+    }),
   );
 }
 process.exit(0);

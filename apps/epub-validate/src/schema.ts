@@ -27,11 +27,7 @@ export const parserNameSchema = z.enum([
   "storyteller",
 ]);
 
-const openStatusSchema = z.enum([
-  "opened",
-  "open-failed",
-  "epub2-unsupported",
-]);
+const openStatusSchema = z.enum(["opened", "open-failed", "epub2-unsupported"]);
 
 // Which DOM parser opened the book on the node path. epub.ts uses LinkeDOM by
 // default; a few books hang it, so those fall back to jsdom (recorded here).
@@ -105,7 +101,7 @@ const tocItemSchema: z.ZodType<TocItem> = z.lazy(() =>
     label: z.string(),
     href: z.string().nullable(),
     subitems: z.array(tocItemSchema),
-  })
+  }),
 );
 
 const contentSchema = z.strictObject({
@@ -132,7 +128,7 @@ export const parserOutputSchema = z
     {
       message: "openStatus 'opened' must not carry openFailure",
       path: ["meta", "openFailure"],
-    }
+    },
   )
   .refine(
     (v) =>
@@ -140,12 +136,15 @@ export const parserOutputSchema = z
     {
       message: "openStatus 'open-failed' requires openFailure",
       path: ["meta", "openFailure"],
-    }
+    },
   )
-  .refine((v) => v.meta.openStatus !== "open-failed" || v.content === undefined, {
-    message: "openStatus 'open-failed' must not carry content",
-    path: ["content"],
-  })
+  .refine(
+    (v) => v.meta.openStatus !== "open-failed" || v.content === undefined,
+    {
+      message: "openStatus 'open-failed' must not carry content",
+      path: ["content"],
+    },
+  )
   // epub2-unsupported is self-describing: no content, and no openFailure (it is
   // expected behaviour for Storyteller, not an error).
   .refine(
@@ -153,7 +152,7 @@ export const parserOutputSchema = z
     {
       message: "openStatus 'epub2-unsupported' must not carry content",
       path: ["content"],
-    }
+    },
   )
   .refine(
     (v) =>
@@ -162,7 +161,7 @@ export const parserOutputSchema = z
     {
       message: "openStatus 'epub2-unsupported' must not carry openFailure",
       path: ["meta", "openFailure"],
-    }
+    },
   )
   // domParser is meaningful only for an opened epubts-node book.
   .refine(
@@ -170,14 +169,14 @@ export const parserOutputSchema = z
     {
       message: "domParser is only valid on the epubts-node parser",
       path: ["meta", "domParser"],
-    }
+    },
   )
   .refine(
     (v) => v.meta.domParser === undefined || v.meta.openStatus === "opened",
     {
       message: "domParser is only valid when openStatus is 'opened'",
       path: ["meta", "domParser"],
-    }
+    },
   );
 
 export type ParserName = z.infer<typeof parserNameSchema>;

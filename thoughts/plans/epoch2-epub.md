@@ -36,6 +36,9 @@ new `epoch2` branch.
   - [ ] Align the package name and script targets with prosodio; every required
         build, typecheck, lint, and test path must be reached coherently by the
         root commands, with no app-local CI escape hatch.
+    - [ ] Audit `package.json` targets against the monorepo contract: add
+          missing targets, replace incompatible standalone targets, and remove
+          extraneous targets only after confirming they have no caller.
   - [ ] Set a provisional root-format boundary for the private `reports/`
         worktree and generated browser `dist/`; Git ignore alone does not keep
         prettier from traversing them.
@@ -58,6 +61,11 @@ new `epoch2` branch.
   - [ ] Revisit `cleanReportDir` during normalization: keep the smallest clear
         implementation that preserves `.git`, deletes stale generated files, and
         changes no parser/comparison behavior.
+  - [ ] Revisit timeout-path test cost: the malformed truncated ZIP currently
+        takes about 30 seconds in `BrowserTransport.open` and 10 seconds in
+        `openNode`. Preserve explicit timeout coverage while shortening routine
+        root CI if the production timeout can be injected or otherwise bounded
+        safely in tests.
   - [ ] Remove the nested lockfile, superseded scripts/config, archived plans,
         and dead dependencies only after their replacements are exercised.
   - [ ] Make root `bun run ci` green and prove it covers epub-validate.

@@ -11,9 +11,19 @@ const ROOT_ORDER: RootName[] = ["test", "space", "drop"];
 const OCCURRENCES: HashedOccurrence[] = [
   { root: "test", relativePath: "happy.epub", size: 100, sha256: "aaaa" },
   { root: "space", relativePath: "shared.epub", size: 200, sha256: "bbbb" },
-  { root: "space", relativePath: "shared-again.epub", size: 200, sha256: "bbbb" },
+  {
+    root: "space",
+    relativePath: "shared-again.epub",
+    size: 200,
+    sha256: "bbbb",
+  },
   { root: "space", relativePath: "solo.epub", size: 300, sha256: "cccc" },
-  { root: "drop", relativePath: "copy-of-shared.epub", size: 200, sha256: "bbbb" },
+  {
+    root: "drop",
+    relativePath: "copy-of-shared.epub",
+    size: 200,
+    sha256: "bbbb",
+  },
   { root: "drop", relativePath: "drop-only.epub", size: 400, sha256: "dddd" },
 ];
 
@@ -49,15 +59,19 @@ describe("buildInventory", () => {
   });
 
   test("distinct total equals number of entries", () => {
-    const distinct = inventory.roots.reduce((sum, root) => sum + root.distinct, 0);
+    const distinct = inventory.roots.reduce(
+      (sum, root) => sum + root.distinct,
+      0,
+    );
     expect(distinct).toBe(inventory.entries.length);
   });
 
   test("an out-of-scan-order root is rejected", () => {
     expect(() =>
-      buildInventory(["test"], [
-        { root: "space", relativePath: "x.epub", size: 1, sha256: "ffff" },
-      ])
+      buildInventory(
+        ["test"],
+        [{ root: "space", relativePath: "x.epub", size: 1, sha256: "ffff" }],
+      ),
     ).toThrow();
   });
 });

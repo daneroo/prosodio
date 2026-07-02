@@ -14,9 +14,14 @@ import {
   type TocItem,
 } from "./schema.ts";
 
-export function compareBook(a: ParserOutput, b: ParserOutput): ComparisonResult {
+export function compareBook(
+  a: ParserOutput,
+  b: ParserOutput,
+): ComparisonResult {
   if (!a.content || !b.content) {
-    throw new Error("compareBook requires both outputs to be opened (content present)");
+    throw new Error(
+      "compareBook requires both outputs to be opened (content present)",
+    );
   }
   return comparisonResultSchema.parse({
     schemaVersion: COMPARISON_RESULT_SCHEMA_VERSION,
@@ -24,12 +29,18 @@ export function compareBook(a: ParserOutput, b: ParserOutput): ComparisonResult 
     parserB: b.meta.parser,
     metadata: {
       title: compareField(a.content.metadata.title, b.content.metadata.title),
-      creator: compareField(a.content.metadata.creator, b.content.metadata.creator),
+      creator: compareField(
+        a.content.metadata.creator,
+        b.content.metadata.creator,
+      ),
       date: compareField(a.content.metadata.date, b.content.metadata.date),
     },
     spine: compareSpine(a.content.spine, b.content.spine),
     manifest: compareManifest(a.content.manifest, b.content.manifest),
-    spineHashes: compareSpineHashes(a.content.spineHashes, b.content.spineHashes),
+    spineHashes: compareSpineHashes(
+      a.content.spineHashes,
+      b.content.spineHashes,
+    ),
     toc: compareToc(a.content.toc, b.content.toc),
   });
 }
@@ -50,11 +61,22 @@ function compareSpine(a: SpineItem[], b: SpineItem[]): SpineComparison {
   const aSet = new Set(aHrefs);
   const onlyInA = aHrefs.filter((href) => !bSet.has(href));
   const onlyInB = bHrefs.filter((href) => !aSet.has(href));
-  const agree = aHrefs.length === bHrefs.length && aHrefs.every((href, i) => href === bHrefs[i]);
-  return { status: agree ? "agree" : "differ", countA: aHrefs.length, countB: bHrefs.length, onlyInA, onlyInB };
+  const agree =
+    aHrefs.length === bHrefs.length &&
+    aHrefs.every((href, i) => href === bHrefs[i]);
+  return {
+    status: agree ? "agree" : "differ",
+    countA: aHrefs.length,
+    countB: bHrefs.length,
+    onlyInA,
+    onlyInB,
+  };
 }
 
-function compareSpineHashes(a: SpineHashItem[], b: SpineHashItem[]): SpineHashComparison {
+function compareSpineHashes(
+  a: SpineHashItem[],
+  b: SpineHashItem[],
+): SpineHashComparison {
   const len = Math.max(a.length, b.length);
   let matchCount = 0;
   let mismatchCount = 0;
@@ -88,19 +110,31 @@ function normalizeTocForComparison(items: TocItem[]): unknown {
 }
 
 function compareToc(a: TocItem[], b: TocItem[]): TocComparison {
-  const agree = JSON.stringify(normalizeTocForComparison(a)) === JSON.stringify(normalizeTocForComparison(b));
+  const agree =
+    JSON.stringify(normalizeTocForComparison(a)) ===
+    JSON.stringify(normalizeTocForComparison(b));
   return { status: agree ? "agree" : "differ" };
 }
 
-function compareManifest(a: ManifestItem[], b: ManifestItem[]): ManifestComparison {
+function compareManifest(
+  a: ManifestItem[],
+  b: ManifestItem[],
+): ManifestComparison {
   const aHrefs = a.map((item) => item.href);
   const bHrefs = b.map((item) => item.href);
   const bSet = new Set(bHrefs);
   const aSet = new Set(aHrefs);
   const onlyInA = aHrefs.filter((href) => !bSet.has(href));
   const onlyInB = bHrefs.filter((href) => !aSet.has(href));
-  const agree = aSet.size === bSet.size && aHrefs.every((href) => bSet.has(href));
-  return { status: agree ? "agree" : "differ", countA: aHrefs.length, countB: bHrefs.length, onlyInA, onlyInB };
+  const agree =
+    aSet.size === bSet.size && aHrefs.every((href) => bSet.has(href));
+  return {
+    status: agree ? "agree" : "differ",
+    countA: aHrefs.length,
+    countB: bHrefs.length,
+    onlyInA,
+    onlyInB,
+  };
 }
 
 // ── Parity projection ────────────────────────────────────────────────────────
@@ -121,7 +155,7 @@ interface BaselineField {
   "all-differ": number;
   "browser-node-agree": number;
   "browser-node-differ": number;
-  "unavailable": number;
+  unavailable: number;
 }
 
 export interface BaselineHistogram {
@@ -138,7 +172,9 @@ export interface PairMismatches {
 
 // Collapse the 8-way baseline onto the node×browser pair.
 // node ≠ browser in: node-differs, browser-differs, all-differ, browser-node-differ.
-export function projectNodeBrowserMismatches(hist: BaselineHistogram): PairMismatches {
+export function projectNodeBrowserMismatches(
+  hist: BaselineHistogram,
+): PairMismatches {
   return {
     title: projectNB(hist.title),
     creator: projectNB(hist.creator),
@@ -147,13 +183,20 @@ export function projectNodeBrowserMismatches(hist: BaselineHistogram): PairMisma
 }
 
 function projectNB(f: BaselineField): number {
-  return f["node-differs"] + f["browser-differs"] + f["all-differ"] + f["browser-node-differ"];
+  return (
+    f["node-differs"] +
+    f["browser-differs"] +
+    f["all-differ"] +
+    f["browser-node-differ"]
+  );
 }
 
 // Collapse the 8-way baseline onto the node×storyteller pair.
 // node ≠ storyteller in: node-differs, storyteller-differs, all-differ.
 // browser-node-* books are EPUB 2 (storyteller did not open them) — excluded.
-export function projectNodeStorytellerMismatches(hist: BaselineHistogram): PairMismatches {
+export function projectNodeStorytellerMismatches(
+  hist: BaselineHistogram,
+): PairMismatches {
   return {
     title: projectNS(hist.title),
     creator: projectNS(hist.creator),

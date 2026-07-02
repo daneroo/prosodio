@@ -31,14 +31,43 @@ const SHA = {
 // 'entity' appears in both space and drop (deduped under drop).
 const OCCURRENCES: HashedOccurrence[] = [
   { root: "test", relativePath: "happy.epub", size: 100, sha256: SHA.happy },
-  { root: "space", relativePath: "Travis Baldree - Legends/Legends.epub", size: 200, sha256: SHA.entity },
-  { root: "space", relativePath: "Ancient Tome.epub", size: 300, sha256: SHA.epub2 },
-  { root: "space", relativePath: "Broken Book.epub", size: 400, sha256: SHA.failed },
-  { root: "drop", relativePath: "dupes/Legends copy.epub", size: 200, sha256: SHA.entity },
-  { root: "drop", relativePath: "Hangs On Linkedom.epub", size: 500, sha256: SHA.jsdom },
+  {
+    root: "space",
+    relativePath: "Travis Baldree - Legends/Legends.epub",
+    size: 200,
+    sha256: SHA.entity,
+  },
+  {
+    root: "space",
+    relativePath: "Ancient Tome.epub",
+    size: 300,
+    sha256: SHA.epub2,
+  },
+  {
+    root: "space",
+    relativePath: "Broken Book.epub",
+    size: 400,
+    sha256: SHA.failed,
+  },
+  {
+    root: "drop",
+    relativePath: "dupes/Legends copy.epub",
+    size: 200,
+    sha256: SHA.entity,
+  },
+  {
+    root: "drop",
+    relativePath: "Hangs On Linkedom.epub",
+    size: 500,
+    sha256: SHA.jsdom,
+  },
 ];
 
-function metadata(title: string | null, creator: string | null, date: string | null) {
+function metadata(
+  title: string | null,
+  creator: string | null,
+  date: string | null,
+) {
   return { title, creator, date };
 }
 
@@ -46,12 +75,23 @@ function opened(
   parser: ParserName,
   version: string,
   md: ReturnType<typeof metadata>,
-  domParser?: "linkedom" | "jsdom"
+  domParser?: "linkedom" | "jsdom",
 ): ParserOutput {
   return parserOutputSchema.parse({
     schemaVersion: 5,
-    meta: { parser, parserVersion: version, openStatus: "opened", ...(domParser ? { domParser } : {}) },
-    content: { metadata: md, spine: [], manifest: [], spineHashes: [], toc: [] },
+    meta: {
+      parser,
+      parserVersion: version,
+      openStatus: "opened",
+      ...(domParser ? { domParser } : {}),
+    },
+    content: {
+      metadata: md,
+      spine: [],
+      manifest: [],
+      spineHashes: [],
+      toc: [],
+    },
   });
 }
 
@@ -78,17 +118,46 @@ function field(status: string, a: string | null, b: string | null) {
   return { status, a, b };
 }
 
-const SPINE_AGREE = { status: "agree" as const, countA: 0, countB: 0, onlyInA: [], onlyInB: [] };
-const MANIFEST_AGREE = { status: "agree" as const, countA: 0, countB: 0, onlyInA: [], onlyInB: [] };
-const SPINE_HASH_AGREE = { status: "agree" as const, matchCount: 0, mismatchCount: 0 };
+const SPINE_AGREE = {
+  status: "agree" as const,
+  countA: 0,
+  countB: 0,
+  onlyInA: [],
+  onlyInB: [],
+};
+const MANIFEST_AGREE = {
+  status: "agree" as const,
+  countA: 0,
+  countB: 0,
+  onlyInA: [],
+  onlyInB: [],
+};
+const SPINE_HASH_AGREE = {
+  status: "agree" as const,
+  matchCount: 0,
+  mismatchCount: 0,
+};
 const TOC_AGREE = { status: "agree" as const };
 
 function comparison(
   a: ParserName,
   b: ParserName,
-  fields: { title: ReturnType<typeof field>; creator: ReturnType<typeof field>; date: ReturnType<typeof field> }
+  fields: {
+    title: ReturnType<typeof field>;
+    creator: ReturnType<typeof field>;
+    date: ReturnType<typeof field>;
+  },
 ): ComparisonResult {
-  return comparisonResultSchema.parse({ schemaVersion: 6, parserA: a, parserB: b, metadata: fields, spine: SPINE_AGREE, manifest: MANIFEST_AGREE, spineHashes: SPINE_HASH_AGREE, toc: TOC_AGREE });
+  return comparisonResultSchema.parse({
+    schemaVersion: 6,
+    parserA: a,
+    parserB: b,
+    metadata: fields,
+    spine: SPINE_AGREE,
+    manifest: MANIFEST_AGREE,
+    spineHashes: SPINE_HASH_AGREE,
+    toc: TOC_AGREE,
+  });
 }
 
 const NODE = "epubts-node";
@@ -97,7 +166,8 @@ const STORY = "storyteller";
 
 const parserOutputs = new Map<string, Map<ParserName, ParserOutput>>();
 function put(sha: string, parser: ParserName, output: ParserOutput): void {
-  const existing = parserOutputs.get(sha) ?? new Map<ParserName, ParserOutput>();
+  const existing =
+    parserOutputs.get(sha) ?? new Map<ParserName, ParserOutput>();
   existing.set(parser, output);
   parserOutputs.set(sha, existing);
 }
@@ -108,9 +178,34 @@ put(SHA.happy, BROWSER, opened(BROWSER, "0.6.7", happyMd));
 put(SHA.happy, STORY, opened(STORY, "0.6.2", happyMd));
 
 // LinkeDOM truncates the title at '&' on the node path only.
-put(SHA.entity, NODE, opened(NODE, "0.6.7", metadata("Legends", "Travis Baldree", "2022"), "linkedom"));
-put(SHA.entity, BROWSER, opened(BROWSER, "0.6.7", metadata("Legends & Lattes", "Travis Baldree", "2022")));
-put(SHA.entity, STORY, opened(STORY, "0.6.2", metadata("Legends & Lattes", "Travis Baldree", "2022")));
+put(
+  SHA.entity,
+  NODE,
+  opened(
+    NODE,
+    "0.6.7",
+    metadata("Legends", "Travis Baldree", "2022"),
+    "linkedom",
+  ),
+);
+put(
+  SHA.entity,
+  BROWSER,
+  opened(
+    BROWSER,
+    "0.6.7",
+    metadata("Legends & Lattes", "Travis Baldree", "2022"),
+  ),
+);
+put(
+  SHA.entity,
+  STORY,
+  opened(
+    STORY,
+    "0.6.2",
+    metadata("Legends & Lattes", "Travis Baldree", "2022"),
+  ),
+);
 
 const tomeMd = metadata("Ancient Tome", "Old Author", "1999");
 put(SHA.epub2, NODE, opened(NODE, "0.6.7", tomeMd, "linkedom"));
@@ -136,19 +231,35 @@ function compare(sha: string, key: string, result: ComparisonResult): void {
   comparisons.set(sha, existing);
 }
 
-const agreeHappy = { title: field("agree", "Happy Path", "Happy Path"), creator: field("agree", "Ada Lovelace", "Ada Lovelace"), date: field("agree", "2020", "2020") };
+const agreeHappy = {
+  title: field("agree", "Happy Path", "Happy Path"),
+  creator: field("agree", "Ada Lovelace", "Ada Lovelace"),
+  date: field("agree", "2020", "2020"),
+};
 compare(SHA.happy, NODE_BROWSER, comparison(NODE, BROWSER, agreeHappy));
 compare(SHA.happy, NODE_STORY, comparison(NODE, STORY, agreeHappy));
 
-const entityNB = { title: field("differ", "Legends", "Legends & Lattes"), creator: field("agree", "Travis Baldree", "Travis Baldree"), date: field("agree", "2022", "2022") };
+const entityNB = {
+  title: field("differ", "Legends", "Legends & Lattes"),
+  creator: field("agree", "Travis Baldree", "Travis Baldree"),
+  date: field("agree", "2022", "2022"),
+};
 compare(SHA.entity, NODE_BROWSER, comparison(NODE, BROWSER, entityNB));
 compare(SHA.entity, NODE_STORY, comparison(NODE, STORY, entityNB));
 
-const tomeNB = { title: field("agree", "Ancient Tome", "Ancient Tome"), creator: field("agree", "Old Author", "Old Author"), date: field("agree", "1999", "1999") };
+const tomeNB = {
+  title: field("agree", "Ancient Tome", "Ancient Tome"),
+  creator: field("agree", "Old Author", "Old Author"),
+  date: field("agree", "1999", "1999"),
+};
 compare(SHA.epub2, NODE_BROWSER, comparison(NODE, BROWSER, tomeNB));
 // no node--storyteller comparison for epub2: storyteller did not open it.
 
-const hangAgree = { title: field("agree", "Hang Book", "Hang Book"), creator: field("agree", "Lin Dom", "Lin Dom"), date: field("agree", "2010", "2010") };
+const hangAgree = {
+  title: field("agree", "Hang Book", "Hang Book"),
+  creator: field("agree", "Lin Dom", "Lin Dom"),
+  date: field("agree", "2010", "2010"),
+};
 compare(SHA.jsdom, NODE_BROWSER, comparison(NODE, BROWSER, hangAgree));
 compare(SHA.jsdom, NODE_STORY, comparison(NODE, STORY, hangAgree));
 
@@ -176,7 +287,9 @@ async function readTree(dir: string): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   async function walk(rel: string): Promise<void> {
     const entries = await readdir(join(dir, rel), { withFileTypes: true });
-    for (const entry of entries.sort((l, r) => l.name.localeCompare(r.name, "en"))) {
+    for (const entry of entries.sort((l, r) =>
+      l.name.localeCompare(r.name, "en"),
+    )) {
       const childRel = rel ? `${rel}/${entry.name}` : entry.name;
       if (entry.isDirectory()) await walk(childRel);
       else out.set(childRel, await readFile(join(dir, childRel), "utf8"));
@@ -207,14 +320,18 @@ function file(name: string): string {
 
 describe("writeReport — determinism", () => {
   test("two writes of the same input are byte-identical", () => {
-    expect([...secondTree.entries()].sort()).toEqual([...firstTree.entries()].sort());
+    expect([...secondTree.entries()].sort()).toEqual(
+      [...firstTree.entries()].sort(),
+    );
   });
 });
 
 describe("writeReport — on-disk layout", () => {
   test("content-addressed parser outputs, one per (sha, parser)", () => {
     expect(firstTree.has(`parsers/${SHA.happy}/epubts-node.json`)).toBe(true);
-    expect(firstTree.has(`parsers/${SHA.happy}/epubts-browser.json`)).toBe(true);
+    expect(firstTree.has(`parsers/${SHA.happy}/epubts-browser.json`)).toBe(
+      true,
+    );
     expect(firstTree.has(`parsers/${SHA.happy}/storyteller.json`)).toBe(true);
     // epub2-unsupported and open-failed are still valid outputs and are written.
     expect(firstTree.has(`parsers/${SHA.epub2}/storyteller.json`)).toBe(true);
@@ -222,10 +339,16 @@ describe("writeReport — on-disk layout", () => {
   });
 
   test("comparisons written only for opened pairs", () => {
-    expect(firstTree.has(`comparisons/${SHA.entity}/${NODE_BROWSER}.json`)).toBe(true);
-    expect(firstTree.has(`comparisons/${SHA.entity}/${NODE_STORY}.json`)).toBe(true);
+    expect(
+      firstTree.has(`comparisons/${SHA.entity}/${NODE_BROWSER}.json`),
+    ).toBe(true);
+    expect(firstTree.has(`comparisons/${SHA.entity}/${NODE_STORY}.json`)).toBe(
+      true,
+    );
     // storyteller never opened the epub2 book -> no node--storyteller comparison.
-    expect(firstTree.has(`comparisons/${SHA.epub2}/${NODE_STORY}.json`)).toBe(false);
+    expect(firstTree.has(`comparisons/${SHA.epub2}/${NODE_STORY}.json`)).toBe(
+      false,
+    );
   });
 
   test("a detail page is written only for a mismatching book", () => {
@@ -262,7 +385,9 @@ describe("writeReport — index.md", () => {
   });
 
   test("links to each pair report", () => {
-    expect(index()).toContain(`[epubts-node vs epubts-browser](${NODE_BROWSER}.md)`);
+    expect(index()).toContain(
+      `[epubts-node vs epubts-browser](${NODE_BROWSER}.md)`,
+    );
     expect(index()).toContain(`[epubts-node vs storyteller](${NODE_STORY}.md)`);
   });
 });
@@ -328,7 +453,7 @@ describe("sanitizeTempPaths", () => {
     const raw =
       "var/folders/x3/wr64jy71395_4h85jc2ll1xm0000gn/e9781501160783/xhtml/book1_cover.xhtml";
     expect(sanitizeTempPaths(raw)).toBe(
-      "<temp-root>/e9781501160783/xhtml/book1_cover.xhtml"
+      "<temp-root>/e9781501160783/xhtml/book1_cover.xhtml",
     );
   });
 

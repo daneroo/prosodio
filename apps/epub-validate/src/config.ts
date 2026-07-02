@@ -22,6 +22,7 @@ export const REPORTS_DIRECTORY = resolve(VALIDATE_DIRECTORY, "reports");
 
 export const ROOTS: readonly RootConfig[] = [
   {
+    // TODO: these need to move to ../../../fixtures/epub
     name: "test",
     path: resolve(VALIDATE_DIRECTORY, "../../..", "test-books"),
   },

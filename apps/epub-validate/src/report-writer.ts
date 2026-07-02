@@ -62,13 +62,16 @@ export function pairKey(pair: ParserPair): string {
 
 export async function writeReport(
   outputDir: string,
-  input: ReportInput
+  input: ReportInput,
 ): Promise<void> {
   const tempDir = outputDir;
 
   const rendered = renderFiles(input);
   const files = new Map(
-    [...rendered].map(([path, contents]) => [path, sanitizeTempPaths(contents)])
+    [...rendered].map(([path, contents]) => [
+      path,
+      sanitizeTempPaths(contents),
+    ]),
   );
 
   assertNoMachinePaths(files);
@@ -94,7 +97,10 @@ function renderFiles(input: ReportInput): Map<string, string> {
     const outputs = input.parserOutputs.get(entry.sha256);
     if (outputs) {
       for (const [parser, output] of sortedByParser(outputs)) {
-        files.set(`parsers/${entry.sha256}/${parser}.json`, `${json(output)}\n`);
+        files.set(
+          `parsers/${entry.sha256}/${parser}.json`,
+          `${json(output)}\n`,
+        );
       }
     }
     const comparisons = input.comparisons.get(entry.sha256);
@@ -102,7 +108,7 @@ function renderFiles(input: ReportInput): Map<string, string> {
       for (const [key, result] of sortedByKey(comparisons)) {
         files.set(
           `comparisons/${entry.sha256}/${key}.json`,
-          `${json(result)}\n`
+          `${json(result)}\n`,
         );
       }
     }
@@ -161,11 +167,11 @@ function renderIndex(input: ReportInput): string {
     "|---|---:|---:|---:|",
     ...inventory.roots.map(
       (root) =>
-        `| ${root.name} | ${root.found} | ${root.deduped} | ${root.distinct} |`
+        `| ${root.name} | ${root.found} | ${root.deduped} | ${root.distinct} |`,
     ),
     `| total | ${sumBy(inventory.roots, (r) => r.found)} | ${sumBy(
       inventory.roots,
-      (r) => r.deduped
+      (r) => r.deduped,
     )} | ${sumBy(inventory.roots, (r) => r.distinct)} |`,
     "",
     "## Parser open outcomes",
@@ -183,14 +189,14 @@ function renderIndex(input: ReportInput): string {
     }
     const counts = parserCounts(input, parser);
     lines.push(
-      `| ${parser} | ${counts.opened} | ${counts.openFailed} | ${counts.epub2Unsupported} | ${counts.jsdomFallback} |`
+      `| ${parser} | ${counts.opened} | ${counts.openFailed} | ${counts.epub2Unsupported} | ${counts.jsdomFallback} |`,
     );
   }
 
   lines.push("", "## Open failures", "");
   lines.push(
     "Genuine open failures only; epub2-unsupported is expected and excluded.",
-    ""
+    "",
   );
   const failureLines = renderOpenFailures(input);
   lines.push(...(failureLines.length > 0 ? failureLines : ["None."]));
@@ -215,8 +221,8 @@ function renderOpenFailures(input: ReportInput): string[] {
       input.ranParsers.some(
         (parser) =>
           parserOutput(input, entry.sha256, parser)?.meta.openStatus ===
-          "open-failed"
-      )
+          "open-failed",
+      ),
     );
     if (failed.length === 0) continue;
     lines.push(`### ${root}`, "");
@@ -262,9 +268,19 @@ function renderPairReport(input: ReportInput, pair: ParserPair): string {
   let totalSpinePositions = 0;
   let totalPerBookDistinctShas = 0;
   let totalUnreadablePositions = 0;
-  const unreadableBooks: Array<{ sha256: string; title: string | null; positions: number }> = [];
+  const unreadableBooks: Array<{
+    sha256: string;
+    title: string | null;
+    positions: number;
+  }> = [];
   let totalWithinBookExtraPositions = 0;
-  const withinBookRepeats: Array<{ sha256: string; title: string | null; totalPositions: number; distinctShas: number; extraPositions: number }> = [];
+  const withinBookRepeats: Array<{
+    sha256: string;
+    title: string | null;
+    totalPositions: number;
+    distinctShas: number;
+    extraPositions: number;
+  }> = [];
 
   for (const entry of input.inventory.entries) {
     const aOpened = isOpened(input, entry.sha256, pair.a);
@@ -288,26 +304,58 @@ function renderPairReport(input: ReportInput, pair: ParserPair): string {
         else tocDiffer += 1;
         const aOutput = input.parserOutputs.get(entry.sha256)?.get(pair.a);
         const bOutput = input.parserOutputs.get(entry.sha256)?.get(pair.b);
-        if (aOutput) { const m = tocHrefDirectMisses(aOutput); if (m.length > 0) { aMissBooks += 1; aMissTotal += m.length; } }
-        if (bOutput) { const m = tocHrefDirectMisses(bOutput); if (m.length > 0) { bMissBooks += 1; bMissTotal += m.length; } }
+        if (aOutput) {
+          const m = tocHrefDirectMisses(aOutput);
+          if (m.length > 0) {
+            aMissBooks += 1;
+            aMissTotal += m.length;
+          }
+        }
+        if (bOutput) {
+          const m = tocHrefDirectMisses(bOutput);
+          if (m.length > 0) {
+            bMissBooks += 1;
+            bMissTotal += m.length;
+          }
+        }
         const aHashes = aOutput?.content?.spineHashes ?? [];
-        const title = input.parserOutputs.get(entry.sha256)?.get(pair.a)?.content?.metadata.title ?? null;
+        const title =
+          input.parserOutputs.get(entry.sha256)?.get(pair.a)?.content?.metadata
+            .title ?? null;
         totalSpinePositions += aHashes.length;
         totalPerBookDistinctShas += new Set(aHashes.map((h) => h.sha256)).size;
-        const unreadablePositions = aHashes.filter((h) => h.sha256 === "<unreadable>").length;
+        const unreadablePositions = aHashes.filter(
+          (h) => h.sha256 === "<unreadable>",
+        ).length;
         if (unreadablePositions > 0) {
           totalUnreadablePositions += unreadablePositions;
-          unreadableBooks.push({ sha256: entry.sha256, title, positions: unreadablePositions });
+          unreadableBooks.push({
+            sha256: entry.sha256,
+            title,
+            positions: unreadablePositions,
+          });
         }
-        const readableHashes = aHashes.filter((h) => h.sha256 !== "<unreadable>");
+        const readableHashes = aHashes.filter(
+          (h) => h.sha256 !== "<unreadable>",
+        );
         const hashFreq = new Map<string, number>();
-        for (const h of readableHashes) hashFreq.set(h.sha256, (hashFreq.get(h.sha256) ?? 0) + 1);
+        for (const h of readableHashes)
+          hashFreq.set(h.sha256, (hashFreq.get(h.sha256) ?? 0) + 1);
         const repeatedGroups = [...hashFreq.entries()].filter(([, c]) => c > 1);
         if (repeatedGroups.length > 0) {
           const totalPositions = repeatedGroups.reduce((s, [, c]) => s + c, 0);
-          const extraPositions = repeatedGroups.reduce((s, [, c]) => s + (c - 1), 0);
+          const extraPositions = repeatedGroups.reduce(
+            (s, [, c]) => s + (c - 1),
+            0,
+          );
           totalWithinBookExtraPositions += extraPositions;
-          withinBookRepeats.push({ sha256: entry.sha256, title, totalPositions, distinctShas: repeatedGroups.length, extraPositions });
+          withinBookRepeats.push({
+            sha256: entry.sha256,
+            title,
+            totalPositions,
+            distinctShas: repeatedGroups.length,
+            extraPositions,
+          });
         }
       }
     } else if (!aOpened && !bOpened) {
@@ -337,7 +385,7 @@ function renderPairReport(input: ReportInput, pair: ParserPair): string {
       const get = (status: string): number => c[status] ?? 0;
       const mismatch = get("differ") + get("a-only") + get("b-only");
       return `| ${field} | ${get("agree")} | ${get("differ")} | ${get(
-        "a-only"
+        "a-only",
       )} | ${get("b-only")} | ${get("both-null")} | ${mismatch} |`;
     }),
     "",
@@ -363,7 +411,14 @@ function renderPairReport(input: ReportInput, pair: ParserPair): string {
     `| differ | ${spineHashDiffer} |`,
     "",
     `per-book distinct spine-content sha256s / total spine positions (from ${pair.a}): ${totalPerBookDistinctShas} / ${totalSpinePositions}`,
-    ...renderExtraPositions(totalSpinePositions, totalPerBookDistinctShas, totalUnreadablePositions, unreadableBooks, totalWithinBookExtraPositions, withinBookRepeats),
+    ...renderExtraPositions(
+      totalSpinePositions,
+      totalPerBookDistinctShas,
+      totalUnreadablePositions,
+      unreadableBooks,
+      totalWithinBookExtraPositions,
+      withinBookRepeats,
+    ),
     "",
     "## TOC comparison",
     "",
@@ -407,7 +462,7 @@ function renderPairReport(input: ReportInput, pair: ParserPair): string {
 
 function renderPairMismatchList(
   input: ReportInput,
-  pair: ParserPair
+  pair: ParserPair,
 ): string[] {
   const key = pairKey(pair);
   const lines: string[] = [];
@@ -422,7 +477,7 @@ function renderPairMismatchList(
       const result = input.comparisons.get(entry.sha256)?.get(key);
       if (!result) continue;
       const fields = METADATA_FIELDS.map((field) =>
-        describeField(pair, field, result.metadata[field].status)
+        describeField(pair, field, result.metadata[field].status),
       ).filter((value): value is string => value !== null);
       if (result.spine.status === "differ") {
         fields.push(describeSpine(pair, result.spine));
@@ -437,7 +492,7 @@ function renderPairMismatchList(
         fields.push("toc: differ");
       }
       lines.push(
-        `- [${displayName(entry)}](details/${entry.sha256}.md) — ${fields.join("; ")}`
+        `- [${displayName(entry)}](details/${entry.sha256}.md) — ${fields.join("; ")}`,
       );
     }
     lines.push("");
@@ -474,29 +529,47 @@ function renderDetail(input: ReportInput, entry: CorpusEntry): string {
       ...METADATA_FIELDS.map((field) => {
         const cell = result.metadata[field];
         return `| ${field} | ${formatValue(cell.a)} | ${formatValue(
-          cell.b
+          cell.b,
         )} | ${verdict(pair, cell.status)} |`;
-      })
+      }),
     );
     if (result.spine.status === "differ") {
       lines.push("", `### Spine`, "", describeSpineDetail(pair, result.spine));
     }
     if (result.manifest.status === "differ") {
-      lines.push("", `### Manifest`, "", describeManifestDetail(pair, result.manifest));
+      lines.push(
+        "",
+        `### Manifest`,
+        "",
+        describeManifestDetail(pair, result.manifest),
+      );
     }
     if (result.spineHashes.status === "differ") {
-      lines.push("", `### Spine content hashes`, "", describeSpineHashesDetail(result.spineHashes));
+      lines.push(
+        "",
+        `### Spine content hashes`,
+        "",
+        describeSpineHashesDetail(result.spineHashes),
+      );
     }
     {
       const aOut = input.parserOutputs.get(entry.sha256)?.get(pair.a);
       const bOut = input.parserOutputs.get(entry.sha256)?.get(pair.b);
       const aMisses = aOut ? tocHrefDirectMisses(aOut) : [];
       const bMisses = bOut ? tocHrefDirectMisses(bOut) : [];
-      if (result.toc.status === "differ" || aMisses.length > 0 || bMisses.length > 0) {
+      if (
+        result.toc.status === "differ" ||
+        aMisses.length > 0 ||
+        bMisses.length > 0
+      ) {
         lines.push("", `### TOC`, "");
-        if (result.toc.status === "differ") lines.push("Label tree: differ.", "");
+        if (result.toc.status === "differ")
+          lines.push("Label tree: differ.", "");
         if (aMisses.length > 0 || bMisses.length > 0) {
-          lines.push("Direct-manifest misses (mostly valid nav-relative hrefs, not broken):", "");
+          lines.push(
+            "Direct-manifest misses (mostly valid nav-relative hrefs, not broken):",
+            "",
+          );
         }
         if (aMisses.length > 0) {
           lines.push(`${pair.a}:`, ...aMisses.map((h) => `- ${h}`), "");
@@ -553,7 +626,7 @@ interface ParserOutcomeCounts {
 
 function parserCounts(
   input: ReportInput,
-  parser: ParserName
+  parser: ParserName,
 ): ParserOutcomeCounts {
   const counts: ParserOutcomeCounts = {
     opened: 0,
@@ -583,7 +656,7 @@ function parserCounts(
 function parserOutput(
   input: ReportInput,
   sha256: string,
-  parser: ParserName
+  parser: ParserName,
 ): ParserOutput | undefined {
   return input.parserOutputs.get(sha256)?.get(parser);
 }
@@ -591,7 +664,7 @@ function parserOutput(
 function isOpened(
   input: ReportInput,
   sha256: string,
-  parser: ParserName
+  parser: ParserName,
 ): boolean {
   return parserOutput(input, sha256, parser)?.meta.openStatus === "opened";
 }
@@ -601,7 +674,7 @@ function isOpened(
 function activePairs(input: ReportInput): ParserPair[] {
   return input.pairs.filter(
     (pair) =>
-      input.ranParsers.includes(pair.a) && input.ranParsers.includes(pair.b)
+      input.ranParsers.includes(pair.a) && input.ranParsers.includes(pair.b),
   );
 }
 
@@ -628,24 +701,31 @@ function entryHasMismatch(input: ReportInput, sha256: string): boolean {
 // One human-readable clause for a spine mismatch in the mismatch list.
 function describeSpine(
   pair: ParserPair,
-  spine: ComparisonResult["spine"]
+  spine: ComparisonResult["spine"],
 ): string {
   if (spine.onlyInA.length === 0 && spine.onlyInB.length === 0) {
     return `spine: same hrefs, different order (${spine.countA} items)`;
   }
   const parts: string[] = [];
-  if (spine.onlyInA.length > 0) parts.push(`${spine.onlyInA.length} only in ${pair.a}`);
-  if (spine.onlyInB.length > 0) parts.push(`${spine.onlyInB.length} only in ${pair.b}`);
+  if (spine.onlyInA.length > 0)
+    parts.push(`${spine.onlyInA.length} only in ${pair.a}`);
+  if (spine.onlyInB.length > 0)
+    parts.push(`${spine.onlyInB.length} only in ${pair.b}`);
   return `spine: ${parts.join(", ")}`;
 }
 
 // Multi-line spine diff for detail pages.
-function describeSpineDetail(pair: ParserPair, spine: ComparisonResult["spine"]): string {
+function describeSpineDetail(
+  pair: ParserPair,
+  spine: ComparisonResult["spine"],
+): string {
   if (spine.onlyInA.length === 0 && spine.onlyInB.length === 0) {
     return `same hrefs, different order — ${spine.countA} items each`;
   }
   const lines: string[] = [];
-  lines.push(`${pair.a}: ${spine.countA} items, ${pair.b}: ${spine.countB} items`);
+  lines.push(
+    `${pair.a}: ${spine.countA} items, ${pair.b}: ${spine.countB} items`,
+  );
   if (spine.onlyInA.length > 0) {
     lines.push("", `Only in ${pair.a}:`, ...spine.onlyInA.map((h) => `- ${h}`));
   }
@@ -658,24 +738,40 @@ function describeSpineDetail(pair: ParserPair, spine: ComparisonResult["spine"])
 // One human-readable clause for a manifest mismatch in the mismatch list.
 function describeManifest(
   pair: ParserPair,
-  manifest: ComparisonResult["manifest"]
+  manifest: ComparisonResult["manifest"],
 ): string {
   const parts: string[] = [];
-  if (manifest.onlyInA.length > 0) parts.push(`${manifest.onlyInA.length} only in ${pair.a}`);
-  if (manifest.onlyInB.length > 0) parts.push(`${manifest.onlyInB.length} only in ${pair.b}`);
-  if (parts.length === 0) return `manifest: counts differ (${manifest.countA} vs ${manifest.countB})`;
+  if (manifest.onlyInA.length > 0)
+    parts.push(`${manifest.onlyInA.length} only in ${pair.a}`);
+  if (manifest.onlyInB.length > 0)
+    parts.push(`${manifest.onlyInB.length} only in ${pair.b}`);
+  if (parts.length === 0)
+    return `manifest: counts differ (${manifest.countA} vs ${manifest.countB})`;
   return `manifest: ${parts.join(", ")}`;
 }
 
 // Multi-line manifest diff for detail pages.
-function describeManifestDetail(pair: ParserPair, manifest: ComparisonResult["manifest"]): string {
+function describeManifestDetail(
+  pair: ParserPair,
+  manifest: ComparisonResult["manifest"],
+): string {
   const lines: string[] = [];
-  lines.push(`${pair.a}: ${manifest.countA} items, ${pair.b}: ${manifest.countB} items`);
+  lines.push(
+    `${pair.a}: ${manifest.countA} items, ${pair.b}: ${manifest.countB} items`,
+  );
   if (manifest.onlyInA.length > 0) {
-    lines.push("", `Only in ${pair.a}:`, ...manifest.onlyInA.map((h) => `- ${h}`));
+    lines.push(
+      "",
+      `Only in ${pair.a}:`,
+      ...manifest.onlyInA.map((h) => `- ${h}`),
+    );
   }
   if (manifest.onlyInB.length > 0) {
-    lines.push("", `Only in ${pair.b}:`, ...manifest.onlyInB.map((h) => `- ${h}`));
+    lines.push(
+      "",
+      `Only in ${pair.b}:`,
+      ...manifest.onlyInB.map((h) => `- ${h}`),
+    );
   }
   return lines.join("\n");
 }
@@ -694,13 +790,24 @@ function renderExtraPositions(
   totalSpinePositions: number,
   totalPerBookDistinctShas: number,
   totalUnreadablePositions: number,
-  unreadableBooks: Array<{ sha256: string; title: string | null; positions: number }>,
+  unreadableBooks: Array<{
+    sha256: string;
+    title: string | null;
+    positions: number;
+  }>,
   totalWithinBookExtraPositions: number,
-  withinBookRepeats: Array<{ sha256: string; title: string | null; totalPositions: number; distinctShas: number; extraPositions: number }>,
+  withinBookRepeats: Array<{
+    sha256: string;
+    title: string | null;
+    totalPositions: number;
+    distinctShas: number;
+    extraPositions: number;
+  }>,
 ): string[] {
   const totalExtraPositions = totalSpinePositions - totalPerBookDistinctShas;
   if (totalExtraPositions === 0) return [];
-  const sentinelExtraPositions = totalUnreadablePositions - unreadableBooks.length;
+  const sentinelExtraPositions =
+    totalUnreadablePositions - unreadableBooks.length;
   const lines: string[] = [
     "",
     `within-book extra positions: ${totalExtraPositions}`,
@@ -710,7 +817,9 @@ function renderExtraPositions(
     "",
     `unreadable spine positions: ${totalUnreadablePositions} across ${unreadableBooks.length} book(s)`,
     ...unreadableBooks.map((b) => {
-      const label = b.title ? `${b.title} (${b.sha256.slice(0, 16)}…)` : `${b.sha256.slice(0, 16)}…`;
+      const label = b.title
+        ? `${b.title} (${b.sha256.slice(0, 16)}…)`
+        : `${b.sha256.slice(0, 16)}…`;
       return `- ${label}: ${b.positions} positions share 1 sha256 ("<unreadable>") → ${b.positions - 1} extra positions`;
     }),
   ];
@@ -719,8 +828,11 @@ function renderExtraPositions(
       "",
       `within-book readable repeats: ${totalWithinBookExtraPositions} extra positions across ${withinBookRepeats.length} book(s)`,
       ...withinBookRepeats.map((b) => {
-        const label = b.title ? `${b.title} (${b.sha256.slice(0, 16)}…)` : `${b.sha256.slice(0, 16)}…`;
-        const shaWord = b.distinctShas === 1 ? "readable sha256" : "readable sha256s";
+        const label = b.title
+          ? `${b.title} (${b.sha256.slice(0, 16)}…)`
+          : `${b.sha256.slice(0, 16)}…`;
+        const shaWord =
+          b.distinctShas === 1 ? "readable sha256" : "readable sha256s";
         return `- ${label}: ${b.totalPositions} positions share ${b.distinctShas} ${shaWord} → ${b.extraPositions} extra positions`;
       }),
     );
@@ -734,7 +846,9 @@ function describeSpineHashes(hashes: ComparisonResult["spineHashes"]): string {
   return `spine-content: ${hashes.mismatchCount} hash mismatch(es) of ${total} items`;
 }
 
-function describeSpineHashesDetail(hashes: ComparisonResult["spineHashes"]): string {
+function describeSpineHashesDetail(
+  hashes: ComparisonResult["spineHashes"],
+): string {
   const total = hashes.matchCount + hashes.mismatchCount;
   return [
     `${total} spine items: ${hashes.matchCount} match, ${hashes.mismatchCount} mismatch`,
@@ -746,7 +860,7 @@ function describeSpineHashesDetail(hashes: ComparisonResult["spineHashes"]): str
 function describeField(
   pair: ParserPair,
   field: MetadataField,
-  status: string
+  status: string,
 ): string | null {
   switch (status) {
     case "differ":
@@ -779,7 +893,7 @@ function verdict(pair: ParserPair, status: string): string {
 function groupByRoot(input: ReportInput): Array<[RootName, CorpusEntry[]]> {
   const order = input.inventory.roots.map((root) => root.name);
   const groups = new Map<RootName, CorpusEntry[]>(
-    order.map((name) => [name, []])
+    order.map((name) => [name, []]),
   );
   for (const entry of input.inventory.entries) {
     const root = firstOccurrence(entry).root;
@@ -791,16 +905,19 @@ function groupByRoot(input: ReportInput): Array<[RootName, CorpusEntry[]]> {
     bucket.sort((left, right) =>
       firstOccurrence(left).relativePath.localeCompare(
         firstOccurrence(right).relativePath,
-        "en"
-      )
+        "en",
+      ),
     );
   }
   return order.map((name) => [name, groups.get(name) ?? []]);
 }
 
-function firstOccurrence(entry: CorpusEntry): CorpusEntry["occurrences"][number] {
+function firstOccurrence(
+  entry: CorpusEntry,
+): CorpusEntry["occurrences"][number] {
   const first = entry.occurrences[0];
-  if (!first) throw new Error(`Corpus entry has no occurrences: ${entry.sha256}`);
+  if (!first)
+    throw new Error(`Corpus entry has no occurrences: ${entry.sha256}`);
   return first;
 }
 
@@ -815,7 +932,7 @@ function emptyStatusCounts(): Record<string, number> {
 function totalOccurrences(inventory: CorpusInventory): number {
   return inventory.entries.reduce(
     (sum, entry) => sum + entry.occurrences.length,
-    0
+    0,
   );
 }
 
@@ -824,18 +941,18 @@ function sumBy<T>(items: readonly T[], pick: (item: T) => number): number {
 }
 
 function sortedByParser(
-  outputs: ReadonlyMap<ParserName, ParserOutput>
+  outputs: ReadonlyMap<ParserName, ParserOutput>,
 ): Array<[ParserName, ParserOutput]> {
   return [...outputs.entries()].sort(([left], [right]) =>
-    left.localeCompare(right, "en")
+    left.localeCompare(right, "en"),
   );
 }
 
 function sortedByKey(
-  results: ReadonlyMap<string, ComparisonResult>
+  results: ReadonlyMap<string, ComparisonResult>,
 ): Array<[string, ComparisonResult]> {
   return [...results.entries()].sort(([left], [right]) =>
-    left.localeCompare(right, "en")
+    left.localeCompare(right, "en"),
   );
 }
 
@@ -857,14 +974,16 @@ function json(value: unknown): string {
 // is not reliably markable across both leak shapes); the remainder after the
 // temp root is preserved as-is, which is enough to reach the content.
 export function sanitizeTempPaths(contents: string): string {
-  return contents
-    // Shape 1: …/var/folders/<dir>/<rand>/T/storyteller-platform-epub-zip-<uuid>.epub/<rest>
-    // Collapse the whole temp root through ".epub"; <rest> is preserved.
-    .replace(/var\/folders\/[^"\s]*?\.epub/g, "<temp-root>")
-    // Shape 2: …/var/folders/<dir>/<rand>/<content-dir>/<rest> (no ".epub").
-    // Collapse only the var/folders/<dir>/<rand> prefix; <content-dir>/<rest>
-    // (which happens to be epub-relative) is preserved.
-    .replace(/var\/folders\/[^/"\s]+\/[^/"\s]+/g, "<temp-root>");
+  return (
+    contents
+      // Shape 1: …/var/folders/<dir>/<rand>/T/storyteller-platform-epub-zip-<uuid>.epub/<rest>
+      // Collapse the whole temp root through ".epub"; <rest> is preserved.
+      .replace(/var\/folders\/[^"\s]*?\.epub/g, "<temp-root>")
+      // Shape 2: …/var/folders/<dir>/<rand>/<content-dir>/<rest> (no ".epub").
+      // Collapse only the var/folders/<dir>/<rand> prefix; <content-dir>/<rest>
+      // (which happens to be epub-relative) is preserved.
+      .replace(/var\/folders\/[^/"\s]+\/[^/"\s]+/g, "<temp-root>")
+  );
 }
 
 function assertNoMachinePaths(files: ReadonlyMap<string, string>): void {

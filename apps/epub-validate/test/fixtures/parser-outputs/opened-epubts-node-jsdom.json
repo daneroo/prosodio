@@ -12,15 +12,15 @@
       "creator": "Alastair Reynolds",
       "date": null
     },
-    "spine": [
-      { "href": "chapter01.xhtml", "linear": true }
-    ],
+    "spine": [{ "href": "chapter01.xhtml", "linear": true }],
     "manifest": [
-      { "id": "ch01", "href": "chapter01.xhtml", "mediaType": "application/xhtml+xml" }
+      {
+        "id": "ch01",
+        "href": "chapter01.xhtml",
+        "mediaType": "application/xhtml+xml"
+      }
     ],
     "toc": [],
-    "spineHashes": [
-      { "href": "chapter01.xhtml", "sha256": "abc123" }
-    ]
+    "spineHashes": [{ "href": "chapter01.xhtml", "sha256": "abc123" }]
   }
 }

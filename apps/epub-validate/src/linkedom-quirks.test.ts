@@ -13,15 +13,13 @@ const FIXTURES = resolve(import.meta.dir, "../test/fixtures");
 // epubts-browser and storyteller keep "Legends & Lattes" intact.
 // Gate 6's comparator must report this as a node-vs-browser mismatch rather
 // than normalize it away (compareField is exact-lexical ===).
-test(
-  "epubts-node truncates 'Legends & Lattes' to 'Legends' on entity-ampersand-in-title.epub",
-  async () => {
-    const output = await openNode(resolve(FIXTURES, "entity-ampersand-in-title.epub"));
-    expect(output.meta.openStatus).toBe("opened");
-    expect(output.content?.metadata.title).toBe("Legends ");
-  },
-  30_000
-);
+test("epubts-node truncates 'Legends & Lattes' to 'Legends' on entity-ampersand-in-title.epub", async () => {
+  const output = await openNode(
+    resolve(FIXTURES, "entity-ampersand-in-title.epub"),
+  );
+  expect(output.meta.openStatus).toBe("opened");
+  expect(output.content?.metadata.title).toBe("Legends ");
+}, 30_000);
 
 // QUIRK 2 — synchronous LinkeDOM hang (NOT yet characterized into a fixture).
 // A few real books drive LinkeDOM's parser into a synchronous busy loop that
@@ -35,6 +33,8 @@ test(
 test.todo(
   "epubts-node falls back to jsdom on the LinkeDOM synchronous hang (corpus-only; characterize and fixture-ize)",
   () => {
-    throw new Error("pending: hang condition not yet characterized into a fixture");
-  }
+    throw new Error(
+      "pending: hang condition not yet characterized into a fixture",
+    );
+  },
 );

@@ -31,23 +31,24 @@ the README carries the nine open items that previously lived here:
 
 - **756 distinct books** (by SHA-256) across the `test`, `space`, `drop` roots.
 - **Three parsers**, two comparison pairs:
-  - `epubts-node` — `@likecoin/epub-ts/node` on Bun (the target pipeline parser).
-  - `epubts-browser` — `@likecoin/epub-ts` in real Chromium via Playwright
-    (a trusted reference that bypasses LinkeDOM).
+  - `epubts-node` — `@likecoin/epub-ts/node` on Bun (the target pipeline
+    parser).
+  - `epubts-browser` — `@likecoin/epub-ts` in real Chromium via Playwright (a
+    trusted reference that bypasses LinkeDOM).
   - `storyteller` — `@storyteller-platform/epub`, in-memory, read-only.
 - Each book is opened once per parser; metadata, spine, manifest, per-spine-item
   content SHA-256, and the TOC tree are captured into a Zod-validated
   `ParserOutput`. Comparison is pairwise and parser-agnostic.
-- The report tree is deterministic (byte-identical across re-runs); no wall-clock
-  or machine path is ever written.
+- The report tree is deterministic (byte-identical across re-runs); no
+  wall-clock or machine path is ever written.
 
 ### Parser open outcomes (denominator 756 distinct books)
 
-| parser | opened | open-failed | epub2-unsupported | jsdom fallback |
-|---|---:|---:|---:|---:|
-| epubts-browser | 756 | 0 | 0 | 0 |
-| epubts-node | 756 | 0 | 0 | 9 |
-| storyteller | 213 | 18 | 525 | 0 |
+| parser         | opened | open-failed | epub2-unsupported | jsdom fallback |
+| -------------- | -----: | ----------: | ----------------: | -------------: |
+| epubts-browser |    756 |           0 |                 0 |              0 |
+| epubts-node    |    756 |           0 |                 0 |              9 |
+| storyteller    |    213 |          18 |               525 |              0 |
 
 epub.ts (both paths) opens essentially everything. Storyteller opens only the
 ~28% of the corpus that is conformant EPUB 3.
@@ -58,15 +59,15 @@ epub.ts (both paths) opens essentially everything. Storyteller opens only the
 
 For every book both parsers in a pair opened:
 
-| dimension | node × browser (756) | node × storyteller (213) |
-|---|---|---|
-| spine (ordered hrefs) | 756 agree / 0 differ | 213 / 0 |
-| manifest (href set) | 756 / 0 | 213 / 0 |
-| spine content SHA-256 | 756 / 0 | 213 / 0 |
-| TOC labels + tree shape | 754 / **2** | 213 / 0 |
-| metadata title | 750 / **5** (1 both-null) | 211 / **2** |
-| metadata creator | 754 / **1** (1 both-null) | 213 / 0 |
-| metadata date | 630 / 0 (126 both-null) | 168 / 0 (45 both-null) |
+| dimension               | node × browser (756)      | node × storyteller (213) |
+| ----------------------- | ------------------------- | ------------------------ |
+| spine (ordered hrefs)   | 756 agree / 0 differ      | 213 / 0                  |
+| manifest (href set)     | 756 / 0                   | 213 / 0                  |
+| spine content SHA-256   | 756 / 0                   | 213 / 0                  |
+| TOC labels + tree shape | 754 / **2**               | 213 / 0                  |
+| metadata title          | 750 / **5** (1 both-null) | 211 / **2**              |
+| metadata creator        | 754 / **1** (1 both-null) | 213 / 0                  |
+| metadata date           | 630 / 0 (126 both-null)   | 168 / 0 (45 both-null)   |
 
 Structure (spine, manifest, raw content bytes) is **identical** across all
 parsers everywhere. Every remaining disagreement is metadata-text or TOC-tree,
@@ -78,17 +79,17 @@ and each one is explained below.
 
 The node path (epub.ts via LinkeDOM) truncates metadata strings at the first XML
 character reference (`&`, `'`/`’` written as `&#x2019;`, etc.). The browser path
-decodes the entity and returns the full value. This is the *only* metadata
+decodes the entity and returns the full value. This is the _only_ metadata
 disagreement in the corpus — confirmed on 5 titles + 1 creator:
 
-| book | node (truncated) | browser (full) |
-|---|---|---|
-| Austerity Ecology & the Collapse-Porn Addicts… | `Austerity Ecology` | full title |
-| Bookshops & Bonedust | `Bookshops` | `Bookshops & Bonedust` |
-| Legends & Lattes… | `Legends` | `Legends & Lattes: …` |
-| The Reverse Centaur’s Guide to Life After AI | `The Reverse Centaur` | full title |
-| His Majesty’s Dragon | `His Majesty` | `His Majesty’s Dragon` |
-| (creator) Robert Homer & Fagles | `Robert Homer` | `Robert Homer & Fagles` |
+| book                                           | node (truncated)      | browser (full)          |
+| ---------------------------------------------- | --------------------- | ----------------------- |
+| Austerity Ecology & the Collapse-Porn Addicts… | `Austerity Ecology`   | full title              |
+| Bookshops & Bonedust                           | `Bookshops`           | `Bookshops & Bonedust`  |
+| Legends & Lattes…                              | `Legends`             | `Legends & Lattes: …`   |
+| The Reverse Centaur’s Guide to Life After AI   | `The Reverse Centaur` | full title              |
+| His Majesty’s Dragon                           | `His Majesty`         | `His Majesty’s Dragon`  |
+| (creator) Robert Homer & Fagles                | `Robert Homer`        | `Robert Homer & Fagles` |
 
 This is a real interoperability defect in epub.ts/LinkeDOM's metadata text
 parsing (the splitter sees a raw `&`/entity and stops). Structural extraction
@@ -102,7 +103,8 @@ including undecoded entities. Example (same book as above):
 
 - browser: `The Reverse Centaur’s Guide to Life After AI` (decoded)
 - node: `The Reverse Centaur` (truncated — Finding 1)
-- storyteller: `The Reverse Centaur&#x2019;s Guide to Life After AI` (raw entity)
+- storyteller: `The Reverse Centaur&#x2019;s Guide to Life After AI` (raw
+  entity)
 
 Attributably equivalent, but not lexically identical for any value containing a
 character reference. Accounts for the 2 node × storyteller title "differs".
@@ -126,8 +128,8 @@ cross-check exists to surface.
 
 The parsers report TOC hrefs against different, incompatible baselines:
 
-- epub.ts (node and browser): relative to the nav document
-  (e.g. `001_cover.xhtml` when nav lives in `xhtml/`).
+- epub.ts (node and browser): relative to the nav document (e.g.
+  `001_cover.xhtml` when nav lives in `xhtml/`).
 - storyteller: also nav-relative (after reverting an attempted `resolveToRoot`
   normalisation that prepended the OPF directory and produced 186 spurious
   "differs").
@@ -199,14 +201,14 @@ the corpus expands. Source: `archive/FINDINGS-epub-ts-2026-06-14.md`.
 ## Finding 9 — `Section.render()` is not a clean content-extraction boundary
 
 epub.ts's `Section.render(book.load.bind(book))` triggers internal rendering
-hooks before serialization. Those hooks mutate or inspect the loaded document and
-assume a DOM; on extensionless spine resources epub.ts loads the file as a string
-and the hook runner swallows the resulting exception (logged as
-`TypeError: l.querySelector is not a function`). This makes `render()` unsuitable
-as a stable extraction boundary for Gate 10B or any future content validator.
-The right path is to read spine resources directly from the archive, classify by
-manifest media type + content sniffing, and parse independently of epub.ts hooks.
-Source: `archive/FINDINGS-epub-ts-2026-06-14.md`.
+hooks before serialization. Those hooks mutate or inspect the loaded document
+and assume a DOM; on extensionless spine resources epub.ts loads the file as a
+string and the hook runner swallows the resulting exception (logged as
+`TypeError: l.querySelector is not a function`). This makes `render()`
+unsuitable as a stable extraction boundary for Gate 10B or any future content
+validator. The right path is to read spine resources directly from the archive,
+classify by manifest media type + content sniffing, and parse independently of
+epub.ts hooks. Source: `archive/FINDINGS-epub-ts-2026-06-14.md`.
 
 ---
 
@@ -215,34 +217,34 @@ Source: `archive/FINDINGS-epub-ts-2026-06-14.md`.
 Books that fail to open in some parser or diverge across parsers. Several appear
 in multiple categories — those are the most structurally unusual.
 
-| book | issues |
-|---|---|
-| **Thud!** (Pratchett) | LinkeDOM hang (jsdom fallback) · Storyteller package-parse fail · TOC differs node/browser (node 0 / browser 91) |
-| **Revelation Space** (Reynolds) | LinkeDOM hang (jsdom fallback) · Storyteller package-parse fail |
-| **Sourcery** (Pratchett) | LinkeDOM hang (jsdom fallback) · Storyteller package-parse fail |
-| Accursed Kings series (Druon ×8): Iron King, Strangled Queen, Poisoned Crown, Royal Succession, She Wolf, Lily and the Lion, King Without a Kingdom, White Rose | Storyteller package-parse fail (all 8) |
-| Les Rois Maudits – L'intégrale (Druon, FR omnibus) | 147 unreadable spine positions (node × browser) |
-| Diamond Dogs / Turquoise Days, Mavericks, Nexus, Redemption Ark | Storyteller package-parse fail |
-| The Blinding Knife, The Broken Eye (Weeks) | Storyteller package-parse fail |
-| Circe (Miller) | malformed zip — Storyteller "EOCD not found" |
-| The Thousand Autumns of Jacob de Zoet (Mitchell) | TOC differs node/browser (node 7 parts / browser 2) |
-| Valour, Four Great Histories, Steve Jobs, The Malazan Empire, The Rapture of the Nerds, The Veiled Throne | LinkeDOM hang (jsdom fallback) |
-| The Beartown Trilogy (Backman) | Storyteller leaks filesystem path in TOC hrefs (cross-directory nav); sanitised to `<temp-root>` for determinism |
-| Bookshops & Bonedust, Legends & Lattes, His Majesty's Dragon, The Reverse Centaur's Guide…, Austerity Ecology… | node metadata entity-truncation (Finding 1) |
+| book                                                                                                                                                            | issues                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Thud!** (Pratchett)                                                                                                                                           | LinkeDOM hang (jsdom fallback) · Storyteller package-parse fail · TOC differs node/browser (node 0 / browser 91) |
+| **Revelation Space** (Reynolds)                                                                                                                                 | LinkeDOM hang (jsdom fallback) · Storyteller package-parse fail                                                  |
+| **Sourcery** (Pratchett)                                                                                                                                        | LinkeDOM hang (jsdom fallback) · Storyteller package-parse fail                                                  |
+| Accursed Kings series (Druon ×8): Iron King, Strangled Queen, Poisoned Crown, Royal Succession, She Wolf, Lily and the Lion, King Without a Kingdom, White Rose | Storyteller package-parse fail (all 8)                                                                           |
+| Les Rois Maudits – L'intégrale (Druon, FR omnibus)                                                                                                              | 147 unreadable spine positions (node × browser)                                                                  |
+| Diamond Dogs / Turquoise Days, Mavericks, Nexus, Redemption Ark                                                                                                 | Storyteller package-parse fail                                                                                   |
+| The Blinding Knife, The Broken Eye (Weeks)                                                                                                                      | Storyteller package-parse fail                                                                                   |
+| Circe (Miller)                                                                                                                                                  | malformed zip — Storyteller "EOCD not found"                                                                     |
+| The Thousand Autumns of Jacob de Zoet (Mitchell)                                                                                                                | TOC differs node/browser (node 7 parts / browser 2)                                                              |
+| Valour, Four Great Histories, Steve Jobs, The Malazan Empire, The Rapture of the Nerds, The Veiled Throne                                                       | LinkeDOM hang (jsdom fallback)                                                                                   |
+| The Beartown Trilogy (Backman)                                                                                                                                  | Storyteller leaks filesystem path in TOC hrefs (cross-directory nav); sanitised to `<temp-root>` for determinism |
+| Bookshops & Bonedust, Legends & Lattes, His Majesty's Dragon, The Reverse Centaur's Guide…, Austerity Ecology…                                                  | node metadata entity-truncation (Finding 1)                                                                      |
 
 ---
 
 ## Parser scope decision
 
-- **epubts-node — keep.** The target pipeline parser. Bun-native, opens the whole
-  corpus (with the jsdom fallback), structurally faithful. Its one defect is
-  metadata entity-truncation (Finding 1).
+- **epubts-node — keep.** The target pipeline parser. Bun-native, opens the
+  whole corpus (with the jsdom fallback), structurally faithful. Its one defect
+  is metadata entity-truncation (Finding 1).
 - **epubts-browser — keep.** Retained as the trusted reference that bypasses
   LinkeDOM. It is the only way to catch node-path defects like Finding 1 and the
   Thud! TOC failure. Not part of the runtime pipeline; it is the cross-check.
 - **storyteller — keep (scoped).** Valuable as an independent EPUB 3 validator
-  and for interop, but EPUB 3-only and stricter; cannot cover the EPUB 2 majority
-  without up-conversion.
+  and for interop, but EPUB 3-only and stricter; cannot cover the EPUB 2
+  majority without up-conversion.
 
 ---
 

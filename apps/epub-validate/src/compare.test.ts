@@ -1,7 +1,17 @@
 import { describe, expect, test } from "bun:test";
 
-import { compareBook, projectNodeBrowserMismatches, projectNodeStorytellerMismatches, type BaselineHistogram } from "./compare.ts";
-import type { ManifestItem, ParserOutput, SpineHashItem, SpineItem } from "./schema.ts";
+import {
+  compareBook,
+  projectNodeBrowserMismatches,
+  projectNodeStorytellerMismatches,
+  type BaselineHistogram,
+} from "./compare.ts";
+import type {
+  ManifestItem,
+  ParserOutput,
+  SpineHashItem,
+  SpineItem,
+} from "./schema.ts";
 
 // ── hand-built ParserOutput helpers ─────────────────────────────────────────
 
@@ -13,12 +23,18 @@ function opened(
   spine: { href: string; linear: boolean }[] = [],
   manifest: { id: string; href: string; mediaType: string | null }[] = [],
   spineHashes: { href: string; sha256: string }[] = [],
-  toc: { label: string; href: string | null; subitems: never[] }[] = []
+  toc: { label: string; href: string | null; subitems: never[] }[] = [],
 ): ParserOutput {
   return {
     schemaVersion: 5,
     meta: { parser, parserVersion: "1.0.0", openStatus: "opened" },
-    content: { metadata: { title, creator, date }, spine, manifest, spineHashes, toc },
+    content: {
+      metadata: { title, creator, date },
+      spine,
+      manifest,
+      spineHashes,
+      toc,
+    },
   };
 }
 
@@ -29,9 +45,21 @@ describe("compareBook", () => {
     const a = opened("epubts-node", "Flatland", "Abbott", "1884-01-01");
     const b = opened("epubts-browser", "Flatland", "Abbott", "1884-01-01");
     const result = compareBook(a, b);
-    expect(result.metadata.title).toEqual({ status: "agree", a: "Flatland", b: "Flatland" });
-    expect(result.metadata.creator).toEqual({ status: "agree", a: "Abbott", b: "Abbott" });
-    expect(result.metadata.date).toEqual({ status: "agree", a: "1884-01-01", b: "1884-01-01" });
+    expect(result.metadata.title).toEqual({
+      status: "agree",
+      a: "Flatland",
+      b: "Flatland",
+    });
+    expect(result.metadata.creator).toEqual({
+      status: "agree",
+      a: "Abbott",
+      b: "Abbott",
+    });
+    expect(result.metadata.date).toEqual({
+      status: "agree",
+      a: "1884-01-01",
+      b: "1884-01-01",
+    });
     expect(result.parserA).toBe("epubts-node");
     expect(result.parserB).toBe("epubts-browser");
   });
@@ -51,30 +79,49 @@ describe("compareBook", () => {
     const a = opened("epubts-node", "Some Title", null, null);
     const b = opened("epubts-browser", null, null, null);
     const result = compareBook(a, b);
-    expect(result.metadata.title).toEqual({ status: "a-only", a: "Some Title", b: null });
+    expect(result.metadata.title).toEqual({
+      status: "a-only",
+      a: "Some Title",
+      b: null,
+    });
   });
 
   test("b-only — a is null, b has value", () => {
     const a = opened("epubts-node", null, null, null);
     const b = opened("epubts-browser", "Some Title", null, null);
     const result = compareBook(a, b);
-    expect(result.metadata.title).toEqual({ status: "b-only", a: null, b: "Some Title" });
+    expect(result.metadata.title).toEqual({
+      status: "b-only",
+      a: null,
+      b: "Some Title",
+    });
   });
 
   test("both-null — neither has a value", () => {
     const a = opened("epubts-node", null, null, null);
     const b = opened("epubts-browser", null, null, null);
     const result = compareBook(a, b);
-    expect(result.metadata.title).toEqual({ status: "both-null", a: null, b: null });
+    expect(result.metadata.title).toEqual({
+      status: "both-null",
+      a: null,
+      b: null,
+    });
   });
 
   test("throws when either input is not opened", () => {
     const a: ParserOutput = {
       schemaVersion: 5,
-      meta: { parser: "epubts-node", parserVersion: "1.0.0", openStatus: "open-failed", openFailure: { category: "Error", message: "bad" } },
+      meta: {
+        parser: "epubts-node",
+        parserVersion: "1.0.0",
+        openStatus: "open-failed",
+        openFailure: { category: "Error", message: "bad" },
+      },
     };
     const b = opened("epubts-browser", "Title", null, null);
-    expect(() => compareBook(a, b)).toThrow("compareBook requires both outputs to be opened");
+    expect(() => compareBook(a, b)).toThrow(
+      "compareBook requires both outputs to be opened",
+    );
   });
 
   test("mixed fields: agree, differ, both-null", () => {
@@ -113,7 +160,10 @@ describe("compareBook — spine", () => {
   });
 
   test("asymmetric hrefs: extra item in A", () => {
-    const a = opened("epubts-node", null, null, null, [item("ch01.xhtml"), item("ch02.xhtml")]);
+    const a = opened("epubts-node", null, null, null, [
+      item("ch01.xhtml"),
+      item("ch02.xhtml"),
+    ]);
     const b = opened("epubts-browser", null, null, null, [item("ch01.xhtml")]);
     const result = compareBook(a, b);
     expect(result.spine.status).toBe("differ");
@@ -123,7 +173,10 @@ describe("compareBook — spine", () => {
 
   test("asymmetric hrefs: extra item in B", () => {
     const a = opened("epubts-node", null, null, null, [item("ch01.xhtml")]);
-    const b = opened("epubts-browser", null, null, null, [item("ch01.xhtml"), item("ch02.xhtml")]);
+    const b = opened("epubts-browser", null, null, null, [
+      item("ch01.xhtml"),
+      item("ch02.xhtml"),
+    ]);
     const result = compareBook(a, b);
     expect(result.spine.status).toBe("differ");
     expect(result.spine.onlyInA).toEqual([]);
@@ -131,8 +184,14 @@ describe("compareBook — spine", () => {
   });
 
   test("same set different order: differ with empty onlyInA/onlyInB", () => {
-    const a = opened("epubts-node", null, null, null, [item("ch01.xhtml"), item("ch02.xhtml")]);
-    const b = opened("epubts-browser", null, null, null, [item("ch02.xhtml"), item("ch01.xhtml")]);
+    const a = opened("epubts-node", null, null, null, [
+      item("ch01.xhtml"),
+      item("ch02.xhtml"),
+    ]);
+    const b = opened("epubts-browser", null, null, null, [
+      item("ch02.xhtml"),
+      item("ch01.xhtml"),
+    ]);
     const result = compareBook(a, b);
     expect(result.spine.status).toBe("differ");
     expect(result.spine.onlyInA).toEqual([]);
@@ -142,8 +201,12 @@ describe("compareBook — spine", () => {
   });
 
   test("linear flag is ignored in comparison", () => {
-    const a = opened("epubts-node", null, null, null, [{ href: "ch01.xhtml", linear: true }]);
-    const b = opened("epubts-browser", null, null, null, [{ href: "ch01.xhtml", linear: false }]);
+    const a = opened("epubts-node", null, null, null, [
+      { href: "ch01.xhtml", linear: true },
+    ]);
+    const b = opened("epubts-browser", null, null, null, [
+      { href: "ch01.xhtml", linear: false },
+    ]);
     expect(compareBook(a, b).spine.status).toBe("agree");
   });
 });
@@ -173,14 +236,42 @@ describe("compareBook — manifest", () => {
   });
 
   test("different order still agrees (set comparison)", () => {
-    const a = opened("epubts-node", null, null, null, [], [mitem("ch01", "ch01.xhtml"), mitem("ch02", "ch02.xhtml")]);
-    const b = opened("epubts-browser", null, null, null, [], [mitem("ch02", "ch02.xhtml"), mitem("ch01", "ch01.xhtml")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [mitem("ch01", "ch01.xhtml"), mitem("ch02", "ch02.xhtml")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [mitem("ch02", "ch02.xhtml"), mitem("ch01", "ch01.xhtml")],
+    );
     expect(compareBook(a, b).manifest.status).toBe("agree");
   });
 
   test("extra item in A: onlyInA populated", () => {
-    const a = opened("epubts-node", null, null, null, [], [mitem("ch01", "ch01.xhtml"), mitem("ch02", "ch02.xhtml")]);
-    const b = opened("epubts-browser", null, null, null, [], [mitem("ch01", "ch01.xhtml")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [mitem("ch01", "ch01.xhtml"), mitem("ch02", "ch02.xhtml")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [mitem("ch01", "ch01.xhtml")],
+    );
     const result = compareBook(a, b);
     expect(result.manifest.status).toBe("differ");
     expect(result.manifest.onlyInA).toEqual(["ch02.xhtml"]);
@@ -188,8 +279,22 @@ describe("compareBook — manifest", () => {
   });
 
   test("extra item in B: onlyInB populated", () => {
-    const a = opened("epubts-node", null, null, null, [], [mitem("ch01", "ch01.xhtml")]);
-    const b = opened("epubts-browser", null, null, null, [], [mitem("ch01", "ch01.xhtml"), mitem("ch02", "ch02.xhtml")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [mitem("ch01", "ch01.xhtml")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [mitem("ch01", "ch01.xhtml"), mitem("ch02", "ch02.xhtml")],
+    );
     const result = compareBook(a, b);
     expect(result.manifest.status).toBe("differ");
     expect(result.manifest.onlyInA).toEqual([]);
@@ -197,8 +302,22 @@ describe("compareBook — manifest", () => {
   });
 
   test("mediaType is ignored in comparison", () => {
-    const a = opened("epubts-node", null, null, null, [], [{ id: "ch01", href: "ch01.xhtml", mediaType: "application/xhtml+xml" }]);
-    const b = opened("epubts-browser", null, null, null, [], [{ id: "ch01", href: "ch01.xhtml", mediaType: null }]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [{ id: "ch01", href: "ch01.xhtml", mediaType: "application/xhtml+xml" }],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [{ id: "ch01", href: "ch01.xhtml", mediaType: null }],
+    );
     expect(compareBook(a, b).manifest.status).toBe("agree");
   });
 });
@@ -227,8 +346,24 @@ describe("compareBook — spineHashes", () => {
   });
 
   test("hash mismatch: differ with mismatchCount", () => {
-    const a = opened("epubts-node", null, null, null, [], [], [hash("ch01.xhtml", "aaa")]);
-    const b = opened("epubts-browser", null, null, null, [], [], [hash("ch01.xhtml", "bbb")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "aaa")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "bbb")],
+    );
     const result = compareBook(a, b);
     expect(result.spineHashes.status).toBe("differ");
     expect(result.spineHashes.mismatchCount).toBe(1);
@@ -236,8 +371,24 @@ describe("compareBook — spineHashes", () => {
   });
 
   test("sentinel <unreadable> matches sentinel (both fail same item → agree)", () => {
-    const a = opened("epubts-node", null, null, null, [], [], [hash("ch01.xhtml", "<unreadable>")]);
-    const b = opened("epubts-browser", null, null, null, [], [], [hash("ch01.xhtml", "<unreadable>")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "<unreadable>")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "<unreadable>")],
+    );
     const result = compareBook(a, b);
     expect(result.spineHashes.status).toBe("agree");
     expect(result.spineHashes.matchCount).toBe(1);
@@ -245,8 +396,24 @@ describe("compareBook — spineHashes", () => {
   });
 
   test("sentinel vs real hash: differ", () => {
-    const a = opened("epubts-node", null, null, null, [], [], [hash("ch01.xhtml", "<unreadable>")]);
-    const b = opened("epubts-browser", null, null, null, [], [], [hash("ch01.xhtml", "aaa")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "<unreadable>")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "aaa")],
+    );
     const result = compareBook(a, b);
     expect(result.spineHashes.status).toBe("differ");
     expect(result.spineHashes.mismatchCount).toBe(1);
@@ -254,8 +421,24 @@ describe("compareBook — spineHashes", () => {
   });
 
   test("length mismatch triggers differ", () => {
-    const a = opened("epubts-node", null, null, null, [], [], [hash("ch01.xhtml", "aaa"), hash("ch02.xhtml", "bbb")]);
-    const b = opened("epubts-browser", null, null, null, [], [], [hash("ch01.xhtml", "aaa")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "aaa"), hash("ch02.xhtml", "bbb")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "aaa")],
+    );
     const result = compareBook(a, b);
     expect(result.spineHashes.status).toBe("differ");
     expect(result.spineHashes.mismatchCount).toBe(1);
@@ -264,8 +447,24 @@ describe("compareBook — spineHashes", () => {
   test("missing position is not a match even against a real <unreadable> sentinel", () => {
     // The shorter side has no position 2; the longer side has a genuine <unreadable>
     // there. "no item" must not be conflated with "item present but unreadable".
-    const a = opened("epubts-node", null, null, null, [], [], [hash("ch01.xhtml", "aaa")]);
-    const b = opened("epubts-browser", null, null, null, [], [], [hash("ch01.xhtml", "aaa"), hash("ch02.xhtml", "<unreadable>")]);
+    const a = opened(
+      "epubts-node",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "aaa")],
+    );
+    const b = opened(
+      "epubts-browser",
+      null,
+      null,
+      null,
+      [],
+      [],
+      [hash("ch01.xhtml", "aaa"), hash("ch02.xhtml", "<unreadable>")],
+    );
     const result = compareBook(a, b);
     expect(result.spineHashes.status).toBe("differ");
     expect(result.spineHashes.matchCount).toBe(1);
@@ -289,7 +488,7 @@ const BASELINE_HISTOGRAM: BaselineHistogram = {
     "all-differ": 2,
     "browser-node-agree": 930,
     "browser-node-differ": 5,
-    "unavailable": 1,
+    unavailable: 1,
   },
   creator: {
     "all-agree": 368,
@@ -299,7 +498,7 @@ const BASELINE_HISTOGRAM: BaselineHistogram = {
     "all-differ": 0,
     "browser-node-agree": 934,
     "browser-node-differ": 1,
-    "unavailable": 1,
+    unavailable: 1,
   },
   date: {
     "all-agree": 368,
@@ -309,7 +508,7 @@ const BASELINE_HISTOGRAM: BaselineHistogram = {
     "all-differ": 0,
     "browser-node-agree": 804,
     "browser-node-differ": 0,
-    "unavailable": 132,
+    unavailable: 132,
   },
 };
 
@@ -336,11 +535,46 @@ describe("parity projection", () => {
 
   test("zero histogram produces zero mismatches", () => {
     const zero: BaselineHistogram = {
-      title: { "all-agree": 100, "node-differs": 0, "storyteller-differs": 0, "browser-differs": 0, "all-differ": 0, "browser-node-agree": 0, "browser-node-differ": 0, "unavailable": 0 },
-      creator: { "all-agree": 100, "node-differs": 0, "storyteller-differs": 0, "browser-differs": 0, "all-differ": 0, "browser-node-agree": 0, "browser-node-differ": 0, "unavailable": 0 },
-      date: { "all-agree": 100, "node-differs": 0, "storyteller-differs": 0, "browser-differs": 0, "all-differ": 0, "browser-node-agree": 0, "browser-node-differ": 0, "unavailable": 0 },
+      title: {
+        "all-agree": 100,
+        "node-differs": 0,
+        "storyteller-differs": 0,
+        "browser-differs": 0,
+        "all-differ": 0,
+        "browser-node-agree": 0,
+        "browser-node-differ": 0,
+        unavailable: 0,
+      },
+      creator: {
+        "all-agree": 100,
+        "node-differs": 0,
+        "storyteller-differs": 0,
+        "browser-differs": 0,
+        "all-differ": 0,
+        "browser-node-agree": 0,
+        "browser-node-differ": 0,
+        unavailable: 0,
+      },
+      date: {
+        "all-agree": 100,
+        "node-differs": 0,
+        "storyteller-differs": 0,
+        "browser-differs": 0,
+        "all-differ": 0,
+        "browser-node-agree": 0,
+        "browser-node-differ": 0,
+        unavailable: 0,
+      },
     };
-    expect(projectNodeBrowserMismatches(zero)).toEqual({ title: 0, creator: 0, date: 0 });
-    expect(projectNodeStorytellerMismatches(zero)).toEqual({ title: 0, creator: 0, date: 0 });
+    expect(projectNodeBrowserMismatches(zero)).toEqual({
+      title: 0,
+      creator: 0,
+      date: 0,
+    });
+    expect(projectNodeStorytellerMismatches(zero)).toEqual({
+      title: 0,
+      creator: 0,
+      date: 0,
+    });
   });
 });

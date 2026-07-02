@@ -56,23 +56,19 @@ async function runWorker(
   absolutePath: string,
   domParser: DomParser,
 ): Promise<{ timedOut: boolean; output: string }> {
-  const proc = Bun.spawn([
-    "bun",
-    "run",
-    WORKER,
-    absolutePath,
-    domParser,
-    PARSER_VERSION,
-  ], {
-    stdout: "pipe",
-    stderr: "ignore",
-  });
+  const proc = Bun.spawn(
+    ["bun", "run", WORKER, absolutePath, domParser, PARSER_VERSION],
+    {
+      stdout: "pipe",
+      stderr: "ignore",
+    },
+  );
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
     proc.kill(9);
   }, OPEN_TIMEOUT_MS);
-  let output = "";
+  let output: string;
   try {
     output = await new Response(proc.stdout).text();
     await proc.exited;
@@ -128,8 +124,7 @@ export async function openNode(absolutePath: string): Promise<ParserOutput> {
       parserVersion: PARSER_VERSION,
       openFailure: {
         category: "Timeout",
-        message:
-          `linkedom and jsdom fallback both exceeded ${OPEN_TIMEOUT_MS}ms`,
+        message: `linkedom and jsdom fallback both exceeded ${OPEN_TIMEOUT_MS}ms`,
       },
     });
   }

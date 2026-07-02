@@ -1,9 +1,18 @@
 import { createHash } from "node:crypto";
-import { Epub, EpubVersionError, MemoryAdapter, type NavigationItem } from "@storyteller-platform/epub";
+import {
+  Epub,
+  EpubVersionError,
+  MemoryAdapter,
+  type NavigationItem,
+} from "@storyteller-platform/epub";
 
 import { optionalDate } from "./epubts-utils.ts";
 
-type NormalizedTocItem = { label: string; href: string | null; subitems: NormalizedTocItem[] };
+type NormalizedTocItem = {
+  label: string;
+  href: string | null;
+  subitems: NormalizedTocItem[];
+};
 
 function normalizeToc(items: NavigationItem[]): NormalizedTocItem[] {
   return items.map((item) => ({
@@ -26,7 +35,9 @@ if (!path) {
 
 try {
   const bytes = new Uint8Array(await Bun.file(path).arrayBuffer());
-  const reader = await Epub.using(MemoryAdapter).from(bytes, { readonly: true });
+  const reader = await Epub.using(MemoryAdapter).from(bytes, {
+    readonly: true,
+  });
   const entries = await reader.getMetadata();
   const values = (type: string) =>
     entries
@@ -44,7 +55,11 @@ try {
   const spine = spineItems.map((item) => ({ href: item.href, linear: true }));
   const manifestRecord = await reader.getManifest();
   const manifest = Object.values(manifestRecord)
-    .map((item) => ({ id: item.id, href: item.href, mediaType: item.mediaType ?? null }))
+    .map((item) => ({
+      id: item.id,
+      href: item.href,
+      mediaType: item.mediaType ?? null,
+    }))
     .sort((a, b) => a.id.localeCompare(b.id));
   const spineHashes = await Promise.all(
     spineItems.map(async (item) => {
@@ -55,11 +70,13 @@ try {
       } catch {
         return { href: item.href, sha256: "<unreadable>" };
       }
-    })
+    }),
   );
   const tocNav = await reader.getTableOfContents();
   const toc = normalizeToc(tocNav?.children ?? []);
-  process.stdout.write(JSON.stringify({ ok: true, metadata, spine, manifest, spineHashes, toc }));
+  process.stdout.write(
+    JSON.stringify({ ok: true, metadata, spine, manifest, spineHashes, toc }),
+  );
   await reader.discardAndClose();
 } catch (error: unknown) {
   if (error instanceof EpubVersionError) {
@@ -70,7 +87,7 @@ try {
         ok: false,
         category: error instanceof Error ? error.name : "UnknownError",
         message: error instanceof Error ? error.message : String(error),
-      })
+      }),
     );
   }
 }

@@ -31,7 +31,7 @@ async function discoverBooks(root: RootConfig): Promise<DiscoveredBook[]> {
 
 async function collectEpubPaths(
   directoryPath: string,
-  output: string[]
+  output: string[],
 ): Promise<void> {
   const directory = await opendir(directoryPath);
   for await (const entry of directory) {
@@ -44,7 +44,9 @@ async function collectEpubPaths(
   }
 }
 
-async function hashBook(book: DiscoveredBook): Promise<DiscoveredBook & { size: number; sha256: string }> {
+async function hashBook(
+  book: DiscoveredBook,
+): Promise<DiscoveredBook & { size: number; sha256: string }> {
   const bytes = await readFile(book.absolutePath);
   return {
     ...book,
@@ -106,10 +108,13 @@ export interface HashedOccurrence extends CorpusOccurrence {
 // books still appear in the table.
 export function buildInventory(
   rootOrder: readonly RootName[],
-  occurrences: readonly HashedOccurrence[]
+  occurrences: readonly HashedOccurrence[],
 ): CorpusInventory {
   const discovery = new Map<RootName, RootDiscovery>(
-    rootOrder.map((name) => [name, { name, found: 0, deduped: 0, distinct: 0 }])
+    rootOrder.map((name) => [
+      name,
+      { name, found: 0, deduped: 0, distinct: 0 },
+    ]),
   );
   const entries = new Map<string, CorpusEntry>();
 
@@ -146,7 +151,7 @@ export function buildInventory(
       return stats;
     }),
     entries: [...entries.values()].sort((left, right) =>
-      left.sha256.localeCompare(right.sha256, "en")
+      left.sha256.localeCompare(right.sha256, "en"),
     ),
   };
 }
@@ -155,7 +160,7 @@ export function buildInventory(
 // order, then build the inventory. Gate 2 does not run this; the unit tests
 // exercise buildInventory directly with synthetic occurrences.
 export async function discoverInventory(
-  roots: readonly RootConfig[]
+  roots: readonly RootConfig[],
 ): Promise<CorpusInventory> {
   const occurrences: HashedOccurrence[] = [];
   for (const root of roots) {
@@ -171,6 +176,6 @@ export async function discoverInventory(
   }
   return buildInventory(
     roots.map((root) => root.name),
-    occurrences
+    occurrences,
   );
 }

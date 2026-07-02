@@ -72,12 +72,12 @@ bun build src/browser/entry.ts --target=browser --format=iife \
 
 It bundles `src/browser/entry.ts` — which imports `@likecoin/epub-ts` (the
 browser build), never `@likecoin/epub-ts/node` — into a single self-contained
-IIFE. The bundle exposes one narrow function, `globalThis.epubInspect.transport`,
-that the host calls inside the page. The output `dist/epubts-browser.js` is
-generated (git-ignored) and rebuilt on every `validate` run, so it never goes
-stale. Before launching, `verifyBrowserBundle` asserts the bundle contains no
-LinkeDOM and no `node:` imports — the guarantee that this path is genuinely
-browser-side.
+IIFE. The bundle exposes one narrow function,
+`globalThis.epubInspect.transport`, that the host calls inside the page. The
+output `dist/epubts-browser.js` is generated (git-ignored) and rebuilt on every
+`validate` run, so it never goes stale. Before launching, `verifyBrowserBundle`
+asserts the bundle contains no LinkeDOM and no `node:` imports — the guarantee
+that this path is genuinely browser-side.
 
 ## Context
 
@@ -87,7 +87,7 @@ at runtime is not acceptable for the real pipeline.
 
 The three-way comparison is really **two pairs with different purposes**:
 
-- **epub.ts browser vs epub.ts node** — the browser path is used *only* to
+- **epub.ts browser vs epub.ts node** — the browser path is used _only_ to
   bypass LinkeDOM and serve as a trusted reference, confirming our Node/Bun-only
   parsing is equivalent. It is a verification tool, not part of the target
   pipeline. (It has already earned its keep — it caught the node-path metadata

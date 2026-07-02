@@ -1,6 +1,7 @@
 # EPUB Indexing for Audio-Synced Highlighting
 
 Date: 2026-06-15
+
 Status: design discussion, not yet implemented
 
 ## Context
@@ -39,7 +40,7 @@ timecode-interval  →  highlight-target
 ```
 
 Everything upstream (Whisper, text alignment, extraction) is just how we
-*populate* that map. Everything downstream (the viewer) just *queries* it.
+_populate_ that map. Everything downstream (the viewer) just _queries_ it.
 
 ## The Problem
 
@@ -59,7 +60,7 @@ A prerequisite clarification, because the two are routinely conflated:
 - **Spine** is the authoritative, complete, linear reading order. Every content
   document is in the spine. It is the traversal backbone for text extraction.
 - **TOC** (nav doc / NCX) is a curated, possibly partial, possibly nested set of
-  *pointers into* the spine. It is a label/segmentation layer, not a content
+  _pointers into_ the spine. It is a label/segmentation layer, not a content
   layer.
 
 Extraction traverses the **spine**; the TOC is used only to segment and label.
@@ -86,7 +87,7 @@ ports epub.js's full CFI implementation:
 
 **Strength:** standard; CFI-capable viewers already speak it (interop for free).
 
-**Weakness:** a CFI is an address into a *tree*, not into text. It is meaningful
+**Weakness:** a CFI is an address into a _tree_, not into text. It is meaningful
 only relative to a specific DOM. The same XHTML bytes can parse into different
 trees in different engines:
 
@@ -96,8 +97,8 @@ trees in different engines:
   so every CFI through a table is off by a whole level.
 
 When the indexer (linkedom) and the viewer (a browser) build different trees
-from the same file, an identical CFI string selects different content.
-**CFI failures are silent** — it highlights the wrong word with no error.
+from the same file, an identical CFI string selects different content. **CFI
+failures are silent** — it highlights the wrong word with no error.
 
 ### 2. Character offset into the extracted linear text (preferred)
 
@@ -118,7 +119,7 @@ Two refinements that come naturally:
 
 - **Word ordinal** ("the Nth word") is a coarser view derived by tokenizing the
   stream. The char offset is preferred as the storage key because it is finer
-  *and* requires a weaker agreement: an offset needs only walk-order agreement,
+  _and_ requires a weaker agreement: an offset needs only walk-order agreement,
   whereas a word ordinal additionally requires agreement on what a word is.
 - **Key on normalized text.** `textContent` preserves raw inter-tag whitespace,
   the one part of the stream that can differ across engines. Define the key
@@ -144,15 +145,15 @@ This is far weaker and safer than CFI's tree-isomorphism assumption, but it is
 not unconditional. Where it can fail, in order of concern:
 
 1. **Whitespace.** `textContent` does not collapse whitespace and engines can
-   differ by a character. *Mitigation:* key on normalized text; the class
+   differ by a character. _Mitigation:_ key on normalized text; the class
    disappears.
-2. **`<script>`/`<style>`/`<head>`.** `textContent` includes them. *Mitigation:*
+2. **`<script>`/`<style>`/`<head>`.** `textContent` includes them. _Mitigation:_
    use a filtered walk that skips them, applied identically on both ends. A
    walk-rule decision, not a reproducibility risk.
 3. **Malformed documents.** Error recovery differs between engines, so streams
-   can genuinely diverge. The corpus already exhibits this (the ~8
-   "reference bug fixed by candidate" books). Well-formed: safe. Malformed: not
-   guaranteed — these become a flagged exception list.
+   can genuinely diverge. The corpus already exhibits this (the ~8 "reference
+   bug fixed by candidate" books). Well-formed: safe. Malformed: not guaranteed
+   — these become a flagged exception list.
 4. **Hidden content** (`display:none`): `textContent` includes it. Safe as long
    as both ends use textContent-style extraction and neither sanitizes; a
    problem only if one side uses `innerText` or strips content.
@@ -165,9 +166,9 @@ word.
 ## Where the Matching Runs
 
 The cross-engine divergence risk exists only because addressing (indexer) and
-rendering (viewer) happen in two different DOMs that must agree. **Moving address
-resolution into the viewer at book-load time eliminates the second DOM** — the
-thing highlighted is computed against the exact tree that renders it.
+rendering (viewer) happen in two different DOMs that must agree. **Moving
+address resolution into the viewer at book-load time eliminates the second DOM**
+— the thing highlighted is computed against the exact tree that renders it.
 Reproducibility becomes tautological rather than verified.
 
 This enables shipping a **DOM-independent key** (normalized char offset / word
@@ -204,8 +205,9 @@ same condition governs the id-injection question below.
 
 ## Highlighting Without DOM Mutation
 
-Existing read-along viewers (Storyteller, Elevenreader) typically pre-process the
-EPUB to inject `<span id=…>` around segments. That solved two problems at once:
+Existing read-along viewers (Storyteller, Elevenreader) typically pre-process
+the EPUB to inject `<span id=…>` around segments. That solved two problems at
+once:
 
 1. **Addressing** — an id gives `getElementById`, O(1) and unambiguous.
 2. **Rendering** — historically the only cross-browser way to color a sub-string
@@ -221,7 +223,7 @@ Id injection also provided a third thing: **immunity to tree divergence** (an id
 resolves the same regardless of how the tree is counted). But if we own the
 viewer and resolve a text-offset key against the viewer's own DOM, there is no
 second tree to diverge from — so id injection buys nothing, and the book stays
-pristine. If the Highlight API is unavailable, a fallback is to *transiently*
+pristine. If the Highlight API is unavailable, a fallback is to _transiently_
 wrap only the current word and remove it when playback moves on; the stored book
 is never mutated.
 
@@ -241,14 +243,14 @@ Two points:
   the narrator actually reads (chapter titles, epigraphs, lists), the linear
   stream desyncs from Whisper and every subsequent offset is wrong. The walk
   must be **inclusive** of all narrated text; content-model knowledge is used
-  only to decide what to carefully and *symmetrically* exclude (page numbers,
+  only to decide what to carefully and _symmetrically_ exclude (page numbers,
   running heads, hidden nav).
 
 Since parsing is essentially free, turn the assumption into data: per text node,
 record its nearest block ancestor and depth, and histogram across the library.
-This yields the actual content model ("97% of text in `{p, h1–h6, li,
-blockquote}`, max depth 4, here are the 9 outliers") and hands you the exception
-list directly.
+This yields the actual content model ("97% of text in
+`{p, h1–h6, li, blockquote}`, max depth 4, here are the 9 outliers") and hands
+you the exception list directly.
 
 ## Validation Strategy (Full e2e)
 
@@ -276,7 +278,7 @@ Notes: compare raw substrings (normalize neither side); keep words within a
 single text node; keep walk/filter rules identical on both directions. Bonus
 from the same pass: confirm offsets are monotonically non-decreasing in walk
 order (the "reading order is acceptable" invariant), and the same loop that
-validates is the loop that *produces* the word → address map.
+validates is the loop that _produces_ the word → address map.
 
 Catches our own bugs. Runs over the whole library in minutes; embarrassingly
 parallel per book.
@@ -286,8 +288,8 @@ parallel per book.
 Per book, diff the normalized, filtered text stream produced by the indexer
 (linkedom) against the stream produced by each **browser** engine. This directly
 tests the textContent reproducibility assumption against the engines we ship on.
-Every failure is a readable diff, so this run *produces the malformed-book
-exception list* rather than hiding drift.
+Every failure is a readable diff, so this run _produces the malformed-book
+exception list_ rather than hiding drift.
 
 ### Layer 3 — End-to-end highlight
 
@@ -301,10 +303,10 @@ Layers 2 and 3 must run on Chromium, WebKit, and Gecko, which differ in both
 parsing (layer 2) and highlight rendering (layer 3).
 
 Note: **Playwright is the right harness for this.** The tool being retired as
-the *parser reference* is exactly the tool to keep as the *cross-browser viewer
-validator*. Its role flips. Removing epub.js (the parser) and removing Playwright
-(the test driver) are therefore two separate decisions with different answers —
-drop the first, keep the second for a new purpose.
+the _parser reference_ is exactly the tool to keep as the _cross-browser viewer
+validator_. Its role flips. Removing epub.js (the parser) and removing
+Playwright (the test driver) are therefore two separate decisions with different
+answers — drop the first, keep the second for a new purpose.
 
 ### Edge cases to seed deliberately
 
@@ -337,4 +339,5 @@ Most already surfaced by the corpus:
 - Decide the exact normalization rule (the shared tokenizer contract).
 - Decide what non-narrated text to exclude, kept symmetric across ends.
 </content>
+
 </invoke>

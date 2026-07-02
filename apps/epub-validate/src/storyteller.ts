@@ -2,8 +2,8 @@ import { buildParserOutput } from "./adapter.ts";
 import type { ParserOutput } from "./schema.ts";
 
 const WORKER = `${import.meta.dir}/storyteller-worker.ts`;
-const OPEN_TIMEOUT_MS = Number(process.env["STORYTELLER_OPEN_TIMEOUT_MS"]) ||
-  5_000;
+const OPEN_TIMEOUT_MS =
+  Number(process.env["STORYTELLER_OPEN_TIMEOUT_MS"]) || 5_000;
 
 export const STORYTELLER_VERSION = await (async () => {
   try {
@@ -45,7 +45,7 @@ export async function openStoryteller(
     proc.kill(9);
   }, OPEN_TIMEOUT_MS);
 
-  let output = "";
+  let output: string;
   try {
     output = await new Response(proc.stdout).text();
     await proc.exited;
@@ -101,12 +101,12 @@ export async function openStoryteller(
     openStatus: "open-failed",
     parserVersion: STORYTELLER_VERSION,
     openFailure: {
-      category: typeof parsed.category === "string"
-        ? parsed.category
-        : "UnknownError",
-      message: typeof parsed.message === "string"
-        ? parsed.message
-        : "storyteller open failed",
+      category:
+        typeof parsed.category === "string" ? parsed.category : "UnknownError",
+      message:
+        typeof parsed.message === "string"
+          ? parsed.message
+          : "storyteller open failed",
     },
   });
 }

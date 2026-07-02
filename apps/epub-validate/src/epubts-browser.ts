@@ -3,11 +3,17 @@ import { chromium, type Browser } from "playwright";
 import { buildParserOutput } from "./adapter.ts";
 import { BROWSER_BUNDLE_PATH } from "./config.ts";
 import type { ParserOutput } from "./schema.ts";
-import type { BrowserHarnessResult, EntryOpenOutcome } from "./browser/protocol.ts";
+import type {
+  BrowserHarnessResult,
+  EntryOpenOutcome,
+} from "./browser/protocol.ts";
 
 const PARSER_VERSION = await (async () => {
   try {
-    const pkgPath = Bun.resolveSync("@likecoin/epub-ts/package.json", import.meta.dir);
+    const pkgPath = Bun.resolveSync(
+      "@likecoin/epub-ts/package.json",
+      import.meta.dir,
+    );
     return ((await Bun.file(pkgPath).json()) as { version: string }).version;
   } catch {
     return "unknown";
@@ -32,7 +38,7 @@ export class BrowserTransport {
     parserVersion: string,
     playwrightVersion: string,
     server: ReturnType<typeof Bun.serve>,
-    serverState: BookServerState
+    serverState: BookServerState,
   ) {
     this.#browser = browser;
     this.parserVersion = parserVersion;
@@ -46,8 +52,13 @@ export class BrowserTransport {
   static async launch(): Promise<BrowserTransport> {
     await verifyBrowserBundle();
     const browser = await chromium.launch();
-    const playwrightPkgPath = Bun.resolveSync("playwright/package.json", import.meta.dir);
-    const playwrightVersion = ((await Bun.file(playwrightPkgPath).json()) as { version: string }).version;
+    const playwrightPkgPath = Bun.resolveSync(
+      "playwright/package.json",
+      import.meta.dir,
+    );
+    const playwrightVersion = (
+      (await Bun.file(playwrightPkgPath).json()) as { version: string }
+    ).version;
     const serverState: BookServerState = { path: null };
     const server = Bun.serve({
       hostname: "127.0.0.1",
@@ -71,20 +82,35 @@ export class BrowserTransport {
       },
     });
     server.unref();
-    return new BrowserTransport(browser, PARSER_VERSION, playwrightVersion, server, serverState);
+    return new BrowserTransport(
+      browser,
+      PARSER_VERSION,
+      playwrightVersion,
+      server,
+      serverState,
+    );
   }
 
-  async open(absolutePath: string, expectedSha256: string, expectedSize: number): Promise<ParserOutput> {
+  async open(
+    absolutePath: string,
+    expectedSha256: string,
+    expectedSize: number,
+  ): Promise<ParserOutput> {
     this.#serverState.path = absolutePath;
     const context = await this.#browser.newContext();
     try {
       const page = await context.newPage();
       await page.goto(this.#origin);
       await page.addScriptTag({ path: BROWSER_BUNDLE_PATH });
-      const raw: unknown = await page.evaluate(async () => globalThis.epubInspect.transport("/book.epub"));
+      const raw: unknown = await page.evaluate(async () =>
+        globalThis.epubInspect.transport("/book.epub"),
+      );
       const result = validateHarnessResult(raw);
 
-      if (result.byteLength !== expectedSize || result.sha256 !== expectedSha256) {
+      if (
+        result.byteLength !== expectedSize ||
+        result.sha256 !== expectedSha256
+      ) {
         return buildParserOutput("epubts-browser", {
           openStatus: "open-failed",
           parserVersion: PARSER_VERSION,
@@ -174,14 +200,20 @@ function validateHarnessResult(value: unknown): BrowserHarnessResult {
 }
 
 function isValidOpenOutcome(open: unknown): boolean {
-  if (typeof open !== "object" || open === null || !("status" in open)) return false;
+  if (typeof open !== "object" || open === null || !("status" in open))
+    return false;
   if (open.status === "opened") {
     return (
-      "metadata" in open && isValidMetadata(open.metadata) &&
-      "spine" in open && isValidSpine(open.spine) &&
-      "manifest" in open && isValidManifest(open.manifest) &&
-      "spineHashes" in open && isValidSpineHashes(open.spineHashes) &&
-      "toc" in open && Array.isArray(open.toc)
+      "metadata" in open &&
+      isValidMetadata(open.metadata) &&
+      "spine" in open &&
+      isValidSpine(open.spine) &&
+      "manifest" in open &&
+      isValidManifest(open.manifest) &&
+      "spineHashes" in open &&
+      isValidSpineHashes(open.spineHashes) &&
+      "toc" in open &&
+      Array.isArray(open.toc)
     );
   }
   if (open.status === "open-failed") {
@@ -197,7 +229,8 @@ function isValidOpenOutcome(open: unknown): boolean {
 
 function isValidMetadata(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
-  if (!("title" in value) || !("creator" in value) || !("date" in value)) return false;
+  if (!("title" in value) || !("creator" in value) || !("date" in value))
+    return false;
   return (
     (value.title === null || typeof value.title === "string") &&
     (value.creator === null || typeof value.creator === "string") &&
@@ -212,7 +245,7 @@ function isValidSpine(value: unknown): boolean {
       typeof item === "object" &&
       item !== null &&
       typeof item.href === "string" &&
-      typeof item.linear === "boolean"
+      typeof item.linear === "boolean",
   );
 }
 
@@ -223,7 +256,7 @@ function isValidSpineHashes(value: unknown): boolean {
       typeof item === "object" &&
       item !== null &&
       typeof item.href === "string" &&
-      typeof item.sha256 === "string"
+      typeof item.sha256 === "string",
   );
 }
 
@@ -235,7 +268,7 @@ function isValidManifest(value: unknown): boolean {
       item !== null &&
       typeof item.id === "string" &&
       typeof item.href === "string" &&
-      (item.mediaType === null || typeof item.mediaType === "string")
+      (item.mediaType === null || typeof item.mediaType === "string"),
   );
 }
 

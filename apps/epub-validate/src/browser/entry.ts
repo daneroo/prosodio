@@ -42,15 +42,20 @@ async function openBook(bytes: ArrayBuffer): Promise<EntryOpenOutcome> {
       linear: item.linear !== "no",
     }));
     const manifest = Object.entries(pkg.manifest ?? {})
-      .map(([id, item]) => ({ id, href: item.href, mediaType: item.type ?? null }))
+      .map(([id, item]) => ({
+        id,
+        href: item.href,
+        mediaType: item.type ?? null,
+      }))
       .sort((a, b) => a.id.localeCompare(b.id));
     const spineHashes = await Promise.all(
       spine.map(async (item) => {
-        const archiveUrl = bookAny.path?.resolve(item.href) ?? ("/" + item.href);
+        const archiveUrl = bookAny.path?.resolve(item.href) ?? "/" + item.href;
         const content = await bookAny.archive?.getText(archiveUrl);
-        const sha256 = content != null ? await sha256Hex(content) : "<unreadable>";
+        const sha256 =
+          content != null ? await sha256Hex(content) : "<unreadable>";
         return { href: item.href, sha256 };
-      })
+      }),
     );
     return {
       status: "opened",
@@ -79,7 +84,11 @@ async function openBook(bytes: ArrayBuffer): Promise<EntryOpenOutcome> {
   }
 }
 
-type NormalizedTocItem = { label: string; href: string | null; subitems: NormalizedTocItem[] };
+type NormalizedTocItem = {
+  label: string;
+  href: string | null;
+  subitems: NormalizedTocItem[];
+};
 
 function normalizeToc(items: NavItem[]): NormalizedTocItem[] {
   return items.map((item) => ({
@@ -90,7 +99,9 @@ function normalizeToc(items: NavItem[]): NormalizedTocItem[] {
 }
 
 function toHex(bytes: ArrayBuffer): string {
-  return Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(bytes), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 async function sha256Hex(text: string): Promise<string> {
