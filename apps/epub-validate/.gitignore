@@ -1,5 +1,5 @@
+# Built browser bundle (for playwright)
 dist/
-node_modules/
+
+# reports of parser comparisons - might relocate
 reports/
-.reports-next/
-.reports-previous/
