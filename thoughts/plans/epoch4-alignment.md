@@ -176,13 +176,13 @@ Types and the three input builders, each with tests, before any matching.
 
 ## 7 — Multipass proof
 
-- [ ] Represent accepted spans and residual gaps so a weaker pass can only add
+- [x] Represent accepted spans and residual gaps so a weaker pass can only add
       spans inside gaps bounded by stronger anchors — never move, replace, or
       cross them (enforced by the shared reconciliation).
-- [ ] Run a smaller exact n-gram pass, initially `k = 4`, with uniqueness and
+- [x] Run a smaller exact n-gram pass, initially `k = 4`, with uniqueness and
       LIS scoped independently to each residual gap; label every new span with
       its pass and parameters.
-- [ ] Prove on at least one evaluation book (Alice qualifies) that the weaker
+- [x] Prove on at least one evaluation book (Alice qualifies) that the weaker
       pass adds correct spans in a real residual gap while preserving every Pass
       1 span byte-for-byte.
 
@@ -248,3 +248,10 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   survival 0.9994, 385 spans, coverage VTT 0.331 / EPUB 0.684, 0 rejections,
   deterministic across runs. Serialized result schema deferred to section 6
   (design: just-in-time for its first consumer).
+- 2026-07-02 — Section 7 (multipass proof) landed ahead of section 6 so the
+  serialized reports capture the final two-pass span set. alignBook now runs the
+  k=4 gap-scoped proof pass through the same reconciliation gate
+  (`proofPass: false` opts out for the safety comparison). Alice proof: 84
+  gap-scoped candidates, survival 0.988, 55 added spans, coverage VTT 0.331 ->
+  0.340 / EPUB 0.684 -> 0.703; every Pass 1 span byte-identical; all added spans
+  inside Pass 1 gaps, exact matches, combined set monotonic.
