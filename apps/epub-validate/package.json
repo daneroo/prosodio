@@ -12,9 +12,9 @@
     "@types/jsdom": "^28.0.3"
   },
   "dependencies": {
-    "@likecoin/epub-ts": "^0.6.7",
+    "@likecoin/epub-ts": "catalog:runtime",
     "@storyteller-platform/epub": "^0.6.2",
-    "jsdom": "^29.1.1",
+    "jsdom": "catalog:runtime",
     "linkedom": "^0.18.12",
     "playwright": "^1.61.0",
     "zod": "catalog:runtime"

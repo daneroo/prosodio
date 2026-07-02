@@ -117,20 +117,20 @@ Reference implementation: `scripts/match-vtt.sh`.
 
 Types and the three input builders, each with tests, before any matching.
 
-- [ ] Freeze the strict Unicode-aware Pass 1 normalizer (NFKC, lowercase,
+- [x] Freeze the strict Unicode-aware Pass 1 normalizer (NFKC, lowercase,
       `[^\p{L}\p{N}]+` boundaries) producing tokens AND the normalized-to-raw
       offset map in one pass so normalization cannot drift from addressing.
       Fixture tests: punctuation, apostrophes, hyphens, diacritics, numbers.
-- [ ] Define the token-sequence and span contracts: opaque source positions,
+- [x] Define the token-sequence and span contracts: opaque source positions,
       `EpubTextAddress` (spineIndex/spineHref + half-open normalized char
       range), accepted-span and residual-gap types with `passId`, parameters,
       and evidence.
-- [ ] Build the VTT token sequence over `@prosodio/vtt`: flat word tokens with
+- [x] Build the VTT token sequence over `@prosodio/vtt`: flat word tokens with
       normalized/raw text, sequence offset, cue/word indices, monotonic time —
       direct when provenance says `wordTimestamps: true`, else interpolated
       `start + (end - start) * i / n`; record timing provenance. Test against
       the Alice fixture VTT (interpolation path).
-- [ ] Build EPUB extraction: open the EPUB (assumption above), traverse content
+- [x] Build EPUB extraction: open the EPUB (assumption above), traverse content
       documents in spine order, walk text in document order, exclude only
       `head`/`script`/`style` in the baseline, emit per-spine-document
       normalized text, offset map, and token sequence via the same normalizer;
@@ -226,3 +226,16 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   transcriptions dir with a nested corpora dir; EPUB = the m4b's same-basename
   sibling; `-r` root selector added; Alice is discovered via the `fixtures` root
   (the integration test still feeds VTT+EPUB directly — no m4b needed to align).
+- 2026-07-02 — Sections 1-3 landed (`26cbd32`, `81e8d4f`, `ad8dec4`): scaffold,
+  config, discovery + `-s`/`-r`/`--list`. Live discovery verified on both roots;
+  the private root surfaces real case-mismatch epub exclusions (reported, not
+  guessed). Section 4 in progress: normalizer (`d5e6c31`, with
+  reference-pipeline equivalence guard), contracts + VTT sequence (`5a3d0b0`).
+  EPUB extraction deviation from the flagged assumption: jsdom ALWAYS,
+  in-process (no LinkeDOM-first hybrid, no subprocess kill harness — jsdom opens
+  every book LinkeDOM hangs on, BACKLOG epubts-node-jsdom-always); epub-ts/jsdom
+  hoisted to the root runtime catalog (2nd consumer rule). FINDING: the
+  committed Alice EPUB (#19033) is an abridged illustrated retelling (~13.3k
+  tokens) while the LibriVox narration reads the full #11 text (~27k words) —
+  the public fixture is deliberately a hard alignment case, not a happy path;
+  anchor coverage expectations must account for it.
