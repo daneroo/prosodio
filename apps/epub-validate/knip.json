@@ -1,8 +1,0 @@
-{
-  "entry": [
-    "src/browser/entry.ts",
-    "src/epubts-node-worker.ts",
-    "src/storyteller-worker.ts"
-  ],
-  "project": ["src/**/*.ts"]
-}
