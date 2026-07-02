@@ -5,82 +5,56 @@ Status: active
 Goal: port `epub-validate` intact, then introduce the smallest justified
 production EPUB abstraction.
 
-Method: two-phase behavior-preserving port, same as epoch 1 — see the retained
-`epoch1-transcribe.md` (worked exemplar) and `provenance.md`. Anchor = rsync
-verbatim, gitignore-gate validation, commit as-is (ci-RED); then normalize
-(`@prosodio/*` scope, declared deps, paths). ai-garden is read-only; work on a
-new `epoch2` branch.
+Method: two-phase behavior-preserving port (exemplar: `epoch1-transcribe.md` +
+`provenance.md`). ai-garden read-only; branch `epoch2`; full `bun run ci` at
+every commit.
 
-- [ ] Port `epub-validate` (ai-garden repo root) with its validated findings
-      intact (see its FINDINGS doc); keep `ParserOutput` as the parser-parity
-      contract. The SPLIT shape is NOT pre-specified — decide it here, from the
-      code.
-- [ ] Reconcile epub-validate's `docs/` — it is a planning folder (its
-      `thoughts/` analogue; `docs/archive/` holds done/historical plans). After
-      the anchor, prune the archive + done plans (they don't graduate). One
-      keeper: `DESIGN-epub-indexing` is actually a sketch of epoch 4's
-      alignment/indexing work — route it to `epoch4-alignment.md`, don't
-      discard.
-- [ ] Copy `apps/transcribe/lib/config.ts` into the epub app as its own path
-      config (a second consumer). This makes the later lift to `packages/config`
-      easier and keeps it independent — see BACKLOG `promote-app-config`.
-- [ ] Reports: bring epub-validate's `reports/` over as-is but gitignored —
-      never committed to this public repo (derived-from-private is private; see
-      [PRIVACY.md](../../docs/PRIVACY.md)). Decide keep/how during the port: if
-      we want git history to catch report regressions, make `reports/` a NESTED
-      LOCAL-ONLY git repo (its own `git init` inside the gitignored folder,
-      never pushed) — the same nesting trick prosodio uses inside ai-garden.
-- [ ] Normalize the port onto the monorepo contract, in reviewable commits:
-  - [ ] Commit mechanical prettier reformatting separately from behavior and
-        configuration changes.
-  - [ ] Align the package name and script targets with prosodio; every required
-        build, typecheck, lint, and test path must be reached coherently by the
-        root commands, with no app-local CI escape hatch.
-    - [ ] Audit `package.json` targets against the monorepo contract: add
-          missing targets, replace incompatible standalone targets, and remove
-          extraneous targets only after confirming they have no caller.
-  - [ ] Set a provisional root-format boundary for the private `reports/`
-        worktree and generated browser `dist/`; Git ignore alone does not keep
-        prettier from traversing them.
-  - [ ] Before Epoch 2 closes, revalidate that boundary with evidence:
-    - [ ] `dist/`: confirm exclusion is the right ownership model for the
-          generated browser bundle and document why.
-    - [ ] `reports/`: test whether the report writer can emit deterministic,
-          Prettier-clean output; then decide whether root format CI should check
-          it or the nested private repo should remain fully excluded.
-  - [x] Port ai-garden's four public `test-books/` EPUBs into prosodio's
-        committed fixtures layout. Merge their download sources into
-        `fixtures/manifest.jsonc` and `scripts/fetch-and-check-fixtures.ts`,
-        reconciling the existing Alice fixture rather than duplicating it.
-  - [x] Replace the temporary ai-garden fixture path in app config/tests with
-        the prosodio fixture paths.
-  - [ ] Document the ignored, nested LOCAL-ONLY reports repo and its privacy
-        boundary. Treat it as an explicit local exception pending the later
-        keep/move/drop decision; justify direct replacement of generated files
-        so report regeneration preserves `.git`.
-  - [ ] Revisit `cleanReportDir` during normalization: keep the smallest clear
-        implementation that preserves `.git`, deletes stale generated files, and
-        changes no parser/comparison behavior.
-  - [ ] Revisit timeout-path test cost: the malformed truncated ZIP currently
-        takes about 30 seconds in `BrowserTransport.open` and 10 seconds in
-        `openNode`. Preserve explicit timeout coverage while shortening routine
-        root CI if the production timeout can be injected or otherwise bounded
-        safely in tests.
-  - [ ] Triage the inherited `apps/epub-validate/README.md` TODO list item by
-        item. Remove work already completed, keep active Epoch 2 obligations in
-        this plan, route alignment-dependent work to Epoch 4, and move genuinely
-        unscheduled work to `thoughts/BACKLOG.md` in its canonical issue format.
-        Update the README only after every old TODO has an explicit disposition.
-  - [ ] Remove the nested lockfile, superseded scripts/config, archived plans,
-        and dead dependencies only after their replacements are exercised.
-  - [ ] Make root `bun run ci` green and prove it covers epub-validate.
-- [ ] Introduce the smallest production EPUB abstraction an actual consumer
-      justifies — do not turn validation adapter boundaries directly into
-      production packages.
-- [ ] Keep browser (Playwright) and Storyteller machinery out of production
-      dependency graphs.
-- [ ] Use this port to exercise dependency sharing, runtime isolation, and
-      dead-dependency checks deliberately.
+## Done (trace; detail in Progress log + provenance.md)
+
+- [x] Phase-A anchor (`02b4fe7`): verbatim rsync, blob OIDs 49/49, zero
+      reports/node_modules committed.
+- [x] Reports: gitignored + NESTED LOCAL-ONLY git repo for private regression
+      history (`f729016`); report swap preserves `.git`. Baselines committed
+      there (ai-garden + prosodio reproduction).
+- [x] Private-corpus equivalence (Daniel): 1,304 occurrences / 756 distinct
+      books, full structural agreement; diffs attributed to corpus drift (Circe,
+      Roger Ackroyd), not the port.
+- [x] Generated-output boundary (`9011dfe`): prettier excludes `dist/` +
+      `reports/`.
+- [x] Normalize + root CI green (`c4615ff`): prettier pass, `docs/archive/`
+      pruned (per plan), eslint findings fixed; 216 tests pass.
+- [x] Public EPUB corpus migrated into `fixtures/epub/` (`219f989`, `65d0f54`):
+      manifest provenance URLs + strict hashes; Gutenberg endpoints are MUTABLE
+      (committed bytes are the source of truth); no path reaches into ai-garden.
+      Daniel corpus-validated (only Alice's content key changed, intentionally).
+- [x] `DESIGN-epub-indexing.md` retained at `apps/epub-validate/docs/`;
+      `epoch4-alignment.md` references it (epoch-4 input).
+
+## Remaining
+
+- [ ] Config: align `src/config.ts` to the transcribe pattern (single `config`
+      object, REPO_ROOT anchor) as the second consumer for the future
+      `packages/config` lift (BACKLOG `promote-app-config`). Corpus roots stay.
+- [ ] Package contract: rename to `@prosodio/epub-validate`; drop app-local
+      `ci`/`typecheck` escape hatches (root `ci` covers them); remove nested
+      `bun.lock` + `knip.json` (no callers).
+- [ ] Timeout test cost: node timeout is env-injectable
+      (`NODE_OPEN_TIMEOUT_MS`); add the browser equivalent and inject short
+      timeouts in tests — preserve explicit timeout coverage, cut the ~40s of CI
+      waits.
+- [ ] `cleanReportDir`: confirm smallest clear implementation that preserves
+      `.git` (review, likely no change).
+- [ ] Boundary close-out: document `dist/` exclusion rationale (generated
+      bundle) and keep `reports/` fully excluded (deterministic prettier-clean
+      reports not worth it); document the nested LOCAL-ONLY reports repo durably
+      in `docs/PRIVACY.md` + a `.gitignore` comment.
+- [ ] README: triage the inherited TODO list item by item (drop done / keep
+      epoch-2 / route epoch-4 / BACKLOG); update Operations (no app-local ci).
+- [ ] Production EPUB abstraction: DECISION — defer to epoch 4 (just-in-time; no
+      consumer exists yet). Playwright/Storyteller isolation is thereby
+      satisfied: they stay app-internal; no production package exists.
+- [ ] Final: root `bun run ci` green; Daniel runs full private-corpus
+      `bun run validate` and accepts the epoch.
 
 ## Progress log
 
@@ -144,3 +118,7 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   Daniel's full private-corpus validation confirmed that only Alice's
   content-addressed report key changed; the local-only reports repository
   records that baseline.
+- 2026-07-02 — Claude takes over from Codex. Plan reorganized: completed work
+  compressed into a Done trace (commits preserved), remaining work flattened
+  into one list. Decisions folded in: production abstraction DEFERRED to epoch 4
+  (no consumer yet); `reports/` stays fully prettier-excluded.
