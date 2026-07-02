@@ -31,9 +31,11 @@ increments.
 - `apps/align` is the runnable workspace boundary. Matching logic may be
   extracted later only when a real second consumer justifies a package.
 - Anything derived from the private corpus is private (docs/PRIVACY.md).
-  Alignment outputs live under gitignored `data/align/`; regression history uses
-  a nested LOCAL-ONLY git repo inside it (exemplar:
+  Alignment outputs live under gitignored `apps/align/reports/`; regression
+  history uses a nested LOCAL-ONLY git repo inside it (exemplar:
   `apps/epub-validate/reports/`); regeneration preserves the nested `.git`.
+- All VTT reading/parsing goes through `@prosodio/vtt`
+  (`"@prosodio/vtt": "workspace:*"`), never ad-hoc parsing.
 - `audio-deno-match` is historical context for possible later comparison, not an
   Epoch 4 implementation source.
 - `apps/transcribe/scripts/tools/vtt-compare.ts` is context for a possible
@@ -60,9 +62,9 @@ increments.
 
 ## 1 — Scaffold
 
-- [ ] Scaffold `apps/align` (`@prosodio/align`): `package.json`, minimal
-      runnable `align.ts` entry, one placeholder test; prove root `bun run ci`
-      covers the new workspace.
+- [ ] Scaffold `apps/align` (`@prosodio/align`): `package.json` declaring
+      `@prosodio/vtt` (`workspace:*`), minimal runnable `align.ts` entry, one
+      placeholder test; prove root `bun run ci` covers the new workspace.
 - [ ] Expose `bun run align` from `apps/align/package.json` as the documented
       app invocation (mirrors epub-validate's `validate`); quality checks stay
       in the root `ci` target only.
@@ -72,11 +74,12 @@ increments.
 - [ ] Add `apps/align/lib/config.ts` as the only source for paths and
       parameters, following `apps/transcribe/lib/config.ts` and
       `apps/epub-validate/src/config.ts`: repo-root anchoring; public
-      `fixturesDir` plus the Alice triplet fixture paths; volatile `data/align/`
-      output root; the transcription root (default `data/transcribe/output`);
-      the external corpora root (the `/Volumes/Space/Reading/audiobooks` value
-      lives here, never elsewhere in source); alignment pass parameters (Pass 1
-      `k = 6`, proof pass `k = 4`, normalization policy id, extraction flags).
+      `fixturesDir` plus the Alice triplet fixture paths; app-local gitignored
+      `apps/align/reports/` output root (`reportsDir`, mirroring epub-validate);
+      the transcription root (default `data/transcribe/output`); the external
+      corpora root (the `/Volumes/Space/Reading/audiobooks` value lives here,
+      never elsewhere in source); alignment pass parameters (Pass 1 `k = 6`,
+      proof pass `k = 4`, normalization policy id, extraction flags).
 
 ## 3 — Discovery and matching
 
@@ -153,10 +156,11 @@ Types and the three input builders, each with tests, before any matching.
 ## 6 — Run wiring and private reports
 
 - [ ] Wire `bun run align`: default processes every unambiguous private-corpus
-      match; `-s` filters; results and a run summary go under `data/align/`.
+      match; `-s` filters; results and a run summary go under
+      `apps/align/reports/`.
 - [ ] Create the private results dir as a nested LOCAL-ONLY git repo inside
-      gitignored `data/align/` (per docs/PRIVACY.md); regeneration deletes stale
-      generated files but preserves the nested `.git`.
+      gitignored `apps/align/reports/` (per docs/PRIVACY.md); regeneration
+      deletes stale generated files but preserves the nested `.git`.
 
 ## 7 — Multipass proof
 
@@ -179,7 +183,7 @@ Types and the three input builders, each with tests, before any matching.
 - [ ] Capture a baseline with both `linear="no"` settings before choosing a
       default from corpus evidence.
 - [ ] Full private-corpus run and review (Daniel — needs the mounted external
-      corpus); keep the report private in `data/align/`.
+      corpus); keep the report private in `apps/align/reports/`.
 - [ ] Record acceptance evidence: determinism, structural correctness, Pass 1
       precision (no known false anchor in the high-confidence sample), multipass
       safety; coverage reported without a pre-baseline minimum.
@@ -198,5 +202,10 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   1 -> wiring -> proof -> acceptance); EPUB text extraction made an explicit
   build step (ParserOutput carries no text; epoch 2 deferred the abstraction
   here) with the epub-ts node-path assumption flagged; run wiring moved after
-  Pass 1; private-output home fixed as `data/align/` with the nested local-only
-  git pattern. Status -> active; branch `epoch4`.
+  Pass 1; private-output home first set as `data/align/` with the nested
+  local-only git pattern. Status -> active; branch `epoch4`.
+- 2026-07-02 — Daniel's corrections folded in: private outputs live app-local at
+  gitignored `apps/align/reports/` (the epub-validate exemplar), not
+  `data/align/`; `@prosodio/vtt` (`workspace:*`) is the declared VTT engine.
+  Autonomy granted: commit and proceed per step unless his judgement is truly
+  needed.
