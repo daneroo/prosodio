@@ -1,4 +1,4 @@
-import { chromium, type Browser } from "playwright";
+import { chromium, type Browser, type BrowserContext } from "playwright";
 
 import { buildParserOutput } from "./adapter.ts";
 import { config } from "./config.ts";
@@ -23,6 +23,8 @@ const PARSER_VERSION = await (async () => {
 interface BookServerState {
   path: string | null;
 }
+
+const TIMED_OUT = Symbol("browser-open-timeout");
 
 export class BrowserTransport {
   readonly parserVersion: string;
@@ -99,29 +101,34 @@ export class BrowserTransport {
     this.#serverState.path = absolutePath;
     const context = await this.#browser.newContext();
     try {
-      const page = await context.newPage();
-      await page.goto(this.#origin);
-      await page.addScriptTag({ path: config.browserBundlePath });
-      const raw: unknown = await page.evaluate(async () =>
-        globalThis.epubInspect.transport("/book.epub"),
-      );
-      const result = validateHarnessResult(raw);
+      // A malformed EPUB can stall epub.ts inside the page indefinitely, so
+      // the in-page work races an explicit bound (env-injectable for tests).
+      const timeoutMs =
+        Number(process.env["BROWSER_OPEN_TIMEOUT_MS"]) || 30_000;
+      const work = this.#openInPage(context, expectedSha256, expectedSize);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const raced = await Promise.race([
+        work,
+        new Promise<typeof TIMED_OUT>((resolve) => {
+          timer = setTimeout(() => resolve(TIMED_OUT), timeoutMs);
+        }),
+      ]).finally(() => clearTimeout(timer));
 
-      if (
-        result.byteLength !== expectedSize ||
-        result.sha256 !== expectedSha256
-      ) {
+      if (raced === TIMED_OUT) {
+        // context.close() in the finally aborts the stalled page; silence the
+        // losing promise so its late rejection stays unhandled-free.
+        work.catch(() => undefined);
         return buildParserOutput("epubts-browser", {
           openStatus: "open-failed",
           parserVersion: PARSER_VERSION,
           openFailure: {
-            category: "IntegrityMismatch",
-            message: `expected length=${expectedSize} sha256=${expectedSha256}; got length=${result.byteLength} sha256=${result.sha256}`,
+            category: "Timeout",
+            message: `browser open exceeded ${timeoutMs}ms`,
           },
         });
       }
 
-      return toParserOutput(result);
+      return raced;
     } catch (error: unknown) {
       if (!this.#browser.isConnected()) {
         throw new Error("Chromium disconnected during open", { cause: error });
@@ -138,6 +145,36 @@ export class BrowserTransport {
       await context.close().catch(() => undefined);
       this.#serverState.path = null;
     }
+  }
+
+  async #openInPage(
+    context: BrowserContext,
+    expectedSha256: string,
+    expectedSize: number,
+  ): Promise<ParserOutput> {
+    const page = await context.newPage();
+    await page.goto(this.#origin);
+    await page.addScriptTag({ path: config.browserBundlePath });
+    const raw: unknown = await page.evaluate(async () =>
+      globalThis.epubInspect.transport("/book.epub"),
+    );
+    const result = validateHarnessResult(raw);
+
+    if (
+      result.byteLength !== expectedSize ||
+      result.sha256 !== expectedSha256
+    ) {
+      return buildParserOutput("epubts-browser", {
+        openStatus: "open-failed",
+        parserVersion: PARSER_VERSION,
+        openFailure: {
+          category: "IntegrityMismatch",
+          message: `expected length=${expectedSize} sha256=${expectedSha256}; got length=${result.byteLength} sha256=${result.sha256}`,
+        },
+      });
+    }
+
+    return toParserOutput(result);
   }
 
   async close(): Promise<void> {

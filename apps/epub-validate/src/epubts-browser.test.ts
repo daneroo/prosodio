@@ -43,15 +43,22 @@ describe("BrowserTransport.open", () => {
   }, 60_000);
 
   test("malformed-truncated-zip.epub returns open-failed", async () => {
-    const path = resolve(
-      config.appTestFixturesDir,
-      "malformed-truncated-zip.epub",
-    );
-    const { sha256, size } = await bookInfo(path);
-    const output = await transport.open(path, sha256, size);
-    expect(output.meta.openStatus).toBe("open-failed");
-    expect(output.meta.openFailure).toBeDefined();
-    expect(output.content).toBeUndefined();
+    // The truncated zip stalls epub.ts in-page; inject a short deadline (read
+    // at call time) so the Timeout path stays covered without ~30s of waiting.
+    process.env["BROWSER_OPEN_TIMEOUT_MS"] = "2000";
+    try {
+      const path = resolve(
+        config.appTestFixturesDir,
+        "malformed-truncated-zip.epub",
+      );
+      const { sha256, size } = await bookInfo(path);
+      const output = await transport.open(path, sha256, size);
+      expect(output.meta.openStatus).toBe("open-failed");
+      expect(output.meta.openFailure).toBeDefined();
+      expect(output.content).toBeUndefined();
+    } finally {
+      delete process.env["BROWSER_OPEN_TIMEOUT_MS"];
+    }
   }, 60_000);
 
   test("output satisfies ParserOutput schema invariants (Zod-validated by buildParserOutput)", async () => {

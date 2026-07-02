@@ -25,12 +25,20 @@ describe("openNode", () => {
   }, 30_000);
 
   test("malformed-truncated-zip.epub returns open-failed", async () => {
-    const output = await openNode(
-      resolve(config.appTestFixturesDir, "malformed-truncated-zip.epub"),
-    );
-    expect(output.meta.openStatus).toBe("open-failed");
-    expect(output.meta.openFailure).toBeDefined();
-    expect(output.content).toBeUndefined();
+    // The truncated zip hangs both linkedom and the jsdom retry until the
+    // subprocess kill fires; inject a short deadline (read at call time) so
+    // the timeout path stays covered without 2x5s of real waiting.
+    process.env["NODE_OPEN_TIMEOUT_MS"] = "500";
+    try {
+      const output = await openNode(
+        resolve(config.appTestFixturesDir, "malformed-truncated-zip.epub"),
+      );
+      expect(output.meta.openStatus).toBe("open-failed");
+      expect(output.meta.openFailure).toBeDefined();
+      expect(output.content).toBeUndefined();
+    } finally {
+      delete process.env["NODE_OPEN_TIMEOUT_MS"];
+    }
   }, 30_000);
 
   test("output satisfies ParserOutput schema invariants (Zod-validated by buildParserOutput)", async () => {

@@ -13,7 +13,9 @@ import { buildParserOutput } from "./adapter.ts";
 import type { ParserOutput } from "./schema.ts";
 
 const WORKER = `${import.meta.dir}/epubts-node-worker.ts`;
-const OPEN_TIMEOUT_MS = Number(process.env["NODE_OPEN_TIMEOUT_MS"]) || 5_000;
+// Read at call time (not module load) so tests can inject a short timeout.
+const openTimeoutMs = () =>
+  Number(process.env["NODE_OPEN_TIMEOUT_MS"]) || 5_000;
 
 // Read the epub.ts library version once at module load; passed to workers as an
 // arg so each subprocess does not repeat the resolution.
@@ -67,7 +69,7 @@ async function runWorker(
   const timer = setTimeout(() => {
     timedOut = true;
     proc.kill(9);
-  }, OPEN_TIMEOUT_MS);
+  }, openTimeoutMs());
   let output: string;
   try {
     output = await new Response(proc.stdout).text();
@@ -124,7 +126,7 @@ export async function openNode(absolutePath: string): Promise<ParserOutput> {
       parserVersion: PARSER_VERSION,
       openFailure: {
         category: "Timeout",
-        message: `linkedom and jsdom fallback both exceeded ${OPEN_TIMEOUT_MS}ms`,
+        message: `linkedom and jsdom fallback both exceeded ${openTimeoutMs()}ms`,
       },
     });
   }
