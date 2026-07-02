@@ -188,18 +188,18 @@ Types and the three input builders, each with tests, before any matching.
 
 ## 8 — Evaluation and acceptance
 
-- [ ] Define the stratified manual anchor-review procedure (edge, interior,
+- [x] Define the stratified manual anchor-review procedure (edge, interior,
       anomaly-adjacent samples; at least one span per matched book) and record
       reason codes for failures and excluded content; emit explicit review
       worklists for zero-match spine items and anomalous gaps.
-- [ ] Capture a baseline with both `linear="no"` settings before choosing a
+- [x] Capture a baseline with both `linear="no"` settings before choosing a
       default from corpus evidence.
 - [ ] Full private-corpus run and review (Daniel — needs the mounted external
       corpus); keep the report private in `apps/align/reports/`.
 - [ ] Record acceptance evidence: determinism, structural correctness, Pass 1
       precision (no known false anchor in the high-confidence sample), multipass
       safety; coverage reported without a pre-baseline minimum.
-- [ ] Remove `apps/transcribe/scripts/tools/vtt-monotonicity.ts` because
+- [x] Remove `apps/transcribe/scripts/tools/vtt-monotonicity.ts` because
       `@prosodio/vtt` owns that check; leave `vtt-compare.ts` in place as future
       VTT/VTT context.
 - [ ] Root `bun run ci` green; record evaluation commands and evidence; close
@@ -263,3 +263,13 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   runs, upserts on filtered runs; `bun run align` aligns every matched triplet
   and writes per-book reports + summary.json. Fixtures smoke run: Alice 440
   spans, VTT 34.0% / EPUB 70.3%.
+- 2026-07-02 — Section 8 (my side) landed: `reviewSamples` in every report
+  (deterministic strata: edge-first/edge-last/interior/anomaly-adjacent, raw
+  narration + book text + timestamp) with the review procedure and reason codes
+  in apps/align/README.md; `--exclude-nonlinear` comparison flag (recorded in
+  the config echo); Alice is byte-identical under both linear settings (no
+  linear="no" items — the real comparison rides the private run);
+  vtt-monotonicity.ts removed (@prosodio/vtt owns the check). My manual review
+  of all 6 Alice samples: every anchor true (case/punctuation-only differences),
+  no false anchor. REMAINING (Daniel): full private-corpus run
+  - review, acceptance evidence over the private set, epoch close.

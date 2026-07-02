@@ -3,7 +3,7 @@
 // and write private reports (see docs/PRIVACY.md).
 import process from "node:process";
 import yargs from "yargs";
-import { alignBook } from "./lib/align-book.ts";
+import { alignBook, type AlignOptions } from "./lib/align-book.ts";
 import { config } from "./lib/config.ts";
 import {
   filterBySearch,
@@ -58,6 +58,12 @@ async function main(): Promise<void> {
       default: false,
       describe: "List matched triplets and exclusions without aligning",
     })
+    .option("exclude-nonlinear", {
+      type: "boolean",
+      default: false,
+      describe:
+        'Exclude linear="no" spine items (baseline comparison; default includes them)',
+    })
     .example('$0 --list -s "culture banks"', "show matching triplets")
     .example("$0 -r fixtures", "align the committed fixture triplet")
     .example("$0", "align every matched book in every root")
@@ -76,13 +82,16 @@ async function main(): Promise<void> {
   }
   if (argv.list) return;
 
-  await runAlignments(scans, search, argv.root === "all");
+  await runAlignments(scans, search, argv.root === "all", {
+    includeNonLinearSpineItems: !argv.excludeNonlinear,
+  });
 }
 
 async function runAlignments(
   scans: RootScan[],
   search: string,
   allRoots: boolean,
+  options: AlignOptions,
 ): Promise<void> {
   ensureReportsRepo(config.reportsDir);
   // An unfiltered all-roots run is a full regeneration: drop stale reports,
@@ -106,7 +115,7 @@ async function runAlignments(
   console.log("");
   for (const scan of scans) {
     for (const triplet of filterBySearch(scan.matched, search)) {
-      const result = await alignTriplet(triplet);
+      const result = await alignTriplet(triplet, options);
       summary.books.push(result);
     }
   }
@@ -117,9 +126,10 @@ async function runAlignments(
 
 async function alignTriplet(
   triplet: Triplet,
+  options: AlignOptions,
 ): Promise<ReturnType<typeof summarizeBook>> {
   const vttText = await Bun.file(triplet.vtt).text();
-  const alignment = await alignBook(vttText, triplet.epub);
+  const alignment = await alignBook(vttText, triplet.epub, options);
   const result = buildAlignmentResult(alignment, {
     root: triplet.root,
     base: triplet.base,

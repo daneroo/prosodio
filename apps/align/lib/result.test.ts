@@ -45,6 +45,17 @@ describe("buildAlignmentResult", async () => {
     );
   });
 
+  test("review samples cover edges and interior with reviewable text", () => {
+    const strata = result.reviewSamples.map((s) => s.stratum);
+    expect(strata).toContain("edge-first");
+    expect(strata).toContain("edge-last");
+    expect(strata).toContain("interior");
+    for (const sample of result.reviewSamples) {
+      expect(sample.vttText.length).toBeGreaterThan(0);
+      expect(sample.epubText.length).toBeGreaterThan(0);
+    }
+  });
+
   test("echoes source provenance and configuration", () => {
     expect(result.source.vttTiming).toBe("interpolated");
     expect(result.source.vttProvenance).not.toBeNull();

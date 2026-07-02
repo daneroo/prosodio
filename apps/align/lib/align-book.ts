@@ -30,6 +30,8 @@ export interface BookAlignment {
 export interface AlignOptions {
   /** Run the weaker gap-scoped proof pass after Pass 1 (default true). */
   proofPass?: boolean;
+  /** Override the config extraction baseline (the linear="no" comparison). */
+  includeNonLinearSpineItems?: boolean;
 }
 
 export async function alignBook(
@@ -38,7 +40,12 @@ export async function alignBook(
   options: AlignOptions = {},
 ): Promise<BookAlignment> {
   const vtt = buildVttSequence(vttText);
-  const epub = await extractEpub(epubPath, config.extraction);
+  const epub = await extractEpub(epubPath, {
+    ...config.extraction,
+    includeNonLinearSpineItems:
+      options.includeNonLinearSpineItems ??
+      config.extraction.includeNonLinearSpineItems,
+  });
 
   const vttNorms = vtt.words.map((w) => w.norm);
   const epubNorms = epub.tokens.map((t) => t.norm);

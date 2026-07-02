@@ -109,6 +109,19 @@ const metricsSchema = z.strictObject({
   warnings: z.array(z.string()),
 });
 
+// Stratified manual-review sample: enough raw text and timing to check one
+// anchor against the narration and the book without reopening either. The
+// review procedure and its reason codes live in the app README.
+const reviewSampleSchema = z.strictObject({
+  stratum: z.enum(["edge-first", "edge-last", "interior", "anomaly-adjacent"]),
+  passId: z.string(),
+  vttStart: z.number().int().nonnegative(),
+  vttStartSec: z.number(),
+  vttText: z.string(),
+  epubText: z.string(),
+  address: epubTextAddressSchema,
+});
+
 export const alignmentResultSchema = z.strictObject({
   schemaVersion: z.literal(ALIGNMENT_RESULT_SCHEMA_VERSION),
   source: z.strictObject({
@@ -135,6 +148,7 @@ export const alignmentResultSchema = z.strictObject({
   spans: z.array(spanSchema),
   gaps: z.array(gapSchema),
   metrics: metricsSchema,
+  reviewSamples: z.array(reviewSampleSchema),
   warnings: z.array(z.string()),
 });
 
@@ -188,7 +202,80 @@ export function buildAlignmentResult(
     })),
     gaps: alignment.gaps.map((gap) => ({ ...gap })),
     metrics: alignment.metrics,
+    reviewSamples: sampleForReview(alignment),
     warnings: alignment.warnings,
   };
   return alignmentResultSchema.parse(result);
+}
+
+type ReviewSample = AlignmentResult["reviewSamples"][number];
+
+const REVIEW_TEXT_TOKENS = 30;
+
+/**
+ * Deterministic stratified sample: both edges, the interior median span, and
+ * the span following each of the first three anomalous gaps. At least one
+ * sample exists whenever any span was accepted.
+ */
+function sampleForReview(alignment: BookAlignment): ReviewSample[] {
+  const spans = alignment.spans;
+  if (spans.length === 0) return [];
+  const picks = new Map<number, ReviewSample["stratum"]>();
+  const pick = (index: number, stratum: ReviewSample["stratum"]) => {
+    if (index >= 0 && index < spans.length && !picks.has(index)) {
+      picks.set(index, stratum);
+    }
+  };
+  pick(0, "edge-first");
+  pick(spans.length - 1, "edge-last");
+  pick(Math.floor(spans.length / 2), "interior");
+  for (const anomaly of alignment.metrics.anomalies.slice(0, 3)) {
+    const following = spans.findIndex((s) => s.vttStart >= anomaly.gap.vttEnd);
+    pick(following, "anomaly-adjacent");
+  }
+  return [...picks.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([index, stratum]) => toReviewSample(alignment, index, stratum));
+}
+
+function toReviewSample(
+  alignment: BookAlignment,
+  spanIndex: number,
+  stratum: ReviewSample["stratum"],
+): ReviewSample {
+  const span = alignment.spans[spanIndex]!;
+  const vttEnd = Math.min(span.vttEnd, span.vttStart + REVIEW_TEXT_TOKENS);
+  const epubEnd = Math.min(span.epubEnd, span.epubStart + REVIEW_TEXT_TOKENS);
+  const vttText = alignment.vtt.words
+    .slice(span.vttStart, vttEnd)
+    .map((w) => w.raw)
+    .join(" ");
+  const [address] = resolveAddresses(alignment.epub, span.epubStart, epubEnd);
+  const firstToken = alignment.epub.tokens[span.epubStart]!;
+  const lastToken = alignment.epub.tokens[epubEnd - 1]!;
+  const doc = alignment.epub.spineDocs[firstToken.spineIndex]!;
+  // Raw slice only when the sample stays inside one spine document; the
+  // normalized stream is the fallback across a boundary.
+  const epubText =
+    lastToken.spineIndex === firstToken.spineIndex
+      ? doc.visibleText
+          .slice(
+            doc.normalized.tokens[firstToken.tokenIndex]!.rawStart,
+            doc.normalized.tokens[lastToken.tokenIndex]!.rawEnd,
+          )
+          .replace(/\s+/g, " ")
+          .trim()
+      : alignment.epub.tokens
+          .slice(span.epubStart, epubEnd)
+          .map((t) => t.norm)
+          .join(" ");
+  return {
+    stratum,
+    passId: span.passId,
+    vttStart: span.vttStart,
+    vttStartSec: alignment.vtt.words[span.vttStart]!.timeSec,
+    vttText,
+    epubText,
+    address: address!,
+  };
 }
