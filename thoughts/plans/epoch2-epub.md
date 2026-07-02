@@ -137,3 +137,10 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   obtain public and crafted fixture roots from `src/config.ts`; no path reaches
   into ai-garden. Fixture reconciliation passed, as did ESLint, TypeScript, and
   10 focused parser/schema fixture tests.
+- 2026-07-02 — Corrected the fixture migration before continuing: restored the
+  exact ai-garden filenames and bytes for Flatland, Aristotle, and Dickens, and
+  retained the original Alice filename while intentionally updating only its
+  #19033 bytes/hash to `fe83b1b3…`. The `test` root is `fixtures/epub/`.
+  Daniel's full private-corpus validation confirmed that only Alice's
+  content-addressed report key changed; the local-only reports repository
+  records that baseline.

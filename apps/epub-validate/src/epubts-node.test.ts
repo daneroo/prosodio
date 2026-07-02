@@ -10,7 +10,7 @@ import { openNode } from "./epubts-node.ts";
 describe("openNode", () => {
   test("opens a committed EPUB 3 test book", async () => {
     const output = await openNode(
-      resolve(EPUB_FIXTURES_DIRECTORY, "gutenberg-201-flatland.epub"),
+      resolve(EPUB_FIXTURES_DIRECTORY, "abbott-flatland.epub"),
     );
     expect(output.meta.openStatus).toBe("opened");
     expect(output.meta.parser).toBe("epubts-node");
@@ -40,10 +40,7 @@ describe("openNode", () => {
     // buildParserOutput throws if the output is invalid, so any output we get
     // here is already Zod-valid. Spot-check a few schema invariants.
     const output = await openNode(
-      resolve(
-        EPUB_FIXTURES_DIRECTORY,
-        "gutenberg-8438-nicomachean-ethics.epub",
-      ),
+      resolve(EPUB_FIXTURES_DIRECTORY, "aristotle-nicomachean-ethics.epub"),
     );
     expect(output.schemaVersion).toBe(5);
     expect(["opened", "open-failed", "epub2-unsupported"]).toContain(

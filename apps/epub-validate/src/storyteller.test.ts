@@ -10,7 +10,7 @@ import { openStoryteller } from "./storyteller.ts";
 describe("openStoryteller", () => {
   test("opens a committed EPUB 3 test book", async () => {
     const output = await openStoryteller(
-      resolve(EPUB_FIXTURES_DIRECTORY, "gutenberg-201-flatland.epub"),
+      resolve(EPUB_FIXTURES_DIRECTORY, "abbott-flatland.epub"),
     );
     expect(output.meta.openStatus).toBe("opened");
     expect(output.meta.parser).toBe("storyteller");
@@ -38,10 +38,7 @@ describe("openStoryteller", () => {
 
   test("output satisfies ParserOutput schema invariants (Zod-validated by buildParserOutput)", async () => {
     const output = await openStoryteller(
-      resolve(
-        EPUB_FIXTURES_DIRECTORY,
-        "gutenberg-8438-nicomachean-ethics.epub",
-      ),
+      resolve(EPUB_FIXTURES_DIRECTORY, "aristotle-nicomachean-ethics.epub"),
     );
     expect(output.schemaVersion).toBe(5);
     expect(["opened", "open-failed", "epub2-unsupported"]).toContain(

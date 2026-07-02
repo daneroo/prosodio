@@ -35,7 +35,7 @@ export const APP_TEST_FIXTURES_DIRECTORY = resolve(
 export const ROOTS: readonly RootConfig[] = [
   {
     name: "test",
-    path: PUBLIC_FIXTURES_DIRECTORY,
+    path: EPUB_FIXTURES_DIRECTORY,
   },
   {
     name: "space",

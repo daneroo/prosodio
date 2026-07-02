@@ -28,10 +28,7 @@ describe("BrowserTransport.open", () => {
   }, 5_000);
 
   test("opens a committed EPUB 3 test book", async () => {
-    const path = resolve(
-      EPUB_FIXTURES_DIRECTORY,
-      "gutenberg-201-flatland.epub",
-    );
+    const path = resolve(EPUB_FIXTURES_DIRECTORY, "abbott-flatland.epub");
     const { sha256, size } = await bookInfo(path);
     const output = await transport.open(path, sha256, size);
     expect(output.meta.openStatus).toBe("opened");
@@ -63,7 +60,7 @@ describe("BrowserTransport.open", () => {
   test("output satisfies ParserOutput schema invariants (Zod-validated by buildParserOutput)", async () => {
     const path = resolve(
       EPUB_FIXTURES_DIRECTORY,
-      "gutenberg-8438-nicomachean-ethics.epub",
+      "aristotle-nicomachean-ethics.epub",
     );
     const { sha256, size } = await bookInfo(path);
     const output = await transport.open(path, sha256, size);

@@ -13,8 +13,7 @@
     "sha256": "03eb8e8733d2255c4dac0f0f6807cb67a30a9b869d56666137962678595f6039",
   },
   {
-    // Checked-in illustrated Gordon Robinson edition, paired with the audiobook
-    // and included in epub-validate's recursive public-fixture corpus.
+    // Checked-in Gutenberg #19033 edition paired with the audiobook.
     "url": "https://www.gutenberg.org/ebooks/19033",
     "path": "audiobooks/Lewis Carroll - Alices Adventures in Wonderland/Lewis Carroll - Alices Adventures in Wonderland.epub",
     "sha256": "fe83b1b3074302a850cbee582b10004e824ca3cfc30074753b1eaebf95da2919",
@@ -24,17 +23,22 @@
   // provenance only; Git and the digests preserve the exact fixture bytes.
   {
     "url": "https://www.gutenberg.org/ebooks/201",
-    "path": "epub/gutenberg-201-flatland.epub",
-    "sha256": "303adff2a3b7c009535c3da23b74a7fe25685cbcb6ca5cb70e1aa83edc296adf",
+    "path": "epub/abbott-flatland.epub",
+    "sha256": "b02a83d74573bb8c2efc044fdf4f8f96644126fdf3f3924b06305daf83fdc792",
   },
   {
     "url": "https://www.gutenberg.org/ebooks/8438",
-    "path": "epub/gutenberg-8438-nicomachean-ethics.epub",
-    "sha256": "0d4d25831887250282990dd43d8e656a6764bf103cfadda2b970e11a40ae11d2",
+    "path": "epub/aristotle-nicomachean-ethics.epub",
+    "sha256": "325b24eb9e3d2a85e765113ee34a0bfce46cafa43ffd131ebb0cb61d53c5f62b",
+  },
+  {
+    "url": "https://www.gutenberg.org/ebooks/19033",
+    "path": "epub/carroll-alice-in-wonderland.epub",
+    "sha256": "fe83b1b3074302a850cbee582b10004e824ca3cfc30074753b1eaebf95da2919",
   },
   {
     "url": "https://www.gutenberg.org/ebooks/98",
-    "path": "epub/gutenberg-98-a-tale-of-two-cities.epub",
-    "sha256": "a99bbdf4495411b46f346d7804d5eebfd9134aa64d99d2ab95de9af5496caf2a",
+    "path": "epub/dickens-tale-of-two-cities.epub",
+    "sha256": "10f02d9c0abe47a6c5f28ce34d5eadf6da8c4749aefdcb20edf409fb5946bef6",
   },
 ]
