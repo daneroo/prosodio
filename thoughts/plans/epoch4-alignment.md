@@ -201,6 +201,20 @@ are resolved or explicitly accepted; all moved to the top of
   (abridged epub vs full narration); replace it and diagnose the #11 puzzle.
 - `align-precision-at-scale` — manual anchor review does not scale to ~700
   books; acceptance needs an automated precision signal, not eyeballing.
+- `validate-fixtures-before-close` — DANIEL verifies every committed fixture
+  himself before close; Claude's assessment is NOT to be trusted. Provenance is
+  binary: a fixture is valid only if its bytes match the recorded manifest
+  sha256 — "looks like the same content" is not a provenance argument.
+  Trigger: commit `27be8e5` swept a Calibre-modified Alice epub into a code
+  commit via `git add -A`. Consequence: the epub
+  `audiobooks/Lewis Carroll - Alices Adventures in Wonderland/…Wonderland.epub`
+  now FAILS manifest verification — actual sha256 `4d91adaa…` != recorded
+  `fe83b1b3…`. It is polluted, full stop. (Forensic detail, not a mitigation: a
+  `META-INF/calibre_bookmarks.txt` was ADDED to the zip; nothing was removed.)
+  Restore candidate: `git checkout 219f989 -- <path>` (blob `dd06ba84`, which
+  matches the manifest) — Daniel to run and confirm. Daniel then re-runs the
+  full manifest sha256 check across ALL fixtures to close the task; a Claude
+  "6/7 match" claim does not close it.
 
 - [x] Define the stratified manual anchor-review procedure (edge, interior,
       anomaly-adjacent samples; at least one span per matched book) and record
