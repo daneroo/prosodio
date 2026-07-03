@@ -61,6 +61,24 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     refusing on ambiguity).
   - revisit-when: recovering the missed books matters for the eval.
 
+- [ ] epub-calibre-pollution-audit — detect and decide on Calibre-polluted EPUBs
+      across the corpora
+  - why: Calibre's viewer silently adds `META-INF/calibre_bookmarks.txt` when it
+    opens a book, changing the epub's whole-file sha256 without touching book
+    content. It already caused a fixture provenance break (Alice epub, restored
+    2026-07-03).
+  - detector: `scripts/find-calibre-bookmarks.sh` (read-only; iterates both
+    corpora roots, lists flagged epubs with mtime). Scan 2026-07-03: 141/591
+    flagged under the audiobooks root, 167/711 under the Dropbox Ebook root.
+  - impact: book content is intact (additive META-INF entry); the break is on
+    whole-file sha256 provenance/dedup, NOT epub-validate spine hashes or
+    alignment text extraction (META-INF is not a spine content document).
+  - decide: (a) strip the entry — note re-zipping yields a NEW sha256, it does
+    not restore the original unless a known-good source exists; (b) prevent
+    recurrence (Calibre viewer setting / open books read-only); (c) whether to
+    gate the manifest/fixture check on this in CI.
+  - revisit-when: cleaning the corpus or hardening fixture provenance.
+
 - [ ] promote-app-config — promote transcribe's `lib/config.ts` to a shared
       `packages/config`
   - state: deferred out of epoch1-transcribe; epub-validate's `src/config.ts`
