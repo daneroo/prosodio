@@ -21,7 +21,7 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     - `Ursula K. Le Guin - Earthsea Cycle 02 - The Tombs of Atuan.alignment.json`
     - `Ursula K. Le Guin - Earthsea Cycle 03 - The Farthest Shore.alignment.json`
     - `Ursula K. Le Guin - Earthsea Cycle 04 - Tehanu.alignment.json`
-    - `Ursula K. Le Guin - Hainish Cycle 08 - The Telling.alignment.json    `
+    - `Ursula K. Le Guin - Hainish Cycle 08 - The Telling.alignment.json`
   - evaluate: correctness + coverage delta across the full private corpus, hang
     behaviour, and whether epub-validate's proven approach should be reused
     rather than a fresh one. Decide the real policy; current code is a
