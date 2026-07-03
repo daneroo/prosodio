@@ -11,6 +11,9 @@
   - `thoughts/` — `BACKLOG.md` (persistent) + transient work; see
     [WORKFLOW.md](WORKFLOW.md)
     - `plans/<id>.md` — executable checkbox plan
+    - `plans/archive/<id>.md` — completed plans kept while still useful (e.g. as
+      exemplars or referenced by live backlog items); removed eventually. The
+      backlog is the durable record, not these.
     - `design/<id>-design.md` — preferred name for the plan's working design
     - `research/`, `reviews/`, `tickets/` — optional supporting notes
 - Data (what may be committed vs kept private: [PRIVACY.md](PRIVACY.md))

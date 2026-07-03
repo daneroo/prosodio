@@ -6,9 +6,9 @@ Goal: produce and evaluate sparse, high-confidence VTT–EPUB anchors while
 proving that weaker passes can safely fill residual gaps.
 
 Canonical design:
-[`epoch4-alignment-design.md`](../design/epoch4-alignment-design.md). The design
-is the source of truth for the algorithm; this plan orders it into executable
-increments.
+[`epoch4-alignment-design.md`](../../design/epoch4-alignment-design.md). The
+design is the source of truth for the algorithm; this plan orders it into
+executable increments.
 
 ## Context and decisions
 

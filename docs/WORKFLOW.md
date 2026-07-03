@@ -41,10 +41,12 @@ Goal: <one line>.
 - Steps are checkboxes — the agent's live progress tracker; tick as you go.
 - Optional notes beside it: `<id>-research.md`, `<id>-review.md`, only if
   warranted.
-- Closing: tick `[x]` in BACKLOG and commit that; a _separate_ commit deletes
-  the plan (and notes) — the backlog keeps the record. Default is deletion on
-  `done`; a `done` plan may linger briefly if it still interacts with ongoing
-  work (e.g. sibling epochs), then gets deleted.
+- Closing: tick `[x]` in BACKLOG and commit that; the backlog keeps the record.
+  A `done` plan may then be either deleted or moved to `plans/archive/<id>.md`
+  and kept while it's still useful — as a worked exemplar, or because live
+  backlog items still reference it. Archived plans are not permanent: prune them
+  once nothing depends on them. The backlog, not the archive, is the durable
+  record.
 
 ## Design — `thoughts/design/<id>-design.md`
 

@@ -5,7 +5,7 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
 
 - [ ] align-epub-parser-decisions — evaluate align's two EPUB DOM-parser
       compromises (accepted deferred at epoch4 close; see
-      `plans/epoch4-alignment.md` §8 Acceptance)
+      `plans/archive/epoch4-alignment.md` §8 Acceptance)
   - why: both change how EVERY book's text is extracted in
     `apps/align/lib/epub-extract.ts`; both were expedient, neither reviewed
     against the corpus, and they may interact.
