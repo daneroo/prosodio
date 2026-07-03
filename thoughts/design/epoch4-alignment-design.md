@@ -354,3 +354,13 @@ runs, and the default all-matched run use the same alignment pipeline.
 - Finalize extraction configuration flags after comparing the Alice and private
   corpora, especially `linear="no"` handling.
 - Define the serialized result schema just in time for the first consumer.
+- UNRESOLVED (implementation took an expedient path; must be evaluated before
+  epoch close — BACKLOG `align-epub-parser-decisions`): the EPUB DOM parser. The
+  implementation forces jsdom always and in-process (bypassing epub-validate's
+  proven LinkeDOM-first + jsdom-fallback hybrid) and parses content as
+  `application/xhtml+xml` with a `text/html` fallback. Both were chosen for
+  expediency, both change extraction for every book, and they may interact. This
+  is a placeholder, not a decided policy.
+- The committed Alice fixture is a poor reference (abridged edition vs full
+  narration); a better narration<->edition pair is needed — BACKLOG
+  `align-better-fixture-pair`.

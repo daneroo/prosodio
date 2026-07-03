@@ -188,6 +188,20 @@ Types and the three input builders, each with tests, before any matching.
 
 ## 8 — Evaluation and acceptance
 
+Epoch-close blockers (Daniel, 2026-07-02) — the epoch CANNOT close until these
+are resolved or explicitly accepted; all moved to the top of
+`thoughts/BACKLOG.md`:
+
+- `align-epub-parser-decisions` — two expedient EPUB-parser compromises that
+  change extraction for every book and were never reviewed: (1) jsdom forced
+  always (bypasses epub-validate's proven LinkeDOM+jsdom hybrid), (2) the
+  XHTML-first / text-html-fallback parse mode added in `27be8e5`. They may
+  interact; both need corpus evaluation, not a buried commit.
+- `align-better-fixture-pair` — the committed Alice pair is a bad reference
+  (abridged epub vs full narration); replace it and diagnose the #11 puzzle.
+- `align-precision-at-scale` — manual anchor review does not scale to ~700
+  books; acceptance needs an automated precision signal, not eyeballing.
+
 - [x] Define the stratified manual anchor-review procedure (edge, interior,
       anomaly-adjacent samples; at least one span per matched book) and record
       reason codes for failures and excluded content; emit explicit review
@@ -198,7 +212,12 @@ Types and the three input builders, each with tests, before any matching.
       corpus); keep the report private in `apps/align/reports/`.
 - [ ] Record acceptance evidence: determinism, structural correctness, Pass 1
       precision (no known false anchor in the high-confidence sample), multipass
-      safety; coverage reported without a pre-baseline minimum.
+      safety; coverage reported without a pre-baseline minimum. NOTE: precision
+      cannot be established by manual review at corpus scale — see the
+      `align-precision-at-scale` blocker.
+- [ ] Resolve or explicitly accept the two EPUB-parser compromises
+      (`align-epub-parser-decisions`); replace the Alice fixture
+      (`align-better-fixture-pair`).
 - [x] Remove `apps/transcribe/scripts/tools/vtt-monotonicity.ts` because
       `@prosodio/vtt` owns that check; leave `vtt-compare.ts` in place as future
       VTT/VTT context.

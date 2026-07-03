@@ -8,11 +8,17 @@ import { normalizeText, type NormalizedText } from "./normalize.ts";
  * normalized text + offset map via the shared normalizer, and the flat
  * whole-book token sequence the matcher consumes.
  *
- * DOM engine: jsdom, always, in-process — align skips epub-validate's
- * LinkeDOM-first hybrid because jsdom opens every book LinkeDOM hangs on
- * (BACKLOG epubts-node-jsdom-always) and a subprocess kill harness would buy
- * nothing here. epub.ts parses through the global DOMParser, so jsdom's is
- * installed before the node build is imported.
+ * UNRESOLVED PARSER DECISIONS — placeholder, not decided policy. Both change
+ * extraction for EVERY book and must be evaluated before epoch4 close (BACKLOG
+ * align-epub-parser-decisions; design "Open implementation decisions"):
+ *   1. DOM engine: jsdom, always, in-process — bypasses epub-validate's proven
+ *      LinkeDOM-first + jsdom-fallback hybrid (apps/epub-validate/src/
+ *      epubts-node.ts); no subprocess hang guard.
+ *   2. Parse mode: application/xhtml+xml first, text/html fallback (see
+ *      parseContentDocument) — added to recover strict-XHTML books whose
+ *      self-closing <title/> the HTML parser mishandles.
+ * epub.ts parses through the global DOMParser, so jsdom's is installed before
+ * the node build is imported.
  */
 
 (globalThis as { DOMParser?: unknown }).DOMParser ??= new JSDOM(
