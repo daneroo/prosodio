@@ -4,7 +4,8 @@ Unscheduled work. Format: see [docs/WORKFLOW.md](../docs/WORKFLOW.md). Ported
 as-is from the consolidation plan's "Issues to address later"; triage pending.
 
 - [ ] align-epub-parser-decisions — evaluate align's two EPUB DOM-parser
-      compromises (BLOCKS epoch4 close; see `plans/epoch4-alignment.md` §8)
+      compromises (accepted deferred at epoch4 close; see
+      `plans/epoch4-alignment.md` §8 Acceptance)
   - why: both change how EVERY book's text is extracted in
     `apps/align/lib/epub-extract.ts`; both were expedient, neither reviewed
     against the corpus, and they may interact.
@@ -26,7 +27,8 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     behaviour, and whether epub-validate's proven approach should be reused
     rather than a fresh one. Decide the real policy; current code is a
     placeholder.
-  - revisit-when: before epoch4 acceptance.
+  - revisit-when: hardening extraction beyond epoch 4 (before the alignment
+    viewer or a trusted production run relies on it).
 
 - [ ] align-better-fixture-pair — replace the Alice public alignment fixture and
       diagnose the current one
@@ -83,6 +85,19 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     recurrence (Calibre viewer setting / open books read-only); (c) whether to
     gate the manifest/fixture check on this in CI.
   - revisit-when: cleaning the corpus or hardening fixture provenance.
+
+- [ ] epoch3-audiobook-validation — assess and port the useful parts of
+      `nx-audiobook` (audiobook collection validation)
+  - state: was `plans/epoch3-audiobook-validation.md` (Status: planned, never
+    started); returned to the backlog at epoch4 close since epoch 3 was not a
+    dependency. Plan deleted; the backlog keeps the record.
+  - assess and port the useful `nx-audiobook/apps/validate`, `validators`, and
+    required file-walking.
+  - re-evaluate the generic `Validation` abstraction against real
+    EPUB-validation needs; do not unify models just because both say
+    "validation".
+  - exclude the old viewer/conversion surface unless a fresh requirement
+    justifies it.
 
 - [ ] promote-app-config — promote transcribe's `lib/config.ts` to a shared
       `packages/config`
