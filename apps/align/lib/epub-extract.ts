@@ -99,13 +99,31 @@ const BLOCK_ELEMENTS = new Set([
   "ul",
 ]);
 
+/**
+ * Parse an EPUB content document. EPUB content is XHTML by spec, so parse as
+ * XML first: the HTML parser mishandles XHTML self-closing tags on raw-text
+ * elements — `<title/>` opens a never-closed RCDATA element that swallows the
+ * entire body, yielding zero visible text (real books do this). Fall back to
+ * the lenient HTML parser for any document that is not well-formed XML.
+ */
+function parseContentDocument(html: string): Document {
+  try {
+    const doc = new JSDOM(html, { contentType: "application/xhtml+xml" }).window
+      .document;
+    if (doc.getElementsByTagName("parsererror").length === 0) return doc;
+  } catch {
+    // fall through to the lenient HTML parser
+  }
+  return new JSDOM(html, { contentType: "text/html" }).window.document;
+}
+
 /** Visible text of one content document, in document order. */
 export function visibleTextFromHtml(
   html: string,
   excludedElements: readonly string[],
 ): string {
   const excluded = new Set(excludedElements.map((e) => e.toLowerCase()));
-  const dom = new JSDOM(html, { contentType: "text/html" });
+  const document = parseContentDocument(html);
   const parts: string[] = [];
   const walk = (node: Node): void => {
     for (const child of node.childNodes) {
@@ -122,7 +140,7 @@ export function visibleTextFromHtml(
       if (isBlock) parts.push("\n");
     }
   };
-  walk(dom.window.document);
+  walk(document);
   return parts.join("");
 }
 

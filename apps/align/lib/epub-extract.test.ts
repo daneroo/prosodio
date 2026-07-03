@@ -36,6 +36,24 @@ describe("visibleTextFromHtml", () => {
       ),
     ).toEqual(["end", "start"]);
   });
+
+  test("XHTML self-closing tags do not swallow the body (regression)", () => {
+    // Real EPUBs use XHTML: <title/> is well-formed XML but, parsed as HTML,
+    // opens a never-closed RCDATA <title> that eats the whole document.
+    const xhtml = `<html xmlns="http://www.w3.org/1999/xhtml"><head><title/><meta charset="utf-8"/></head><body><h1>Chapter 1</h1><p>The island of Gont.</p></body></html>`;
+    expect(normalizeText(visibleTextFromHtml(xhtml, EXCLUDED)).text).toBe(
+      "chapter 1 the island of gont",
+    );
+  });
+
+  test("malformed (non-XML) HTML still extracts via the fallback parser", () => {
+    // Unclosed <p> and a bare & are not well-formed XML; the HTML parser must
+    // still recover the text.
+    const html = `<body><p>Tom & Jerry<p>next paragraph</body>`;
+    expect(normalizeText(visibleTextFromHtml(html, EXCLUDED)).text).toBe(
+      "tom jerry next paragraph",
+    );
+  });
 });
 
 describe("extractEpub on the committed Alice EPUB", async () => {

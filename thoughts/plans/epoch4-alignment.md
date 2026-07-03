@@ -273,3 +273,16 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   of all 6 Alice samples: every anchor true (case/punctuation-only differences),
   no false anchor. REMAINING (Daniel): full private-corpus run
   - review, acceptance evidence over the private set, epoch close.
+- 2026-07-02 — Daniel ran the full private corpus (36 books) + committed the
+  baseline to the nested reports repo. Coverage baseline: ~85-95% VTT/EPUB on
+  full-text matches; outliers are signal not defect (Alice fixture 34% VTT =
+  abridged #19033 epub, verified: no Mock Turtle/Griffin/Lobster, 13.3k vs 27.5k
+  narrated words, plus the Gutenberg license as the largest EPUB gap). BUG
+  found + fixed (extraction): two Earthsea epubs extracted 0 tokens — NOT faulty
+  books. They are strict XHTML with self-closing `<title/>`; the text/html
+  parser opens a never-closed RCDATA <title> that swallows the whole body.
+  visibleTextFromHtml now parses application/xhtml+xml first, falling back to
+  text/html for non-well-formed docs; Earthsea recovers 0 -> 368k chars, Alice +
+  34 books unchanged. Regression tests added. REMAINING (Daniel): re-run private
+  corpus to recover the 2 Earthsea books; finish the Pass 1 reviewSamples read;
+  then acceptance + close.
