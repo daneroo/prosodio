@@ -1,6 +1,6 @@
 # epoch4-alignment — Sparse VTT–EPUB alignment
 
-Status: active
+Status: done
 
 Goal: produce and evaluate sparse, high-confidence VTT–EPUB anchors while
 proving that weaker passes can safely fill residual gaps.
@@ -188,9 +188,10 @@ Types and the three input builders, each with tests, before any matching.
 
 ## 8 — Evaluation and acceptance
 
-Epoch-close blockers (Daniel, 2026-07-02) — the epoch CANNOT close until these
-are resolved or explicitly accepted; all moved to the top of
-`thoughts/BACKLOG.md`:
+Epoch-close decision (Daniel, 2026-07-03) — the plan's bar was "resolved OR
+explicitly accepted". The epoch closes by EXPLICITLY ACCEPTING the first three
+below as deferred, backlog-tracked work (not resolved); the fourth is resolved.
+All are in `thoughts/BACKLOG.md`:
 
 - `align-epub-parser-decisions` — two expedient EPUB-parser compromises that
   change extraction for every book and were never reviewed: (1) jsdom forced
@@ -219,21 +220,50 @@ are resolved or explicitly accepted; all moved to the top of
       worklists for zero-match spine items and anomalous gaps.
 - [x] Capture a baseline with both `linear="no"` settings before choosing a
       default from corpus evidence.
-- [ ] Full private-corpus run and review (Daniel — needs the mounted external
-      corpus); keep the report private in `apps/align/reports/`.
-- [ ] Record acceptance evidence: determinism, structural correctness, Pass 1
-      precision (no known false anchor in the high-confidence sample), multipass
-      safety; coverage reported without a pre-baseline minimum. NOTE: precision
-      cannot be established by manual review at corpus scale — see the
-      `align-precision-at-scale` blocker.
-- [ ] Resolve or explicitly accept the two EPUB-parser compromises
-      (`align-epub-parser-decisions`); replace the Alice fixture
-      (`align-better-fixture-pair`).
+- [x] Full private-corpus run and review (Daniel) — 36 books aligned; reports
+      committed to the private nested `apps/align/reports/.git`, re-run
+      confirmed byte-for-byte reproducible. Deep per-alignment categorization
+      needs a future viewer and is out of scope here
+      (`align-precision-at-scale`).
+- [x] Record acceptance evidence — see the Acceptance section below.
+- [x] Explicitly ACCEPT the two EPUB-parser compromises
+      (`align-epub-parser-decisions`) and the Alice-fixture limitation
+      (`align-better-fixture-pair`) as deferred, backlog-tracked work. The Alice
+      epub is restored to its manifest provenance; a better public pair is
+      backlogged.
 - [x] Remove `apps/transcribe/scripts/tools/vtt-monotonicity.ts` because
       `@prosodio/vtt` owns that check; leave `vtt-compare.ts` in place as future
       VTT/VTT context.
-- [ ] Root `bun run ci` green; record evaluation commands and evidence; close
-      the epoch without expanding into dense alignment or viewer work.
+- [x] Root `bun run ci` green; evaluation recorded; epoch closed without
+      expanding into dense alignment or viewer work.
+
+## Acceptance (2026-07-03)
+
+Epoch 4 accepted and closed by Daniel. Evidence:
+
+- Determinism — the full 36-book run re-ran byte-for-byte identical; reports
+  held in the private nested `apps/align/reports/.git`.
+- Structural correctness — every accepted span is ordered, non-overlapping, and
+  in-bounds, guaranteed by the reconciliation gate and asserted in tests (root
+  `bun run ci` green).
+- Multipass safety — the k=4 proof pass adds only in-gap spans and preserves
+  every Pass 1 span (`test/multipass-proof.test.ts`).
+- Coverage — characterized, no minimum set: ~85–95% VTT/EPUB on full-text
+  matches across the real books; low outliers are explained, not defects
+  (abridged Alice fixture; a BBC-dramatization Wizard VTT; poetry). Two
+  zero-token books were an extractor bug (self-closing `<title/>`), fixed and
+  recovered on re-run.
+- Fixture integrity — all 7 manifest fixtures verify
+  (`scripts/fetch-and-check-fixtures.ts`, Daniel-run) after the Alice epub was
+  restored to its recorded provenance.
+- Pass 1 precision — NOT claimed at corpus scale. Exact unique k=6 anchors make
+  false anchors very unlikely and Alice spot-samples were clean, but a
+  corpus-wide precision claim needs a future alignment viewer for inspection and
+  categorization — out of scope here, tracked as `align-precision-at-scale`.
+
+Accepted as deferred (backlog): `align-epub-parser-decisions`,
+`align-better-fixture-pair`, `align-precision-at-scale`. Spawned in passing:
+`epub-calibre-pollution-audit`, `align-soft-basename-match`.
 
 ## Progress log
 
@@ -325,3 +355,12 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   for stray binaries. Corpus scan (`scripts/find-calibre-bookmarks.sh`) showed
   the pollution is widespread (141/591 audiobooks, 167/711 Dropbox epubs) —
   tracked as backlog `epub-calibre-pollution-audit`.
+- 2026-07-03 — Epoch 4 CLOSED (Daniel). Acceptance recorded in the Acceptance
+  section: determinism, structural correctness, and multipass safety hold;
+  coverage characterized (~85–95% on full-text matches, outliers explained); all
+  7 fixtures verified. Pass 1 precision explicitly NOT claimed at scale —
+  deferred to a future alignment viewer (`align-precision-at-scale`). The two
+  EPUB-parser compromises (`align-epub-parser-decisions`) and the Alice-fixture
+  limitation (`align-better-fixture-pair`) accepted as deferred backlog work.
+  Status -> done; plan retained (sibling-epoch precedent, and live backlog items
+  reference it).
