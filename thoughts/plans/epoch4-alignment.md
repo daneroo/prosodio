@@ -201,20 +201,17 @@ are resolved or explicitly accepted; all moved to the top of
   (abridged epub vs full narration); replace it and diagnose the #11 puzzle.
 - `align-precision-at-scale` — manual anchor review does not scale to ~700
   books; acceptance needs an automated precision signal, not eyeballing.
-- `validate-fixtures-before-close` — DANIEL verifies every committed fixture
-  himself before close; Claude's assessment is NOT to be trusted. Provenance is
-  binary: a fixture is valid only if its bytes match the recorded manifest
-  sha256 — "looks like the same content" is not a provenance argument.
-  Trigger: commit `27be8e5` swept a Calibre-modified Alice epub into a code
-  commit via `git add -A`. Consequence: the epub
-  `audiobooks/Lewis Carroll - Alices Adventures in Wonderland/…Wonderland.epub`
-  now FAILS manifest verification — actual sha256 `4d91adaa…` != recorded
-  `fe83b1b3…`. It is polluted, full stop. (Forensic detail, not a mitigation: a
-  `META-INF/calibre_bookmarks.txt` was ADDED to the zip; nothing was removed.)
-  Restore candidate: `git checkout 219f989 -- <path>` (blob `dd06ba84`, which
-  matches the manifest) — Daniel to run and confirm. Daniel then re-runs the
-  full manifest sha256 check across ALL fixtures to close the task; a Claude
-  "6/7 match" claim does not close it.
+- `validate-fixtures-before-close` — RESOLVED (Daniel, 2026-07-03). Provenance
+  is binary: a fixture is valid only if its bytes match the recorded manifest
+  sha256. Trigger: commit `27be8e5` swept a Calibre-modified Alice epub into a
+  code commit via `git add -A`, so the audiobooks Alice epub failed manifest
+  verification (`4d91adaa…` != recorded `fe83b1b3…`; a
+  `META-INF/calibre_bookmarks.txt` had been added to the zip). Resolution:
+  Daniel restored the epub to the manifest-matching blob and ran
+  `scripts/fetch-and-check-fixtures.ts` himself — all 7 manifest fixtures now
+  verify (Alice epub back to `fe83b1b3…`). Corpus-wide follow-up (Calibre has
+  polluted many other epubs) is tracked separately as
+  `epub-calibre-pollution-audit`.
 
 - [x] Define the stratified manual anchor-review procedure (edge, interior,
       anomaly-adjacent samples; at least one span per matched book) and record
@@ -319,3 +316,12 @@ Append-only; newest at the bottom. Each entry: date, step, command/commit.
   34 books unchanged. Regression tests added. REMAINING (Daniel): re-run private
   corpus to recover the 2 Earthsea books; finish the Pass 1 reviewSamples read;
   then acceptance + close.
+- 2026-07-03 — Fixture pollution found and resolved. Commit `27be8e5`
+  erroneously committed a Calibre-polluted Alice epub (Calibre's viewer had
+  added `META-INF/calibre_bookmarks.txt`, changing the whole-file sha256) —
+  swept in by a `git add -A`. Daniel restored the epub to the manifest blob and
+  re-ran `scripts/fetch-and-check-fixtures.ts`: all 7 fixtures verify. Lesson
+  logged: stage specific files, never `git add -A`; check `git diff --cached`
+  for stray binaries. Corpus scan (`scripts/find-calibre-bookmarks.sh`) showed
+  the pollution is widespread (141/591 audiobooks, 167/711 Dropbox epubs) —
+  tracked as backlog `epub-calibre-pollution-audit`.
