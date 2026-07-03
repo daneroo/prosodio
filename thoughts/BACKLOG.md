@@ -15,8 +15,13 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
   - compromise 2 — parse content as `application/xhtml+xml` first, fall back to
     `text/html` for non-well-formed docs (commit `27be8e5`). Added to recover
     two Earthsea epubs whose self-closing `<title/>` made the HTML parser
-    swallow the whole body (0 tokens). Fixes those, but silently changes parse
-    mode for all books.
+    swallow the whole body (0 tokens). Caused indexing differences for these
+    specific books, but not actual alignment coverage:
+    - `Ursula K. Le Guin - Earthsea Cycle 01 - A Wizard of Earthsea.alignment.json`
+    - `Ursula K. Le Guin - Earthsea Cycle 02 - The Tombs of Atuan.alignment.json`
+    - `Ursula K. Le Guin - Earthsea Cycle 03 - The Farthest Shore.alignment.json`
+    - `Ursula K. Le Guin - Earthsea Cycle 04 - Tehanu.alignment.json`
+    - `Ursula K. Le Guin - Hainish Cycle 08 - The Telling.alignment.json    `
   - evaluate: correctness + coverage delta across the full private corpus, hang
     behaviour, and whether epub-validate's proven approach should be reused
     rather than a fresh one. Decide the real policy; current code is a
