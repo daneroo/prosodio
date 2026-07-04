@@ -18,6 +18,14 @@
     "path": "audiobooks/Lewis Carroll - Alices Adventures in Wonderland/Lewis Carroll - Alices Adventures in Wonderland.epub",
     "sha256": "fe83b1b3074302a850cbee582b10004e824ca3cfc30074753b1eaebf95da2919",
   },
+  {
+    // Checked-in LibriVox album art (public domain) for the audiobook above;
+    // the m4b embeds no art. Satisfies the Bookplayer canonical-record
+    // invariant (.m4b + cover.jpg|cover.png per book directory).
+    "url": "https://archive.org/download/aliceinwonderland_2106_librivox/alice_wonderland8_2106.jpg",
+    "path": "audiobooks/Lewis Carroll - Alices Adventures in Wonderland/cover.jpg",
+    "sha256": "5479c66de65a70bedf51a4e6802d46bf1ad5ddef161a8834d552290b1c02e17d",
+  },
   // Checked-in Project Gutenberg EPUB 3 parser corpus; public domain in the
   // United States. Gutenberg regenerates these artifacts, so URLs are
   // provenance only; Git and the digests preserve the exact fixture bytes.

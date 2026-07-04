@@ -537,18 +537,31 @@ Phase 1 log (2026-07-03):
 Outcome: `lib/config.ts` root sets with env policy; Alice fixture becomes a
 canonical record. Files: `src/lib/config.ts` + test,
 `apps/bookplayer/.env.example`, `fixtures/audiobooks/…/cover.jpg`,
-`fixtures/manifest.jsonc` (comment only).
+`fixtures/manifest.jsonc` (new verified entry).
 
-- [ ] `lib/config.ts`: align-mirrored fixtures + private root sets, single
+- [x] `lib/config.ts`: align-mirrored fixtures + private root sets, single
       active root via `BOOKPLAYER_ROOT` (default `fixtures`), env overrides
       (`AUDIOBOOKS_ROOT`, `VTT_DIR`), fail-fast validation of the selected root;
       `data/bookplayer/{cache,evidence}` anchored here
-- [ ] `config.test.ts` green (default/selection/override/invalid cases)
-- [ ] `.env.example` with documented keys, placeholder values only
-- [ ] Fetch fixtures; extract and commit Alice `cover.jpg` (provenance comment
+- [x] `config.test.ts` green (default/selection/override/invalid cases)
+- [x] `.env.example` with documented keys, placeholder values only
+- [x] Fetch fixtures; extract and commit Alice `cover.jpg` (provenance comment
       in `fixtures/manifest.jsonc`); verify the fixtures root now yields one
       canonical book via a scanner-precursor check or REPL
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 2 log (2026-07-03):
+
+- The LibriVox m4b embeds no cover art (`ffmpeg -map 0:v`: no stream), so the
+  plan's extract step became a fetch: the item's official album art
+  (`alice_wonderland8_2106.jpg`, public domain, 300×300) is committed as
+  `cover.jpg` with a full verified manifest entry (url provenance + sha256), not
+  just a comment. `bun scripts/fetch-and-check-fixtures.ts` passes; the Alice
+  dir now satisfies the canonical-record invariant (1 m4b + cover).
+- Repo-root anchoring: `findRepoRoot(cwd)` accepts the app dir or the repo root
+  (probes `fixtures/audiobooks` + `package.json`) — `import.meta.dir` is
+  unreliable inside vite-bundled server code, and tests run from the repo root.
+  `resolveConfig(repoRoot, env)` is pure; 9 tests green.
 
 ### Phase 3 — scanner and index
 
