@@ -568,15 +568,29 @@ Phase 2 log (2026-07-03):
 Outcome: pure scanner + index lifecycle with cache, lock, rescan, enrichment.
 Files: `src/lib/{types,scan,library,ffprobe}.ts` + tests.
 
-- [ ] `lib/scan.ts` pure walk/group per contract (canonical, capabilities,
+- [x] `lib/scan.ts` pure walk/group per contract (canonical, capabilities,
       orphans, hidden, warnings, duplicate policy, id derivation)
-- [ ] `scan.test.ts` green (all cases listed in Testing)
-- [ ] `lib/library.ts`: restore-then-revalidate, versioned cache at
+- [x] `scan.test.ts` green (all cases listed in Testing)
+- [x] `lib/library.ts`: restore-then-revalidate, versioned cache at
       `data/bookplayer/cache/index.json`, scan lock, `refresh`, fingerprint
       gated `lib/ffprobe.ts` enrichment via `p-limit` (default 4), timing logs
-- [ ] `library.test.ts` green (cache, fingerprints, lock)
-- [ ] Manual check: dev server against fixtures root logs `[scan]` with 1 book
-- [ ] CI GATE
+- [x] `library.test.ts` green (cache, fingerprints, lock)
+- [x] Manual check: dev server against fixtures root logs `[scan]` with 1 book
+- [x] CI GATE
+
+Phase 3 log (2026-07-03):
+
+- 20 new tests (scan grouping/ids/parse + library lifecycle) green; probe is
+  injectable (`createLibrary(config, probe)`) so lifecycle tests are
+  deterministic with zero-byte m4bs.
+- Real fixtures-root run: 1 canonical book (id `790133709c8f`, epub+vtt),
+  ffprobe enrichment 63 ms (12932 s, aac, 64 kbps), cache persisted and
+  fingerprint-reused on restore.
+- Recorded seed deviation: the "Author - Title" basename convention beats
+  embedded tags for title/author (the Alice m4b's title tag is
+  "AliceWonderland8_librivox" — upstream junk); tags only fill unstructured
+  basenames. Walk does not follow directory symlinks (dirent-based), which also
+  keeps traversal inside the root.
 
 ### Phase 4 — server functions and media endpoints
 
