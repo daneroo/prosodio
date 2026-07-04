@@ -134,12 +134,14 @@ function groupDirectory(
   }
 
   const m4bName = m4bNames[0];
+  if (!m4bName) return null;
   const m4bBasename = basename(m4bName, extname(m4bName));
   const coverName = hasJpg ? "cover.jpg" : "cover.png";
 
   let epubRelPath: string | null = null;
   if (epubNames.length > 0) {
     const epubName = [...epubNames].sort()[0];
+    if (!epubName) return null;
     epubRelPath = join(relDir, epubName);
     const epubBasename = basename(epubName, extname(epubName));
     if (epubBasename !== m4bBasename) {

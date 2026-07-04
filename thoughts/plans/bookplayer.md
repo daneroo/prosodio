@@ -12,8 +12,8 @@ Progress (details + evidence live in each phase's checklist and log below):
 - [x] Phase 2 — configuration, roots, fixture cover
 - [x] Phase 3 — scanner and index
 - [x] Phase 4 — server functions and media endpoints
-- [ ] Phase 5 — EPUB reader spike (ACTIVE)
-- [ ] Phase 6 — landing page
+- [x] Phase 5 — EPUB reader spike
+- [ ] Phase 6 — landing page (ACTIVE)
 - [ ] Phase 7 — player page assembly
 - [ ] Phase 8 — hardening, acceptance, handoff
 
@@ -652,19 +652,47 @@ Outcome: `EpubReader.tsx` proven on the real Alice EPUB — open, navigate,
 search, highlight, contain — before the player page is assembled. Files:
 `src/components/EpubReader.tsx`, temporary harness in the player route.
 
-- [ ] Client-only dynamic import; open via URL + `openAs: "epub"` (fallback
+- [x] Client-only dynamic import; open via URL + `openAs: "epub"` (fallback
       arrayBuffer if needed — record which); lifecycle keyed to `epubUrl`
-- [ ] TOC, prev/next, CFI persist/restore; first-open cover-skip heuristic
-- [ ] Spine search (load/find/unload, cap 100), result list, range-CFI
+- [x] TOC, prev/next, CFI persist/restore; first-open cover-skip heuristic
+- [x] Spine search (load/find/unload, cap 100), result list, range-CFI
       normalization, single active highlight with cleanup, stable results across
       relocation
-- [ ] Containment: outer clipping only (keep epub.js internal scroll math),
+- [x] Containment: outer clipping only (keep epub.js internal scroll math),
       iframe bounds inside container under `ResizeObserver` resize
-- [ ] Browser check (MCP) on Alice: open → readable text, search `Rabbit` →
+- [x] Browser check (MCP) on Alice: open → readable text, search `Rabbit` →
       click → visible in-bounds highlight; desktop + mobile viewports; reflow
       keeps the match visible; evidence saved
-- [ ] Build verification (`bun run build`) — framework-sensitive phase
-- [ ] CI GATE
+- [x] Build verification (`bun run build`) — framework-sensitive phase
+- [x] CI GATE
+
+Phase 5 log (2026-07-04; evidence:
+`data/bookplayer/evidence/phase5-reader-spike.md`):
+
+- URL + `openAs: "epub"` works directly against `/api/epub/$bookId`; no
+  arrayBuffer fallback needed. Lifecycle keyed to `epubUrl` only.
+- Two epubjs traps found by the spike (why this phase ran early): `book.ready`
+  must precede spine access, and `spine.items` are manifest entries — the
+  loadable Section objects live on `spine.spineItems` (using `.items` reproduced
+  the codex zero-results symptom exactly).
+- Browser-verified on Alice via Claude Preview MCP: first open lands on readable
+  text (href heuristic + <200-char text-density skip past the cover page); TOC
+  navigates; search `Rabbit` → 37 results; result click navigates with visible
+  highlight; mini-pager (n/37) advances and cleans up the previous highlight;
+  desktop→375×812 reflow keeps the highlighted match on screen (the failure case
+  from visual review); reload restores the saved CFI.
+- Containment: iframe vertically exact inside the container; horizontally
+  epub.js scrolls a wide iframe that the `overflow-hidden` container clips
+  (clip-outer-only lesson) — acceptance measures the container, not the raw
+  iframe rect. Known fixture artifact: the 1916 edition's decorative title
+  heading overlaps body text on one transition page (book CSS vs columnizer;
+  chapter pages clean).
+- Reflow preservation refined: the search target is re-displayed on resize only
+  while it is the last navigation intent (`resumeTarget` cleared by manual
+  prev/next/TOC), so resizing never yanks the user back after they page away.
+- App tsconfig gained `noUncheckedIndexedAccess` (root parity) after type-aware
+  lint flagged defensive checks the looser config made "unnecessary"; fallout
+  fixed across scan/media/tests.
 
 ### Phase 6 — landing page
 

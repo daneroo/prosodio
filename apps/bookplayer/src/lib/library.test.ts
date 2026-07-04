@@ -87,12 +87,12 @@ describe("library lifecycle", () => {
 
     await settle();
     expect(calls).toHaveLength(1);
-    expect(library.getIndex().books[0].metadata.durationSec).toBe(123);
+    expect(library.getIndex().books[0]?.metadata.durationSec).toBe(123);
 
     const cache = JSON.parse(
       readFileSync(config.cacheFile, "utf8"),
     ) as BookCache;
-    expect(cache.books[0].metadata.durationSec).toBe(123);
+    expect(cache.books[0]?.metadata.durationSec).toBe(123);
   });
 
   test("cache restore serves immediately and revalidation reuses fingerprints", async () => {
@@ -116,10 +116,10 @@ describe("library lifecycle", () => {
       stubProbe({ durationSec: 1 }, secondCalls),
     );
     const restored = second.getIndex();
-    expect(restored.books[0].metadata.durationSec).toBe(99);
+    expect(restored.books[0]?.metadata.durationSec).toBe(99);
     await settle();
     expect(secondCalls).toHaveLength(0);
-    expect(second.getIndex().books[0].metadata.durationSec).toBe(99);
+    expect(second.getIndex().books[0]?.metadata.durationSec).toBe(99);
   });
 
   test("a changed fingerprint triggers re-probe", async () => {
@@ -143,7 +143,7 @@ describe("library lifecycle", () => {
     second.getIndex();
     await settle();
     expect(secondCalls).toHaveLength(1);
-    expect(second.getIndex().books[0].metadata.durationSec).toBe(42);
+    expect(second.getIndex().books[0]?.metadata.durationSec).toBe(42);
   });
 
   test("a version or root mismatch discards the cache", () => {
@@ -172,9 +172,9 @@ describe("library lifecycle", () => {
     expect(library.refresh()).toBe(true);
     const index = library.getIndex();
     expect(index.books).toHaveLength(2);
-    expect(library.getBook(index.books[1].id)?.basename).toBe(
-      index.books[1].basename,
-    );
+    const second = index.books[1];
+    if (!second) throw new Error("expected two books");
+    expect(library.getBook(second.id)?.basename).toBe(second.basename);
     expect(library.getBook("ffffffffffff")).toBeUndefined();
   });
 

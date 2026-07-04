@@ -24,9 +24,10 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
-    /* Linting */
+    /* Linting (noUncheckedIndexedAccess matches the repo root's strictness) */
     "skipLibCheck": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,

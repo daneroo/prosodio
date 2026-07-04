@@ -63,6 +63,7 @@ describe("loadTranscript", () => {
     const config = makeConfig();
     addBook(config, "Book One", VTT);
     const [book] = scanRoot(config.activeRoot).books;
+    if (!book) throw new Error("expected one book");
 
     const cues = loadTranscript(config, book);
     expect(cues).toEqual([
@@ -75,6 +76,7 @@ describe("loadTranscript", () => {
     const config = makeConfig();
     addBook(config, "Book One", null);
     const [book] = scanRoot(config.activeRoot).books;
+    if (!book) throw new Error("expected one book");
 
     expect(loadTranscript(config, book)).toBeNull();
   });

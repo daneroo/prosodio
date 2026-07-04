@@ -185,7 +185,7 @@ export function parseRangeHeader(
 
   const match = /^(\d*)-(\d*)$/.exec(spec.trim());
   if (!match) return "unsatisfiable";
-  const [, startPart, endPart] = match;
+  const [, startPart = "", endPart = ""] = match;
 
   if (startPart === "" && endPart === "") return "unsatisfiable";
 

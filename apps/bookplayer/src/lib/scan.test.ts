@@ -46,6 +46,7 @@ describe("scanRoot grouping", () => {
     const { books, warnings } = scanRoot(root);
     expect(books).toHaveLength(1);
     const book = books[0];
+    if (!book) throw new Error("expected one book");
     expect(book.id).toMatch(/^[a-f0-9]{12}$/);
     expect(book.basename).toBe("Author - Book One");
     expect(book.coverRelPath).toBe(join("Author - Book One", "cover.jpg"));
@@ -76,8 +77,8 @@ describe("scanRoot grouping", () => {
 
     const { books } = scanRoot(root);
     expect(books).toHaveLength(1);
-    expect(books[0].epubRelPath).toBeNull();
-    expect(books[0].hasVtt).toBe(false);
+    expect(books[0]?.epubRelPath).toBeNull();
+    expect(books[0]?.hasVtt).toBe(false);
   });
 
   test("orphan assets never become books", () => {
@@ -110,7 +111,7 @@ describe("scanRoot grouping", () => {
 
     const { books, warnings } = scanRoot(root);
     expect(books).toHaveLength(1);
-    expect(books[0].epubRelPath).toBe(join("mismatch", "Text Name.epub"));
+    expect(books[0]?.epubRelPath).toBe(join("mismatch", "Text Name.epub"));
     expect(warnings.join("\n")).toContain("basename mismatch");
   });
 
@@ -132,7 +133,7 @@ describe("scanRoot grouping", () => {
 
     const { books } = scanRoot(root);
     expect(books).toHaveLength(1);
-    expect(books[0].relDir).toBe(join("series", "part one", "deep"));
+    expect(books[0]?.relDir).toBe(join("series", "part one", "deep"));
   });
 
   test("duplicate basenames: first sorted relDir wins, rest warn", () => {
@@ -142,7 +143,7 @@ describe("scanRoot grouping", () => {
 
     const { books, warnings } = scanRoot(root);
     expect(books).toHaveLength(1);
-    expect(books[0].relDir).toBe(join("a", "dup"));
+    expect(books[0]?.relDir).toBe(join("a", "dup"));
     expect(warnings.join("\n")).toContain("duplicate basename");
   });
 
