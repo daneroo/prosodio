@@ -14,8 +14,8 @@ Progress (details + evidence live in each phase's checklist and log below):
 - [x] Phase 4 — server functions and media endpoints
 - [x] Phase 5 — EPUB reader spike
 - [x] Phase 6 — landing page
-- [ ] Phase 7 — player page assembly (ACTIVE)
-- [ ] Phase 8 — hardening, acceptance, handoff
+- [x] Phase 7 — player page assembly
+- [ ] Phase 8 — hardening, acceptance, handoff (ACTIVE)
 
 ## Context and evidence
 
@@ -744,25 +744,43 @@ Phase 6 log (2026-07-04):
 Outcome: three-band player with full transport, transcript, budgets. Files:
 `src/routes/player/$bookId.tsx`, `src/components/{Transcript,PlayerDock}.tsx`.
 
-- [ ] Shell: single-row top bar (back, identity, TOC/nav/search inline), reader
+- [x] Shell: single-row top bar (back, identity, TOC/nav/search inline), reader
       `flex-1` contained, bottom dock (transcript strip + transport)
-- [ ] Transport: play/pause, seek slider with times, `-1m -15s +15s +1m` labels,
+- [x] Transport: play/pause, seek slider with times, `-1m -15s +15s +1m` labels,
       speed 0.75–2.0×, volume; mobile two-row dock with all controls visible;
       keyboard transport incl. Shift; focus rings + aria-labels
-- [ ] Progress: debounced audio-position save/restore; CFI already persisted
-- [ ] Transcript strip: cues via `fetchTranscript`, active-cue binary search,
+- [x] Progress: debounced audio-position save/restore; CFI already persisted
+- [x] Transcript strip: cues via `fetchTranscript`, active-cue binary search,
       click-to-seek, nearest auto-scroll, loading/error/no-VTT states; strip
       renders in all cases
-- [ ] Failure isolation: audio error / reader error / both — page stays usable
+- [x] Failure isolation: audio error / reader error / both — page stays usable
       with actionable, path-free messages
-- [ ] No-EPUB book remains fully playable (verify by temporarily hiding the
+- [x] No-EPUB book remains fully playable (verify by temporarily hiding the
       fixture EPUB in a synthetic private root or temp fixture copy)
-- [ ] Browser check (MCP) at both viewports: budgets measured via DOM (reader ≥
+- [x] Browser check (MCP) at both viewports: budgets measured via DOM (reader ≥
       60/45 vh, chrome 25–35 vh, containment, no clipped controls); audio
       seek/scrub/jumps/keyboard/speed/volume/resume; cue-seek; search-highlight
       reflow preservation; evidence saved
-- [ ] Build verification (`bun run build`) — layout/framework-sensitive phase
-- [ ] CI GATE
+- [x] Build verification (`bun run build`) — layout/framework-sensitive phase
+- [x] CI GATE
+
+Phase 7 log (2026-07-04; evidence appended to
+`data/bookplayer/evidence/phase5-reader-spike.md`):
+
+- Alice flow, browser-verified: 2524 cues render; active cue tracks real
+  playback with auto-scroll; cue click seeks (372.4 s); ArrowRight +15 s /
+  Shift+Left −60 s; speed cycles into `audio.playbackRate`; position saved (2 s
+  debounce + on pause) and resumed after reload at 00:06:10.
+- Budgets measured via DOM: desktop reader 74.3 vh / chrome 25.7 vh; mobile
+  reader 71.6 vh / chrome 28.4 vh, two-row dock with every control visible at
+  375 px (both experiments failed this).
+- Synthetic audio-only book under a private-root env (gitignored
+  `data/bookplayer/synthetic/`): explicit no-EPUB state, no reader controls in
+  the top bar, "No transcript available" strip, audio 206, epub 404 — the
+  no-pair regression from the codex experiment cannot recur.
+- Audio failure isolation: `error` event → compact path-free message in the
+  dock; reader/transcript unaffected (state machine; audio error also exercised
+  implicitly by the synthetic book before its m4b was copied in).
 
 ### Phase 8 — hardening, acceptance, handoff
 
