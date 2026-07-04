@@ -1,6 +1,6 @@
 # bookplayer — build the Prosodio Bookplayer app
 
-Status: planned
+Status: active
 
 Goal: ship `apps/bookplayer`, a local-first TanStack Start web app that lists
 canonical audiobook records and plays each book with a reader-first EPUB
@@ -226,12 +226,15 @@ during Phase 1; installed types/CLI override docs and these notes):
   generate `src/router.tsx` (the old missing-router gap is fixed).
 - Server routes: `createFileRoute` with `server.handlers.{GET,...}` returning
   raw `Response`, `params` for dynamic segments — current docs confirm.
-- Server function input validation: current docs show `.validator(...)`, but the
-  Feb-2026 installed `@tanstack/react-start` used `.inputValidator(...)`. Treat
-  the method name as version-sensitive; follow the installed package's types at
-  scaffold time and record which name landed.
-- Nitro via `nitro({ preset: "bun" })` vite plugin (bun.com guide); scaffold's
-  nitro dependency may be a nightly — accept scaffold output, don't pin.
+- Server function input validation: RESOLVED in Phase 1 — installed
+  `@tanstack/react-start` 1.168.27 deprecates `.inputValidator(...)`; use
+  `.validator(...)` (dev-server deprecation warning, 2026-07-03).
+- Nitro: RESOLVED in Phase 1 — the scaffold's `nitro: npm:nitro-nightly` alias
+  breaks under Bun's isolated workspace linker (the package self-references
+  `nitro/meta`); use the stable-name `nitro` beta instead. The plugin arg type
+  only admits its own two fields; preset and rollupConfig go through the vite
+  `UserConfig.nitro` augmentation (`nitro: { preset: "bun", ... }` — build log
+  confirms `preset: bun`).
 - `epubjs` (0.3.x) remains the rendering library (seed requirement); parsing
   library `@likecoin/epub-ts` used elsewhere in the repo is not a renderer and
   is not a substitute.
@@ -445,10 +448,9 @@ goes to `data/bookplayer/evidence/`.
 
 ## Risks and resolved tensions
 
-- Server-function validator method name drifts across versions (`inputValidator`
-  observed installed vs `.validator` in current docs) — resolved by Phase 1's
-  minimal proof against installed types; the proof endpoint exists precisely to
-  burn this down first.
+- Server-function validator method name drifts across versions — RESOLVED by
+  Phase 1's proof: `.validator(...)` is current; `.inputValidator(...)` is
+  deprecated on the installed 1.168.27.
 - Root `tsc` vs app DOM types — resolved: root excludes the app, root `check`
   chains the app project (decision recorded in Architecture).
 - ESLint nested-config lookup under a root run — believed default in ESLint 10;
@@ -486,25 +488,49 @@ raw-Response + Range media path. Files: everything under `apps/bookplayer/`,
 root `tsconfig.json`, root `package.json` (`check` script), root
 `.prettierignore`.
 
-- [ ] Re-run `bunx --bun @tanstack/cli create --help`; scaffold with the
+- [x] Re-run `bunx --bun @tanstack/cli create --help`; scaffold with the
       validated flags into `apps/bookplayer` (`--no-install --no-git`); root
       `bun install`; commit `routeTree.gen.ts` policy applied
-- [ ] Prune scaffold: devtools, vitest/testing-library/jsdom, prettier
+- [x] Prune scaffold: devtools, vitest/testing-library/jsdom, prettier
       config/dep, starter routes/assets/branding; rename to
       `@prosodio/bookplayer`; align scripts (`dev`/`build`/`preview`/`start`)
-- [ ] Root integration: tsconfig exclude + chained `check`; `.prettierignore`
+- [x] Root integration: tsconfig exclude + chained `check`; `.prettierignore`
       entries; verify ESLint nested lookup with a deliberate hooks violation
       (record result); verify root `bun test` sees an app smoke test
-- [ ] Shell: `__root.tsx` titled BookPlayer; `/` and `/player/$bookId`
+- [x] Shell: `__root.tsx` titled BookPlayer; `/` and `/player/$bookId`
       placeholder routes wired to a stub server function (no fake static data)
-- [ ] Framework proof: one `createServerFn` with input validation (record
+- [x] Framework proof: one `createServerFn` with input validation (record
       whether the installed method is `inputValidator` or `validator`) + one
       `server.handlers.GET` route serving `fixtures/audio/jfk.mp3` with Range
       support; curl-verify 200 with exact Content-Length, `bytes=0-1023` → 206
       with correct Content-Range, and 416 handling; record outputs
-- [ ] Build verification: `bun run build` then `bun run start` serves `/`
+- [x] Build verification: `bun run build` then `bun run start` serves `/`
       (scaffold/framework-sensitive phase)
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 1 log (2026-07-03):
+
+- Scaffolded with `@tanstack/cli` 0.59-line current flags
+  (`--deployment nitro --toolchain eslint --no-examples --no-git --no-install`);
+  resolved react-start 1.168.27, react-router 1.170.17, vite 8, Tailwind 4.
+- `.validator(...)` is the current input-validation method (deprecation warning
+  on `inputValidator`); nitro nightly alias replaced with stable-name
+  `nitro@3.0.260610-beta` (self-reference broke under Bun's isolated linker);
+  preset set via vite `UserConfig.nitro` — build logs `preset: bun`.
+- ESLint 10 nested-lookup verified: app-level TanStack config fired a type-aware
+  rule from a root run; `@tanstack/eslint-config` has NO react-hooks rules, so
+  `eslint-plugin-react-hooks` was added and a deliberate conditional-useState
+  probe confirmed `rules-of-hooks` errors.
+- Root additions: tsconfig `exclude` (restating `node_modules` — exclude
+  replaces the default list), chained `check`, `.prettierignore` entries,
+  `@types/node` root dev dep (app's pinned copy stopped hoisting and broke
+  bun-types resolution in other apps).
+- curl proof: `/` 200, `/player/$bookId` 200, `/api/proof` 200 full body (76447
+  bytes = file size; body streamed, so no Content-Length header on the full
+  response — revisit for EPUB in Phase 4), `bytes=0-1023` → 206
+  `Content-Range: bytes 0-1023/76447` with 1024-byte body, unsatisfiable → 416.
+  Production `.output` server re-verified: 200 with SSR'd loader data, no dev
+  artifacts, range 206.
 
 ### Phase 2 — configuration, roots, fixture cover
 
