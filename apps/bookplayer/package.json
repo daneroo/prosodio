@@ -10,6 +10,7 @@
     "dev": "bun --bun vite dev --port 3000",
     "generate-routes": "tsr generate",
     "build": "bun --bun vite build",
+    "check": "tsc --noEmit",
     "preview": "bun --bun vite preview",
     "start": "bun run .output/server/index.mjs"
   },

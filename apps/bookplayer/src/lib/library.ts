@@ -30,8 +30,8 @@ export function createLibrary(
   let index: LibraryIndex | null = null;
   let scanning = false;
 
-  function scanNow(): void {
-    if (scanning) return;
+  function scanNow(): LibraryIndex {
+    if (scanning && index) return index;
     scanning = true;
     try {
       const started = performance.now();
@@ -52,6 +52,7 @@ export function createLibrary(
       for (const warning of warnings) console.warn(`[scan] ${warning}`);
       persistCache(config.cacheFile, index);
       void enrich(index);
+      return index;
     } finally {
       scanning = false;
     }
@@ -105,9 +106,7 @@ export function createLibrary(
         queueMicrotask(scanNow);
         return index;
       }
-      scanNow();
-      if (!index) throw new Error("initial scan produced no index");
-      return index;
+      return scanNow();
     },
     getBook: (id) => {
       if (!index) return undefined;
@@ -125,9 +124,13 @@ export function createLibrary(
 // CACHE
 
 function restoreCache(config: BookplayerConfig): LibraryIndex | null {
-  let cache: BookCache;
+  // Parsed as a loose shape, not BookCache: the file on disk may be from any
+  // older version, so the version/root guards must stay real checks.
+  let cache: Partial<Record<keyof BookCache, unknown>>;
   try {
-    cache = JSON.parse(readFileSync(config.cacheFile, "utf8")) as BookCache;
+    cache = JSON.parse(readFileSync(config.cacheFile, "utf8")) as Partial<
+      Record<keyof BookCache, unknown>
+    >;
   } catch {
     return null;
   }
@@ -139,10 +142,10 @@ function restoreCache(config: BookplayerConfig): LibraryIndex | null {
     return null;
   }
   return {
-    rootName: cache.rootName,
-    books: cache.books,
+    rootName: config.activeRoot.name,
+    books: cache.books as Array<LibraryIndex["books"][number]>,
     warnings: [],
-    scannedAt: cache.scannedAt,
+    scannedAt: typeof cache.scannedAt === "string" ? cache.scannedAt : "",
     scanDurationMs: 0,
   };
 }

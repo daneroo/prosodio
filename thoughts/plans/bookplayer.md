@@ -6,6 +6,17 @@ Goal: ship `apps/bookplayer`, a local-first TanStack Start web app that lists
 canonical audiobook records and plays each book with a reader-first EPUB
 surface, synchronized VTT transcript strip, and compact audio transport.
 
+Progress (details + evidence live in each phase's checklist and log below):
+
+- [x] Phase 1 — scaffold, workspace integration, framework proof
+- [x] Phase 2 — configuration, roots, fixture cover
+- [x] Phase 3 — scanner and index
+- [ ] Phase 4 — server functions and media endpoints (ACTIVE)
+- [ ] Phase 5 — EPUB reader spike
+- [ ] Phase 6 — landing page
+- [ ] Phase 7 — player page assembly
+- [ ] Phase 8 — hardening, acceptance, handoff
+
 ## Context and evidence
 
 Three experiments in `ai-garden/experiments/` built this app from
@@ -200,9 +211,14 @@ Workspace integration (root conventions, no nested repo, no duplicated tooling):
   `start` (`bun run .output/server/index.mjs`). Quality scripts stay root-level;
   no app-local `ci`.
 - Root `check` cannot type an app needing DOM libs and vite types under the root
-  tsconfig: add `"exclude": ["apps/bookplayer"]` to the root `tsconfig.json` and
-  change the root script to
-  `"check": "tsc --noEmit && tsc --noEmit -p apps/bookplayer"`.
+  tsconfig, so bookplayer is the special case: root `tsconfig.json` excludes it,
+  the app owns `"check": "tsc --noEmit"` against its own tsconfig, and the root
+  script discovers member checks generically —
+  `"check": "tsc --noEmit && bun run --filter '@prosodio/*' check"`. The filter
+  skips members without a `check` script and propagates failures (both
+  verified), so future divergent apps add their own script without touching the
+  root command. (Daniel's review rejected the earlier hardcoded
+  `tsc -p apps/bookplayer` chain as unscalable.)
 - Root `bun test` picks up `apps/bookplayer/**/*.test.ts` automatically.
 - Lint: root runs ESLint 10, which resolves the config nearest to each linted
   file, so the app's `eslint.config.mjs` (React hooks rules) applies from a root
@@ -451,8 +467,9 @@ goes to `data/bookplayer/evidence/`.
 - Server-function validator method name drifts across versions — RESOLVED by
   Phase 1's proof: `.validator(...)` is current; `.inputValidator(...)` is
   deprecated on the installed 1.168.27.
-- Root `tsc` vs app DOM types — resolved: root excludes the app, root `check`
-  chains the app project (decision recorded in Architecture).
+- Root `tsc` vs app DOM types — resolved: root excludes the app; the app owns
+  its `check` script and the root discovers member checks via
+  `bun run --filter '@prosodio/*' check` (decision recorded in Architecture).
 - ESLint nested-config lookup under a root run — believed default in ESLint 10;
   verified in Phase 1 with a deliberate violation; fallback is a scoped block in
   the root config.
@@ -522,7 +539,9 @@ Phase 1 log (2026-07-03):
   `eslint-plugin-react-hooks` was added and a deliberate conditional-useState
   probe confirmed `rules-of-hooks` errors.
 - Root additions: tsconfig `exclude` (restating `node_modules` — exclude
-  replaces the default list), chained `check`, `.prettierignore` entries,
+  replaces the default list), member-check discovery in root `check` (revised
+  after review from a hardcoded per-app chain to
+  `bun run --filter '@prosodio/*' check`), `.prettierignore` entries,
   `@types/node` root dev dep (app's pinned copy stopped hoisting and broke
   bun-types resolution in other apps).
 - curl proof: `/` 200, `/player/$bookId` 200, `/api/proof` 200 full body (76447

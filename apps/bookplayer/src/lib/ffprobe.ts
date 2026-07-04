@@ -58,7 +58,7 @@ interface FfprobeJson {
   format?: {
     duration?: string;
     bit_rate?: string;
-    tags?: Record<string, string>;
+    tags?: Record<string, string | undefined>;
   };
   streams?: Array<{ codec_type?: string; codec_name?: string }>;
 }
