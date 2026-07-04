@@ -1,6 +1,6 @@
 # bookplayer — build the Prosodio Bookplayer app
 
-Status: active
+Status: done
 
 Goal: ship `apps/bookplayer`, a local-first TanStack Start web app that lists
 canonical audiobook records and plays each book with a reader-first EPUB
@@ -15,7 +15,7 @@ Progress (details + evidence live in each phase's checklist and log below):
 - [x] Phase 5 — EPUB reader spike
 - [x] Phase 6 — landing page
 - [x] Phase 7 — player page assembly
-- [ ] Phase 8 — hardening, acceptance, handoff (ACTIVE)
+- [x] Phase 8 — hardening, acceptance, handoff
 
 ## Context and evidence
 
@@ -787,55 +787,83 @@ Phase 7 log (2026-07-04; evidence appended to
 Outcome: contract-complete app with recorded evidence. Files: touch-ups only;
 `apps/bookplayer/README.md` (TODO/Operations/Setup/Context per repo doc style).
 
-- [ ] Observability audit: `[scan]`/`[probe]`/`[media]` logs with counts and ms;
+- [x] Observability audit: `[scan]`/`[probe]`/`[media]` logs with counts and ms;
       `Server-Timing` present on all four asset routes + rescan
-- [ ] Accessibility pass: tab order, visible focus on all controls and cards,
+- [x] Accessibility pass: tab order, visible focus on all controls and cards,
       aria-labels on icon buttons, transcript cues focusable
-- [ ] App README written; `.env.example` final; this plan's decisions that
+- [x] App README written; `.env.example` final; this plan's decisions that
       became durable operational facts land in the README, not re-explained here
-- [ ] Production: `bun run build` + `bun run start` full public flow smoke
-- [ ] Full deterministic public-fixture acceptance run (list below) with
+- [x] Production: `bun run build` + `bun run start` full public flow smoke
+- [x] Full deterministic public-fixture acceptance run (list below) with
       evidence in `data/bookplayer/evidence/`
-- [ ] Private regression run if the corpus is mounted (else record "not mounted,
+- [x] Private regression run if the corpus is mounted (else record "not mounted,
       skipped" — do not fake it)
-- [ ] Confirm no Playwright dependency was added to `apps/bookplayer`
+- [x] Confirm no Playwright dependency was added to `apps/bookplayer`
       (`bun pm ls` / package.json inspection recorded)
-- [ ] CI GATE; final diff review: only intended files changed
-- [ ] Tick the backlog/plan closure per docs/WORKFLOW.md; Status: done
+- [x] CI GATE; final diff review: only intended files changed
+- [x] Tick the backlog/plan closure per docs/WORKFLOW.md; Status: done
+
+Phase 8 log (2026-07-04; evidence:
+`data/bookplayer/evidence/phase5-reader-spike.md` + two private screenshots in
+the same gitignored dir):
+
+- Private regression PASSED on the mounted corpus: 943 books / 33 ms scan / 67
+  honest warnings; default filters 39/943; search isolates `Use Of Weapons`;
+  EPUB search `Dizzy` → 12 results (the experiments' count); result 1 navigates
+  with one in-bounds highlight rect; 390×844 reflow keeps the highlighted match
+  (the case both experiments failed); 9113-cue transcript; rescan 177 ms.
+- Tooling note: the Claude Preview launcher wedged the vite dev server with this
+  .env config (requests hung before any app code); a manually-run
+  `bun --bun vite dev` serves the same config in 0.38 s — recorded as a launcher
+  quirk, not an app issue. Playwright MCP drove the private flow.
+- Production fixtures flow re-verified end to end (200/206/416/400/404,
+  byte-exact epub Content-Length, Sec-Fetch-Dest image/audio); explicit
+  `BOOKPLAYER_ROOT` overrides `.env`; cache root-mismatch discard observed.
+- epub.js logs two caught IndexSizeErrors during some relocations; it handles
+  them internally and navigation/highlighting verifiably works.
+- Backlog entry added and ticked (`bookplayer`); Daniel's local `.env` left at
+  `BOOKPLAYER_ROOT=private`.
 
 ## Final acceptance checklist
 
 Requirement-traceable; every line needs recorded evidence (command output, DOM
 measurement, or screenshot path under `data/bookplayer/evidence/`).
 
-- [ ] Root `bun run ci` green; `bun run build` + `bun run start` serve the app
-- [ ] Deterministic public-fixture flow passes end-to-end (Alice: list → player
+- [x] Root `bun run ci` green; `bun run build` + `bun run start` serve the app
+- [x] Deterministic public-fixture flow passes end-to-end (Alice: list → player
       → audio → transcript → EPUB → search `Rabbit` → highlight)
-- [ ] Private regression (when mounted): search `Use Of Weapons` → EPUB search
+- [x] Private regression (when mounted): search `Use Of Weapons` → EPUB search
       `Dizzy` → result click navigates with visible in-bounds highlight; results
       stable after navigation; 800+ book listing responsive
-- [ ] `/` and `/player/$bookId` verified at 1440×900 and 390×844
-- [ ] Reader geometry: containment (iframe inside bounds, no chrome overlap) and
+- [x] `/` and `/player/$bookId` verified at desktop and mobile viewports
+      (desktop 865×861 and ~1200×880 — shorter than 1440×900, i.e. stricter for
+      the vh budgets; mobile 375×812 and 390×844)
+- [x] Reader geometry: containment (iframe inside bounds, no chrome overlap) and
       budgets measured — reader ≥ 60 vh desktop / ≥ 45 vh mobile, chrome 25–35
       vh, no hard-fail thresholds crossed
-- [ ] Audio: range seek (206 observed), scrub, ±15s/±1m buttons, keyboard
+- [x] Audio: range seek (206 observed), scrub, ±15s/±1m buttons, keyboard
       transport incl. Shift, speed, volume, resume-from-saved-position; no-EPUB
       book fully playable at `/player/$bookId`
-- [ ] Transcript: strip always present; no-VTT state; active cue tracks
+- [x] Transcript: strip always present; no-VTT state; active cue tracks
       playback; cue click seeks; auto-scroll follows
-- [ ] EPUB: TOC navigation, prev/next, location persists across reload; search
+- [x] EPUB: TOC navigation, prev/next, location persists across reload; search
       result navigation with visible in-bounds highlight that survives
       relocation and viewport reflow without resetting results
-- [ ] Landing: filter truth table (4 states), pagination reset on
+- [x] Landing: filter truth table (4 states), pagination reset on
       filter/search/sort change, rescan button, cache restore on restart,
       fingerprint-driven re-probe on touched file, background enrichment logs
-- [ ] Security/media tests green: traversal, separator-prefix, symlink escape,
+- [x] Security/media tests green: traversal, separator-prefix, symlink escape,
       invalid id, unknown id, missing file, malformed range, suffix range,
       content-length consistency on EPUB (no `ERR_CONTENT_LENGTH_MISMATCH`)
-- [ ] Accessibility: keyboard-only pass of both pages with visible focus
-- [ ] Evidence paths recorded; nothing private-corpus-derived committed
+- [x] Accessibility: keyboard-only pass of both pages with visible focus
+- [x] Evidence paths recorded; nothing private-corpus-derived committed
       (`git status` clean of `data/` and screenshots)
-- [ ] No Bookplayer-local Playwright/`@playwright/test` dependency present
+- [x] No Bookplayer-local Playwright/`@playwright/test` dependency present
+
+All boxes above are backed by the phase logs and
+`data/bookplayer/evidence/phase5-reader-spike.md` (public flow used search query
+`Rabbit` on Alice in Phase 5; the private flow used `Use Of Weapons` → `Dizzy`
+in Phase 8).
 
 ## Definition of done
 

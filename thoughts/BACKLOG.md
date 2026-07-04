@@ -207,3 +207,11 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     prettier-only is safe for tables.
   - spot-check on first real occurrence: alignment markers (`:---:`), very-wide
     tables, CJK width.
+
+- [x] bookplayer — build the Prosodio Bookplayer app
+  - why: reader-first audiobook player over the canonical library (m4b + cover;
+    epub/vtt capabilities), consolidating the ai-garden experiments
+  - plan: `plans/bookplayer.md` (design + decision record + acceptance
+    evidence); app at `apps/bookplayer`
+  - done 2026-07-04 on branch `bookplayer-fable`; private Dizzy regression
+    passed (12 results, in-bounds highlight surviving mobile reflow)
