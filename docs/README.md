@@ -11,7 +11,7 @@ For dev and LLM alike: brevity, accuracy, nothing extra. One fact, one home.
 - [MARKDOWN.md](MARKDOWN.md) — markdown authoring style
 - [CODING-STYLE.md](CODING-STYLE.md) — top-down + reconciliation conventions
 - [STYLING.md](STYLING.md) — theming + Tailwind
-- [FRAMEWORK-TANSTACK.md](FRAMEWORK-TANSTACK.md) — TanStack Start bootstrap
-  (unvalidated)
+- [FRAMEWORK-TANSTACK.md](FRAMEWORK-TANSTACK.md) — TanStack Start bootstrap +
+  media-serving pattern (validated in apps/bookplayer)
 - [FRAMEWORK-ASTRO.md](FRAMEWORK-ASTRO.md) — Astro/Starlight bootstrap
   (unvalidated)

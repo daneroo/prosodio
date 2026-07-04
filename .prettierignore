@@ -3,3 +3,7 @@ bun.lock
 apps/epub-validate/dist/
 apps/epub-validate/reports/
 apps/align/reports/
+apps/bookplayer/src/routeTree.gen.ts
+apps/bookplayer/.output/
+apps/bookplayer/.nitro/
+apps/bookplayer/.tanstack/

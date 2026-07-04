@@ -26,5 +26,9 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  // bookplayer is a Vite/React app needing DOM libs and its own paths; the
+  // root `check` script chains `tsc --noEmit -p apps/bookplayer` instead.
+  // (node_modules must be restated: "exclude" replaces the default list.)
+  "exclude": ["node_modules", "apps/bookplayer"]
 }

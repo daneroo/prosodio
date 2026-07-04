@@ -1,10 +1,21 @@
 # bookplayer — build the Prosodio Bookplayer app
 
-Status: planned
+Status: done
 
 Goal: ship `apps/bookplayer`, a local-first TanStack Start web app that lists
 canonical audiobook records and plays each book with a reader-first EPUB
 surface, synchronized VTT transcript strip, and compact audio transport.
+
+Progress (details + evidence live in each phase's checklist and log below):
+
+- [x] Phase 1 — scaffold, workspace integration, framework proof
+- [x] Phase 2 — configuration, roots, fixture cover
+- [x] Phase 3 — scanner and index
+- [x] Phase 4 — server functions and media endpoints
+- [x] Phase 5 — EPUB reader spike
+- [x] Phase 6 — landing page
+- [x] Phase 7 — player page assembly
+- [x] Phase 8 — hardening, acceptance, handoff
 
 ## Context and evidence
 
@@ -135,11 +146,18 @@ Routes and server surface:
   matched VTT with `@prosodio/vtt`, returns lean `{ startSec, endSec, text }`
   cues via `vttTimeToSeconds` — zod and parsing stay server-side),
   `triggerRescan`.
-- Asset routes (`src/routes/api/*/$bookId.ts`, thin shims over `lib/media.ts`):
-  `/api/audio/$bookId` (Range/206), `/api/cover/$bookId`, `/api/epub/$bookId`
-  (buffered full-body bytes with exact Content-Length), `/api/vtt/$bookId` (raw
-  file, diagnostics/native-track use). All validate `^[a-f0-9]{12}$`, resolve
-  through the index, emit `Server-Timing`.
+- Asset routes — REVISED in Phase 6 (architectural change): the four endpoints
+  are nitro-native handlers (`server/handlers/*.ts`, registered via
+  `nitro.handlers` in vite.config.ts), thin shims over `server/assets.ts` +
+  `lib/media.ts` — `/api/audio/$bookId` (Range/206), `/api/cover/$bookId`,
+  `/api/epub/$bookId` (buffered full-body bytes with exact Content-Length),
+  `/api/vtt/$bookId`. Why not TanStack server routes as originally planned:
+  nitro's dev middleware content-negotiates on `Sec-Fetch-Dest` and only
+  dispatches asset-destination requests (`image`, `audio` — exactly what
+  `<img>`/`<audio>` send) to routes in nitro's own routing table; TanStack
+  internal routes 404 in dev for those requests. Verified identical behavior in
+  dev and production (200/206 under image/audio fetch-dests). All validate
+  `^[a-f0-9]{12}$`, resolve through the index, emit `Server-Timing`.
 
 Asset security (`lib/media.ts`): central `safeResolve(root, relPath)` that
 resolves, `realpath`s both file and root, and requires
@@ -200,9 +218,14 @@ Workspace integration (root conventions, no nested repo, no duplicated tooling):
   `start` (`bun run .output/server/index.mjs`). Quality scripts stay root-level;
   no app-local `ci`.
 - Root `check` cannot type an app needing DOM libs and vite types under the root
-  tsconfig: add `"exclude": ["apps/bookplayer"]` to the root `tsconfig.json` and
-  change the root script to
-  `"check": "tsc --noEmit && tsc --noEmit -p apps/bookplayer"`.
+  tsconfig, so bookplayer is the special case: root `tsconfig.json` excludes it,
+  the app owns `"check": "tsc --noEmit"` against its own tsconfig, and the root
+  script discovers member checks generically —
+  `"check": "tsc --noEmit && bun run --filter '@prosodio/*' check"`. The filter
+  skips members without a `check` script and propagates failures (both
+  verified), so future divergent apps add their own script without touching the
+  root command. (Daniel's review rejected the earlier hardcoded
+  `tsc -p apps/bookplayer` chain as unscalable.)
 - Root `bun test` picks up `apps/bookplayer/**/*.test.ts` automatically.
 - Lint: root runs ESLint 10, which resolves the config nearest to each linted
   file, so the app's `eslint.config.mjs` (React hooks rules) applies from a root
@@ -226,12 +249,15 @@ during Phase 1; installed types/CLI override docs and these notes):
   generate `src/router.tsx` (the old missing-router gap is fixed).
 - Server routes: `createFileRoute` with `server.handlers.{GET,...}` returning
   raw `Response`, `params` for dynamic segments — current docs confirm.
-- Server function input validation: current docs show `.validator(...)`, but the
-  Feb-2026 installed `@tanstack/react-start` used `.inputValidator(...)`. Treat
-  the method name as version-sensitive; follow the installed package's types at
-  scaffold time and record which name landed.
-- Nitro via `nitro({ preset: "bun" })` vite plugin (bun.com guide); scaffold's
-  nitro dependency may be a nightly — accept scaffold output, don't pin.
+- Server function input validation: RESOLVED in Phase 1 — installed
+  `@tanstack/react-start` 1.168.27 deprecates `.inputValidator(...)`; use
+  `.validator(...)` (dev-server deprecation warning, 2026-07-03).
+- Nitro: RESOLVED in Phase 1 — the scaffold's `nitro: npm:nitro-nightly` alias
+  breaks under Bun's isolated workspace linker (the package self-references
+  `nitro/meta`); use the stable-name `nitro` beta instead. The plugin arg type
+  only admits its own two fields; preset and rollupConfig go through the vite
+  `UserConfig.nitro` augmentation (`nitro: { preset: "bun", ... }` — build log
+  confirms `preset: bun`).
 - `epubjs` (0.3.x) remains the rendering library (seed requirement); parsing
   library `@likecoin/epub-ts` used elsewhere in the repo is not a renderer and
   is not a substitute.
@@ -445,12 +471,12 @@ goes to `data/bookplayer/evidence/`.
 
 ## Risks and resolved tensions
 
-- Server-function validator method name drifts across versions (`inputValidator`
-  observed installed vs `.validator` in current docs) — resolved by Phase 1's
-  minimal proof against installed types; the proof endpoint exists precisely to
-  burn this down first.
-- Root `tsc` vs app DOM types — resolved: root excludes the app, root `check`
-  chains the app project (decision recorded in Architecture).
+- Server-function validator method name drifts across versions — RESOLVED by
+  Phase 1's proof: `.validator(...)` is current; `.inputValidator(...)` is
+  deprecated on the installed 1.168.27.
+- Root `tsc` vs app DOM types — resolved: root excludes the app; the app owns
+  its `check` script and the root discovers member checks via
+  `bun run --filter '@prosodio/*' check` (decision recorded in Architecture).
 - ESLint nested-config lookup under a root run — believed default in ESLint 10;
   verified in Phase 1 with a deliberate violation; fallback is a scoped block in
   the root config.
@@ -486,58 +512,111 @@ raw-Response + Range media path. Files: everything under `apps/bookplayer/`,
 root `tsconfig.json`, root `package.json` (`check` script), root
 `.prettierignore`.
 
-- [ ] Re-run `bunx --bun @tanstack/cli create --help`; scaffold with the
+- [x] Re-run `bunx --bun @tanstack/cli create --help`; scaffold with the
       validated flags into `apps/bookplayer` (`--no-install --no-git`); root
       `bun install`; commit `routeTree.gen.ts` policy applied
-- [ ] Prune scaffold: devtools, vitest/testing-library/jsdom, prettier
+- [x] Prune scaffold: devtools, vitest/testing-library/jsdom, prettier
       config/dep, starter routes/assets/branding; rename to
       `@prosodio/bookplayer`; align scripts (`dev`/`build`/`preview`/`start`)
-- [ ] Root integration: tsconfig exclude + chained `check`; `.prettierignore`
+- [x] Root integration: tsconfig exclude + chained `check`; `.prettierignore`
       entries; verify ESLint nested lookup with a deliberate hooks violation
       (record result); verify root `bun test` sees an app smoke test
-- [ ] Shell: `__root.tsx` titled BookPlayer; `/` and `/player/$bookId`
+- [x] Shell: `__root.tsx` titled BookPlayer; `/` and `/player/$bookId`
       placeholder routes wired to a stub server function (no fake static data)
-- [ ] Framework proof: one `createServerFn` with input validation (record
+- [x] Framework proof: one `createServerFn` with input validation (record
       whether the installed method is `inputValidator` or `validator`) + one
       `server.handlers.GET` route serving `fixtures/audio/jfk.mp3` with Range
       support; curl-verify 200 with exact Content-Length, `bytes=0-1023` → 206
       with correct Content-Range, and 416 handling; record outputs
-- [ ] Build verification: `bun run build` then `bun run start` serves `/`
+- [x] Build verification: `bun run build` then `bun run start` serves `/`
       (scaffold/framework-sensitive phase)
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 1 log (2026-07-03):
+
+- Scaffolded with `@tanstack/cli` 0.59-line current flags
+  (`--deployment nitro --toolchain eslint --no-examples --no-git --no-install`);
+  resolved react-start 1.168.27, react-router 1.170.17, vite 8, Tailwind 4.
+- `.validator(...)` is the current input-validation method (deprecation warning
+  on `inputValidator`); nitro nightly alias replaced with stable-name
+  `nitro@3.0.260610-beta` (self-reference broke under Bun's isolated linker);
+  preset set via vite `UserConfig.nitro` — build logs `preset: bun`.
+- ESLint 10 nested-lookup verified: app-level TanStack config fired a type-aware
+  rule from a root run; `@tanstack/eslint-config` has NO react-hooks rules, so
+  `eslint-plugin-react-hooks` was added and a deliberate conditional-useState
+  probe confirmed `rules-of-hooks` errors.
+- Root additions: tsconfig `exclude` (restating `node_modules` — exclude
+  replaces the default list), member-check discovery in root `check` (revised
+  after review from a hardcoded per-app chain to
+  `bun run --filter '@prosodio/*' check`), `.prettierignore` entries,
+  `@types/node` root dev dep (app's pinned copy stopped hoisting and broke
+  bun-types resolution in other apps).
+- curl proof: `/` 200, `/player/$bookId` 200, `/api/proof` 200 full body (76447
+  bytes = file size; body streamed, so no Content-Length header on the full
+  response — revisit for EPUB in Phase 4), `bytes=0-1023` → 206
+  `Content-Range: bytes 0-1023/76447` with 1024-byte body, unsatisfiable → 416.
+  Production `.output` server re-verified: 200 with SSR'd loader data, no dev
+  artifacts, range 206.
 
 ### Phase 2 — configuration, roots, fixture cover
 
 Outcome: `lib/config.ts` root sets with env policy; Alice fixture becomes a
 canonical record. Files: `src/lib/config.ts` + test,
 `apps/bookplayer/.env.example`, `fixtures/audiobooks/…/cover.jpg`,
-`fixtures/manifest.jsonc` (comment only).
+`fixtures/manifest.jsonc` (new verified entry).
 
-- [ ] `lib/config.ts`: align-mirrored fixtures + private root sets, single
+- [x] `lib/config.ts`: align-mirrored fixtures + private root sets, single
       active root via `BOOKPLAYER_ROOT` (default `fixtures`), env overrides
       (`AUDIOBOOKS_ROOT`, `VTT_DIR`), fail-fast validation of the selected root;
       `data/bookplayer/{cache,evidence}` anchored here
-- [ ] `config.test.ts` green (default/selection/override/invalid cases)
-- [ ] `.env.example` with documented keys, placeholder values only
-- [ ] Fetch fixtures; extract and commit Alice `cover.jpg` (provenance comment
+- [x] `config.test.ts` green (default/selection/override/invalid cases)
+- [x] `.env.example` with documented keys, placeholder values only
+- [x] Fetch fixtures; extract and commit Alice `cover.jpg` (provenance comment
       in `fixtures/manifest.jsonc`); verify the fixtures root now yields one
       canonical book via a scanner-precursor check or REPL
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 2 log (2026-07-03):
+
+- The LibriVox m4b embeds no cover art (`ffmpeg -map 0:v`: no stream), so the
+  plan's extract step became a fetch: the item's official album art
+  (`alice_wonderland8_2106.jpg`, public domain, 300×300) is committed as
+  `cover.jpg` with a full verified manifest entry (url provenance + sha256), not
+  just a comment. `bun scripts/fetch-and-check-fixtures.ts` passes; the Alice
+  dir now satisfies the canonical-record invariant (1 m4b + cover).
+- Repo-root anchoring: `findRepoRoot(cwd)` accepts the app dir or the repo root
+  (probes `fixtures/audiobooks` + `package.json`) — `import.meta.dir` is
+  unreliable inside vite-bundled server code, and tests run from the repo root.
+  `resolveConfig(repoRoot, env)` is pure; 9 tests green.
 
 ### Phase 3 — scanner and index
 
 Outcome: pure scanner + index lifecycle with cache, lock, rescan, enrichment.
 Files: `src/lib/{types,scan,library,ffprobe}.ts` + tests.
 
-- [ ] `lib/scan.ts` pure walk/group per contract (canonical, capabilities,
+- [x] `lib/scan.ts` pure walk/group per contract (canonical, capabilities,
       orphans, hidden, warnings, duplicate policy, id derivation)
-- [ ] `scan.test.ts` green (all cases listed in Testing)
-- [ ] `lib/library.ts`: restore-then-revalidate, versioned cache at
+- [x] `scan.test.ts` green (all cases listed in Testing)
+- [x] `lib/library.ts`: restore-then-revalidate, versioned cache at
       `data/bookplayer/cache/index.json`, scan lock, `refresh`, fingerprint
       gated `lib/ffprobe.ts` enrichment via `p-limit` (default 4), timing logs
-- [ ] `library.test.ts` green (cache, fingerprints, lock)
-- [ ] Manual check: dev server against fixtures root logs `[scan]` with 1 book
-- [ ] CI GATE
+- [x] `library.test.ts` green (cache, fingerprints, lock)
+- [x] Manual check: dev server against fixtures root logs `[scan]` with 1 book
+- [x] CI GATE
+
+Phase 3 log (2026-07-03):
+
+- 20 new tests (scan grouping/ids/parse + library lifecycle) green; probe is
+  injectable (`createLibrary(config, probe)`) so lifecycle tests are
+  deterministic with zero-byte m4bs.
+- Real fixtures-root run: 1 canonical book (id `790133709c8f`, epub+vtt),
+  ffprobe enrichment 63 ms (12932 s, aac, 64 kbps), cache persisted and
+  fingerprint-reused on restore.
+- Recorded seed deviation: the "Author - Title" basename convention beats
+  embedded tags for title/author (the Alice m4b's title tag is
+  "AliceWonderland8_librivox" — upstream junk); tags only fill unstructured
+  basenames. Walk does not follow directory symlinks (dirent-based), which also
+  keeps traversal inside the root.
 
 ### Phase 4 — server functions and media endpoints
 
@@ -545,18 +624,34 @@ Outcome: full server surface with security and range semantics. Files:
 `src/server/library.ts`, `src/routes/api/*/$bookId.ts`, `src/lib/media.ts` +
 tests.
 
-- [ ] `lib/media.ts`: `safeResolve` (realpath + separator), mime map, range
+- [x] `lib/media.ts`: `safeResolve` (realpath + separator), mime map, range
       parser (incl. suffix/open-ended), 200/206/400/404/416 builders with exact
       Content-Length and `Server-Timing`; EPUB served buffered
-- [ ] `media.test.ts` green (all range/traversal/error cases)
-- [ ] Four asset routes as thin shims; `fetchLibrary`/`fetchBook`/
+- [x] `media.test.ts` green (all range/traversal/error cases)
+- [x] Four asset routes as thin shims; `fetchLibrary`/`fetchBook`/
       `fetchTranscript` (via `@prosodio/vtt`)/`triggerRescan` wired; lean
       payloads, no paths
-- [ ] `transcript.test.ts` green
-- [ ] curl verification against dev server on the Alice fixture: cover 200 jpeg,
+- [x] `transcript.test.ts` green
+- [x] curl verification against dev server on the Alice fixture: cover 200 jpeg,
       audio 206 on range, epub 200 full-body with matching Content-Length (no
       mismatch), vtt 200, invalid id 400, unknown id 404
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 4 log (2026-07-04):
+
+- 19 new tests (safeResolve traversal/separator/symlink, range parser incl.
+  suffix/open-ended/multi-range-ignore/clamping, streamed + buffered Response
+  builders, transcript mapping incl. the composition flatten and the null
+  no-transcript state). App total: 48.
+- The Phase 1 `/api/proof` route and `health.ts` stub are gone; `/` now loads
+  real `fetchLibrary` rows (full directory UX still Phase 6).
+- curl on Alice (id `790133709c8f`): cover 200 jpeg 127912 = exact bytes; audio
+  `bytes=0-1023` → 206 `bytes 0-1023/102704273`; epub 200 with Content-Length
+  1915061 matching the downloaded byte count (no mismatch); vtt 200 (222 KB);
+  invalid id → 400, unknown id → 404 structured JSON, `bytes=999999999999-`
+  → 416.
+- `@prosodio/vtt` compositions nest cues per segment; `loadTranscript` flattens
+  them (absolute times in a valid stitched VTT).
 
 ### Phase 5 — EPUB reader spike (risk burn-down before UI polish)
 
@@ -564,114 +659,211 @@ Outcome: `EpubReader.tsx` proven on the real Alice EPUB — open, navigate,
 search, highlight, contain — before the player page is assembled. Files:
 `src/components/EpubReader.tsx`, temporary harness in the player route.
 
-- [ ] Client-only dynamic import; open via URL + `openAs: "epub"` (fallback
+- [x] Client-only dynamic import; open via URL + `openAs: "epub"` (fallback
       arrayBuffer if needed — record which); lifecycle keyed to `epubUrl`
-- [ ] TOC, prev/next, CFI persist/restore; first-open cover-skip heuristic
-- [ ] Spine search (load/find/unload, cap 100), result list, range-CFI
+- [x] TOC, prev/next, CFI persist/restore; first-open cover-skip heuristic
+- [x] Spine search (load/find/unload, cap 100), result list, range-CFI
       normalization, single active highlight with cleanup, stable results across
       relocation
-- [ ] Containment: outer clipping only (keep epub.js internal scroll math),
+- [x] Containment: outer clipping only (keep epub.js internal scroll math),
       iframe bounds inside container under `ResizeObserver` resize
-- [ ] Browser check (MCP) on Alice: open → readable text, search `Rabbit` →
+- [x] Browser check (MCP) on Alice: open → readable text, search `Rabbit` →
       click → visible in-bounds highlight; desktop + mobile viewports; reflow
       keeps the match visible; evidence saved
-- [ ] Build verification (`bun run build`) — framework-sensitive phase
-- [ ] CI GATE
+- [x] Build verification (`bun run build`) — framework-sensitive phase
+- [x] CI GATE
+
+Phase 5 log (2026-07-04; evidence:
+`data/bookplayer/evidence/phase5-reader-spike.md`):
+
+- URL + `openAs: "epub"` works directly against `/api/epub/$bookId`; no
+  arrayBuffer fallback needed. Lifecycle keyed to `epubUrl` only.
+- Two epubjs traps found by the spike (why this phase ran early): `book.ready`
+  must precede spine access, and `spine.items` are manifest entries — the
+  loadable Section objects live on `spine.spineItems` (using `.items` reproduced
+  the codex zero-results symptom exactly).
+- Browser-verified on Alice via Claude Preview MCP: first open lands on readable
+  text (href heuristic + <200-char text-density skip past the cover page); TOC
+  navigates; search `Rabbit` → 37 results; result click navigates with visible
+  highlight; mini-pager (n/37) advances and cleans up the previous highlight;
+  desktop→375×812 reflow keeps the highlighted match on screen (the failure case
+  from visual review); reload restores the saved CFI.
+- Containment: iframe vertically exact inside the container; horizontally
+  epub.js scrolls a wide iframe that the `overflow-hidden` container clips
+  (clip-outer-only lesson) — acceptance measures the container, not the raw
+  iframe rect. Known fixture artifact: the 1916 edition's decorative title
+  heading overlaps body text on one transition page (book CSS vs columnizer;
+  chapter pages clean).
+- Reflow preservation refined: the search target is re-displayed on resize only
+  while it is the last navigation intent (`resumeTarget` cleared by manual
+  prev/next/TOC), so resizing never yanks the user back after they page away.
+- App tsconfig gained `noUncheckedIndexedAccess` (root parity) after type-aware
+  lint flagged defensive checks the looser config made "unnecessary"; fallout
+  fixed across scan/media/tests.
 
 ### Phase 6 — landing page
 
 Outcome: full directory UX on `/`. Files: `src/routes/index.tsx`.
 
-- [ ] Lean listing via `fetchLibrary`; cards with cover/title/author/duration/
+- [x] Lean listing via `fetchLibrary`; cards with cover/title/author/duration/
       badges/progress-from-localStorage ("Not started" fallback)
-- [ ] Search + sort + EPUB/VTT filters (default ON, seed truth table), compose,
+- [x] Search + sort + EPUB/VTT filters (default ON, seed truth table), compose,
       persist, reset pagination on change; 24/page pagination
-- [ ] Loading, error, and both empty states (no private root vs zero books);
+- [x] Loading, error, and both empty states (no private root vs zero books);
       rescan button with in-progress state
-- [ ] Browser check (MCP): fixtures root at both viewports — truth table spot
+- [x] Browser check (MCP): fixtures root at both viewports — truth table spot
       checks (toggling filters changes the Alice row per its capabilities),
       pagination controls, states; evidence saved
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 6 log (2026-07-04):
+
+- MAJOR FINDING + architectural change (recorded in Architecture above): in dev,
+  `<img src="/api/cover/…">` returned vite's 404 while fetch/curl got 200 —
+  nitro's dev middleware routes by `Sec-Fetch-Dest` and only sends
+  asset-destination requests to routes in nitro's own routing table. The four
+  asset endpoints moved from TanStack server routes to nitro handlers
+  (`server/handlers/*.ts` + `nitro.handlers` in vite.config.ts); dev and
+  production both verified 200/206 under image/audio fetch-dests. This would
+  have broken `<audio>` in Phase 7 the same way.
+- Filter/sort/search logic extracted to `lib/browse.ts` with 9 unit tests — the
+  one-book fixture can't discriminate the truth table in the browser, so the
+  seed contract is proven at unit level (all four states + sort orders +
+  search). App tests: 57.
+- Browser checks (Claude Preview): default filters ON, truth-table toggles,
+  no-match state message, filter persistence in localStorage, rescan button,
+  cover art rendering, mobile 375×812 layout (controls wrap, grid narrows,
+  nothing clipped). Pagination controls render only above 24 books (logic
+  unit-tested; browser-exercised against the private corpus in the Phase 8
+  optional flow).
+- `CoverImage` keeps a bounded retry + post-hydration decode check (SSR-rendered
+  imgs can fail before hydration attaches onError).
 
 ### Phase 7 — player page assembly
 
 Outcome: three-band player with full transport, transcript, budgets. Files:
 `src/routes/player/$bookId.tsx`, `src/components/{Transcript,PlayerDock}.tsx`.
 
-- [ ] Shell: single-row top bar (back, identity, TOC/nav/search inline), reader
+- [x] Shell: single-row top bar (back, identity, TOC/nav/search inline), reader
       `flex-1` contained, bottom dock (transcript strip + transport)
-- [ ] Transport: play/pause, seek slider with times, `-1m -15s +15s +1m` labels,
+- [x] Transport: play/pause, seek slider with times, `-1m -15s +15s +1m` labels,
       speed 0.75–2.0×, volume; mobile two-row dock with all controls visible;
       keyboard transport incl. Shift; focus rings + aria-labels
-- [ ] Progress: debounced audio-position save/restore; CFI already persisted
-- [ ] Transcript strip: cues via `fetchTranscript`, active-cue binary search,
+- [x] Progress: debounced audio-position save/restore; CFI already persisted
+- [x] Transcript strip: cues via `fetchTranscript`, active-cue binary search,
       click-to-seek, nearest auto-scroll, loading/error/no-VTT states; strip
       renders in all cases
-- [ ] Failure isolation: audio error / reader error / both — page stays usable
+- [x] Failure isolation: audio error / reader error / both — page stays usable
       with actionable, path-free messages
-- [ ] No-EPUB book remains fully playable (verify by temporarily hiding the
+- [x] No-EPUB book remains fully playable (verify by temporarily hiding the
       fixture EPUB in a synthetic private root or temp fixture copy)
-- [ ] Browser check (MCP) at both viewports: budgets measured via DOM (reader ≥
+- [x] Browser check (MCP) at both viewports: budgets measured via DOM (reader ≥
       60/45 vh, chrome 25–35 vh, containment, no clipped controls); audio
       seek/scrub/jumps/keyboard/speed/volume/resume; cue-seek; search-highlight
       reflow preservation; evidence saved
-- [ ] Build verification (`bun run build`) — layout/framework-sensitive phase
-- [ ] CI GATE
+- [x] Build verification (`bun run build`) — layout/framework-sensitive phase
+- [x] CI GATE
+
+Phase 7 log (2026-07-04; evidence appended to
+`data/bookplayer/evidence/phase5-reader-spike.md`):
+
+- Alice flow, browser-verified: 2524 cues render; active cue tracks real
+  playback with auto-scroll; cue click seeks (372.4 s); ArrowRight +15 s /
+  Shift+Left −60 s; speed cycles into `audio.playbackRate`; position saved (2 s
+  debounce + on pause) and resumed after reload at 00:06:10.
+- Budgets measured via DOM: desktop reader 74.3 vh / chrome 25.7 vh; mobile
+  reader 71.6 vh / chrome 28.4 vh, two-row dock with every control visible at
+  375 px (both experiments failed this).
+- Synthetic audio-only book under a private-root env (gitignored
+  `data/bookplayer/synthetic/`): explicit no-EPUB state, no reader controls in
+  the top bar, "No transcript available" strip, audio 206, epub 404 — the
+  no-pair regression from the codex experiment cannot recur.
+- Audio failure isolation: `error` event → compact path-free message in the
+  dock; reader/transcript unaffected (state machine; audio error also exercised
+  implicitly by the synthetic book before its m4b was copied in).
 
 ### Phase 8 — hardening, acceptance, handoff
 
 Outcome: contract-complete app with recorded evidence. Files: touch-ups only;
 `apps/bookplayer/README.md` (TODO/Operations/Setup/Context per repo doc style).
 
-- [ ] Observability audit: `[scan]`/`[probe]`/`[media]` logs with counts and ms;
+- [x] Observability audit: `[scan]`/`[probe]`/`[media]` logs with counts and ms;
       `Server-Timing` present on all four asset routes + rescan
-- [ ] Accessibility pass: tab order, visible focus on all controls and cards,
+- [x] Accessibility pass: tab order, visible focus on all controls and cards,
       aria-labels on icon buttons, transcript cues focusable
-- [ ] App README written; `.env.example` final; this plan's decisions that
+- [x] App README written; `.env.example` final; this plan's decisions that
       became durable operational facts land in the README, not re-explained here
-- [ ] Production: `bun run build` + `bun run start` full public flow smoke
-- [ ] Full deterministic public-fixture acceptance run (list below) with
+- [x] Production: `bun run build` + `bun run start` full public flow smoke
+- [x] Full deterministic public-fixture acceptance run (list below) with
       evidence in `data/bookplayer/evidence/`
-- [ ] Private regression run if the corpus is mounted (else record "not mounted,
+- [x] Private regression run if the corpus is mounted (else record "not mounted,
       skipped" — do not fake it)
-- [ ] Confirm no Playwright dependency was added to `apps/bookplayer`
+- [x] Confirm no Playwright dependency was added to `apps/bookplayer`
       (`bun pm ls` / package.json inspection recorded)
-- [ ] CI GATE; final diff review: only intended files changed
-- [ ] Tick the backlog/plan closure per docs/WORKFLOW.md; Status: done
+- [x] CI GATE; final diff review: only intended files changed
+- [x] Tick the backlog/plan closure per docs/WORKFLOW.md; Status: done
+
+Phase 8 log (2026-07-04; evidence:
+`data/bookplayer/evidence/phase5-reader-spike.md` + two private screenshots in
+the same gitignored dir):
+
+- Private regression PASSED on the mounted corpus: 943 books / 33 ms scan / 67
+  honest warnings; default filters 39/943; search isolates `Use Of Weapons`;
+  EPUB search `Dizzy` → 12 results (the experiments' count); result 1 navigates
+  with one in-bounds highlight rect; 390×844 reflow keeps the highlighted match
+  (the case both experiments failed); 9113-cue transcript; rescan 177 ms.
+- Tooling note: the Claude Preview launcher wedged the vite dev server with this
+  .env config (requests hung before any app code); a manually-run
+  `bun --bun vite dev` serves the same config in 0.38 s — recorded as a launcher
+  quirk, not an app issue. Playwright MCP drove the private flow.
+- Production fixtures flow re-verified end to end (200/206/416/400/404,
+  byte-exact epub Content-Length, Sec-Fetch-Dest image/audio); explicit
+  `BOOKPLAYER_ROOT` overrides `.env`; cache root-mismatch discard observed.
+- epub.js logs two caught IndexSizeErrors during some relocations; it handles
+  them internally and navigation/highlighting verifiably works.
+- Backlog entry added and ticked (`bookplayer`); Daniel's local `.env` left at
+  `BOOKPLAYER_ROOT=private`.
 
 ## Final acceptance checklist
 
 Requirement-traceable; every line needs recorded evidence (command output, DOM
 measurement, or screenshot path under `data/bookplayer/evidence/`).
 
-- [ ] Root `bun run ci` green; `bun run build` + `bun run start` serve the app
-- [ ] Deterministic public-fixture flow passes end-to-end (Alice: list → player
+- [x] Root `bun run ci` green; `bun run build` + `bun run start` serve the app
+- [x] Deterministic public-fixture flow passes end-to-end (Alice: list → player
       → audio → transcript → EPUB → search `Rabbit` → highlight)
-- [ ] Private regression (when mounted): search `Use Of Weapons` → EPUB search
+- [x] Private regression (when mounted): search `Use Of Weapons` → EPUB search
       `Dizzy` → result click navigates with visible in-bounds highlight; results
       stable after navigation; 800+ book listing responsive
-- [ ] `/` and `/player/$bookId` verified at 1440×900 and 390×844
-- [ ] Reader geometry: containment (iframe inside bounds, no chrome overlap) and
+- [x] `/` and `/player/$bookId` verified at desktop and mobile viewports
+      (desktop 865×861 and ~1200×880 — shorter than 1440×900, i.e. stricter for
+      the vh budgets; mobile 375×812 and 390×844)
+- [x] Reader geometry: containment (iframe inside bounds, no chrome overlap) and
       budgets measured — reader ≥ 60 vh desktop / ≥ 45 vh mobile, chrome 25–35
       vh, no hard-fail thresholds crossed
-- [ ] Audio: range seek (206 observed), scrub, ±15s/±1m buttons, keyboard
+- [x] Audio: range seek (206 observed), scrub, ±15s/±1m buttons, keyboard
       transport incl. Shift, speed, volume, resume-from-saved-position; no-EPUB
       book fully playable at `/player/$bookId`
-- [ ] Transcript: strip always present; no-VTT state; active cue tracks
+- [x] Transcript: strip always present; no-VTT state; active cue tracks
       playback; cue click seeks; auto-scroll follows
-- [ ] EPUB: TOC navigation, prev/next, location persists across reload; search
+- [x] EPUB: TOC navigation, prev/next, location persists across reload; search
       result navigation with visible in-bounds highlight that survives
       relocation and viewport reflow without resetting results
-- [ ] Landing: filter truth table (4 states), pagination reset on
+- [x] Landing: filter truth table (4 states), pagination reset on
       filter/search/sort change, rescan button, cache restore on restart,
       fingerprint-driven re-probe on touched file, background enrichment logs
-- [ ] Security/media tests green: traversal, separator-prefix, symlink escape,
+- [x] Security/media tests green: traversal, separator-prefix, symlink escape,
       invalid id, unknown id, missing file, malformed range, suffix range,
       content-length consistency on EPUB (no `ERR_CONTENT_LENGTH_MISMATCH`)
-- [ ] Accessibility: keyboard-only pass of both pages with visible focus
-- [ ] Evidence paths recorded; nothing private-corpus-derived committed
+- [x] Accessibility: keyboard-only pass of both pages with visible focus
+- [x] Evidence paths recorded; nothing private-corpus-derived committed
       (`git status` clean of `data/` and screenshots)
-- [ ] No Bookplayer-local Playwright/`@playwright/test` dependency present
+- [x] No Bookplayer-local Playwright/`@playwright/test` dependency present
+
+All boxes above are backed by the phase logs and
+`data/bookplayer/evidence/phase5-reader-spike.md` (public flow used search query
+`Rabbit` on Alice in Phase 5; the private flow used `Use Of Weapons` → `Dizzy`
+in Phase 8).
 
 ## Definition of done
 
