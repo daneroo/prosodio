@@ -11,8 +11,8 @@ Progress (details + evidence live in each phase's checklist and log below):
 - [x] Phase 1 — scaffold, workspace integration, framework proof
 - [x] Phase 2 — configuration, roots, fixture cover
 - [x] Phase 3 — scanner and index
-- [ ] Phase 4 — server functions and media endpoints (ACTIVE)
-- [ ] Phase 5 — EPUB reader spike
+- [x] Phase 4 — server functions and media endpoints
+- [ ] Phase 5 — EPUB reader spike (ACTIVE)
 - [ ] Phase 6 — landing page
 - [ ] Phase 7 — player page assembly
 - [ ] Phase 8 — hardening, acceptance, handoff
@@ -617,18 +617,34 @@ Outcome: full server surface with security and range semantics. Files:
 `src/server/library.ts`, `src/routes/api/*/$bookId.ts`, `src/lib/media.ts` +
 tests.
 
-- [ ] `lib/media.ts`: `safeResolve` (realpath + separator), mime map, range
+- [x] `lib/media.ts`: `safeResolve` (realpath + separator), mime map, range
       parser (incl. suffix/open-ended), 200/206/400/404/416 builders with exact
       Content-Length and `Server-Timing`; EPUB served buffered
-- [ ] `media.test.ts` green (all range/traversal/error cases)
-- [ ] Four asset routes as thin shims; `fetchLibrary`/`fetchBook`/
+- [x] `media.test.ts` green (all range/traversal/error cases)
+- [x] Four asset routes as thin shims; `fetchLibrary`/`fetchBook`/
       `fetchTranscript` (via `@prosodio/vtt`)/`triggerRescan` wired; lean
       payloads, no paths
-- [ ] `transcript.test.ts` green
-- [ ] curl verification against dev server on the Alice fixture: cover 200 jpeg,
+- [x] `transcript.test.ts` green
+- [x] curl verification against dev server on the Alice fixture: cover 200 jpeg,
       audio 206 on range, epub 200 full-body with matching Content-Length (no
       mismatch), vtt 200, invalid id 400, unknown id 404
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 4 log (2026-07-04):
+
+- 19 new tests (safeResolve traversal/separator/symlink, range parser incl.
+  suffix/open-ended/multi-range-ignore/clamping, streamed + buffered Response
+  builders, transcript mapping incl. the composition flatten and the null
+  no-transcript state). App total: 48.
+- The Phase 1 `/api/proof` route and `health.ts` stub are gone; `/` now loads
+  real `fetchLibrary` rows (full directory UX still Phase 6).
+- curl on Alice (id `790133709c8f`): cover 200 jpeg 127912 = exact bytes; audio
+  `bytes=0-1023` → 206 `bytes 0-1023/102704273`; epub 200 with Content-Length
+  1915061 matching the downloaded byte count (no mismatch); vtt 200 (222 KB);
+  invalid id → 400, unknown id → 404 structured JSON, `bytes=999999999999-`
+  → 416.
+- `@prosodio/vtt` compositions nest cues per segment; `loadTranscript` flattens
+  them (absolute times in a valid stitched VTT).
 
 ### Phase 5 — EPUB reader spike (risk burn-down before UI polish)
 
