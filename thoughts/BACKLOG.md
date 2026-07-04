@@ -30,20 +30,27 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
   - revisit-when: hardening extraction beyond epoch 4 (before the alignment
     viewer or a trusted production run relies on it).
 
-- [ ] align-better-fixture-pair — replace the Alice public alignment fixture and
-      diagnose the current one
+- [ ] align-better-fixture-pair — replace the Alice public fixture and add a
+      second quality audiobook<->epub pair (id kept stable; now shared beyond
+      align — see references in `plans/archive/epoch4-alignment.md`)
   - why: the committed Alice epub (Gutenberg #19033, illustrated) is an ABRIDGED
     retelling (~13.3k words; no Mock Turtle / Gryphon / Lobster Quadrille) while
     the committed LibriVox narration reads the full text (~27.5k words). 34% VTT
     coverage is "correct" only because half the book is missing — a poor
     reference for a public e2e fixture.
+  - now a SHARED concern, not just align's: `apps/bookplayer` is a second
+    consumer of the public pair (canonical record + EPUB search acceptance;
+    [decision record](plans/archive/bookplayer.md)). Alice is problematic for
+    any audiobook<->epub matching; we want >=2 faithful, good-quality public
+    pairs, not one abridged one.
   - open puzzle: LibriVox v8 cites Gutenberg #11; real #11 is full (~26.5k
     words, has the Mock Turtle). Daniel swapped in #11 and reportedly got the
     SAME ~34%/70%, which should be impossible for a full-text epub (expect ~90%
     like the 34 real books). Diagnose: did the swap take effect, or did that #11
     file under-extract (~13k tokens would explain 70% epub coverage)? Capture
     the exact #11 epub used + its extracted token count.
-  - find a faithful narration<->edition pair for a trustworthy baseline.
+  - find faithful narration<->edition pairs for a trustworthy baseline; unblocks
+    `bookplayer-public-acceptance`.
 
 - [ ] align-precision-at-scale — scalable Pass 1 precision evaluation
   - why: manual `reviewSamples` review does not scale — 36 books is already too
@@ -102,14 +109,18 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
 - [ ] promote-app-config — promote transcribe's `lib/config.ts` to a shared
       `packages/config`
   - state: deferred out of epoch1-transcribe; epub-validate's `src/config.ts`
-    now mirrors the pattern (second consumer, epoch 2)
+    (epoch 2), align's `lib/config.ts` (epoch 4), and now
+    `apps/bookplayer/src/lib/config.ts` all mirror the pattern — four consumers,
+    the trigger condition ("a third consumer") is met.
   - today it is single-app path config: a `DATA_DIR`-rooted `data/<app>/…` tree
     plus a REPO_ROOT-anchored `fixturesDir`. Promote to `packages/config` with
     `DATA_DIR` / `CORPORA_DIR` env overrides.
-  - fold epub-validate's loose values in at the same time (open-timeout
-    defaults, concurrency limits — the inherited "move loose config values"
-    TODO).
-  - revisit-when: a third consumer, or the CORPORA_DIR override becomes real.
+  - fold in the loose per-app values at the same time: epub-validate's
+    open-timeout defaults / concurrency limits, and bookplayer's
+    `BOOKPLAYER_ROOT` root-selection + `AUDIOBOOKS_ROOT`/`VTT_DIR` overrides
+    (provisional names; [decision record](plans/archive/bookplayer.md)).
+  - revisit-when: the CORPORA_DIR override becomes real, or the fourth consumer
+    tips the maintenance cost.
 
 - [ ] epub-text-extraction-gate — add text-content extraction (Gate 10B) to
       epub-validate
@@ -211,7 +222,51 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
 - [x] bookplayer — build the Prosodio Bookplayer app
   - why: reader-first audiobook player over the canonical library (m4b + cover;
     epub/vtt capabilities), consolidating the ai-garden experiments
-  - plan: `plans/bookplayer.md` (design + decision record + acceptance
-    evidence); app at `apps/bookplayer`
+  - plan: [plans/archive/bookplayer.md](plans/archive/bookplayer.md) (design +
+    decision record + acceptance evidence); app at `apps/bookplayer`
   - done 2026-07-04 on branch `bookplayer-fable`; private Dizzy regression
     passed (12 results, in-bounds highlight surviving mobile reflow)
+  - follow-ups carried forward: `bookplayer-ebook-renderer`,
+    `bookplayer-alignment-layout`, `bookplayer-public-acceptance`
+
+- [ ] bookplayer-ebook-renderer — keep the EPUB renderer swappable; evaluate
+      alternatives to epub.js later
+  - why: epub.js (0.3.x) is old and weakly typed — search/highlight was the
+    codex experiment's death, and it logs caught IndexSizeErrors during some
+    relocations. Accepted for v1; the whole API surface is isolated in one
+    component (`apps/bookplayer/src/components/EpubReader.tsx`) behind a lifted
+    controller so a swap does not touch the player.
+  - candidates to weigh: readium-js / `@readium`, foliate-js, a custom paginator
+    over the already-extracted spine text (align's `epub-extract.ts`). Trade
+    rendering fidelity vs. control over search/highlight/CFI.
+  - revisit-when: search/highlight reliability or reader theming becomes a real
+    limitation. See [plan](plans/archive/bookplayer.md) §EPUB reader.
+
+- [ ] bookplayer-alignment-layout — revisit the player component structure to
+      surface alignment data
+  - why: v1 keeps a seam for Prosodio word/sentence-level alignment (stable
+    `bookId`, transcript cues in seconds, transcript isolated behind one
+    `fetchTranscript` server fn) but deliberately does NOT render it. Showing
+    alignment (audio-position <-> EPUB passage, karaoke-style cue<->word
+    highlighting) likely needs the three-band layout and the reader/transcript
+    components to change.
+  - depends on align producing per-book alignment artifacts attachable by
+    `bookId`; do not expand the v1 seam before then.
+  - revisit-when: align (epoch 4) has trustworthy alignment output to consume.
+    See [plan](plans/archive/bookplayer.md) §Non-goals (the alignment seam).
+
+- [ ] bookplayer-public-acceptance — commit a public-fixture browser acceptance
+      for the search -> navigate -> highlight flow
+  - why: the strong regression (home search `Use Of Weapons` -> EPUB search
+    `Dizzy` -> click result -> visible in-bounds highlight surviving mobile
+    reflow) is PRIVATE-corpus only — it lives in the archived plan's Phase 8
+    log + gitignored `data/bookplayer/evidence/`, so it is not repeatable in CI
+    or on a fresh checkout. Want a committed, public equivalent
+    (`Rabbit`-on-Alice already returns results and highlights; verified manually
+    in Phase 5 but not captured as a test).
+  - decide the harness: MCP/in-app browser per the seed (NO local Playwright in
+    bookplayer), or a headless alternative — and whether it gates CI or is a
+    documented manual acceptance.
+  - partly blocked by `align-better-fixture-pair` for a trustworthy pair, but
+    the Alice search path works today. See [plan](plans/archive/bookplayer.md)
+    §Final acceptance checklist.

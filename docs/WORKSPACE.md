@@ -17,8 +17,31 @@
   ```
 
 - Apps with their own build are excluded from root `tsc` and run their own
-  `check` (Astro -> `astro check`; Vite version conflicts). eslint ignores
-  `**/.astro/`.
+  `check` (Astro -> `astro check`; a Vite/React app needs DOM libs + its own
+  tsconfig). eslint ignores `**/.astro/`.
+
+## Root `check` target
+
+Root `check` is `tsc --noEmit && bun run --filter '@prosodio/*' check`, not a
+plain `tsc`:
+
+- The first `tsc` types every package/app that CAN compile under the root
+  tsconfig; excluded apps (see above) type themselves via their own `check`
+  script.
+- The `--filter` half discovers member `check` scripts generically — it skips
+  members without one and propagates any failure — so a future divergent app
+  adds its own `check` without editing the root command (never hardcode
+  `tsc -p apps/<name>` at root; that does not scale). Exemplar:
+  `apps/bookplayer` (a TanStack/Vite app;
+  [decision record](../thoughts/plans/archive/bookplayer.md)).
+
+Gotchas an excluded app introduces:
+
+- Root tsconfig `"exclude"` REPLACES the default list, so restate
+  `"node_modules"` alongside the excluded app.
+- An app pinning `@types/node` can stop it hoisting to the root — keep
+  `@types/node` as a root dev dep so the other members still resolve bun/node
+  types.
 
 ## Seeding this repository
 

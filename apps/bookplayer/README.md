@@ -1,8 +1,9 @@
 # @prosodio/bookplayer
 
 Local-first web app: browse the audiobook library, read the EPUB while
-listening, follow the VTT transcript. Plan and decision record:
-[thoughts/plans/bookplayer.md](../../thoughts/plans/bookplayer.md).
+listening, follow the VTT transcript. Design and decision record (worked
+exemplar, kept while backlog items reference it):
+[thoughts/plans/archive/bookplayer.md](../../thoughts/plans/archive/bookplayer.md).
 
 ## TODO
 
