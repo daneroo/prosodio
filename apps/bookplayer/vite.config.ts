@@ -12,7 +12,18 @@ const config = defineConfig({
   // The installed nitro nightly's plugin-arg type only admits its own two
   // fields; the vite UserConfig.nitro augmentation is its config path.
   // The sentry external is scaffold-provided nitro build hygiene.
-  nitro: { preset: "bun", rollupConfig: { external: [/^@sentry\//] } },
+  // Asset endpoints are nitro handlers (see server/handlers/) so that
+  // media-element requests (Sec-Fetch-Dest image/audio) reach them in dev.
+  nitro: {
+    preset: "bun",
+    rollupConfig: { external: [/^@sentry\//] },
+    handlers: [
+      { route: "/api/audio/:bookId", handler: "./server/handlers/audio.ts" },
+      { route: "/api/cover/:bookId", handler: "./server/handlers/cover.ts" },
+      { route: "/api/epub/:bookId", handler: "./server/handlers/epub.ts" },
+      { route: "/api/vtt/:bookId", handler: "./server/handlers/vtt.ts" },
+    ],
+  },
   plugins: [nitro(), tailwindcss(), tanstackStart(), viteReact()],
 });
 

@@ -13,8 +13,8 @@ Progress (details + evidence live in each phase's checklist and log below):
 - [x] Phase 3 — scanner and index
 - [x] Phase 4 — server functions and media endpoints
 - [x] Phase 5 — EPUB reader spike
-- [ ] Phase 6 — landing page (ACTIVE)
-- [ ] Phase 7 — player page assembly
+- [x] Phase 6 — landing page
+- [ ] Phase 7 — player page assembly (ACTIVE)
 - [ ] Phase 8 — hardening, acceptance, handoff
 
 ## Context and evidence
@@ -146,11 +146,18 @@ Routes and server surface:
   matched VTT with `@prosodio/vtt`, returns lean `{ startSec, endSec, text }`
   cues via `vttTimeToSeconds` — zod and parsing stay server-side),
   `triggerRescan`.
-- Asset routes (`src/routes/api/*/$bookId.ts`, thin shims over `lib/media.ts`):
-  `/api/audio/$bookId` (Range/206), `/api/cover/$bookId`, `/api/epub/$bookId`
-  (buffered full-body bytes with exact Content-Length), `/api/vtt/$bookId` (raw
-  file, diagnostics/native-track use). All validate `^[a-f0-9]{12}$`, resolve
-  through the index, emit `Server-Timing`.
+- Asset routes — REVISED in Phase 6 (architectural change): the four endpoints
+  are nitro-native handlers (`server/handlers/*.ts`, registered via
+  `nitro.handlers` in vite.config.ts), thin shims over `server/assets.ts` +
+  `lib/media.ts` — `/api/audio/$bookId` (Range/206), `/api/cover/$bookId`,
+  `/api/epub/$bookId` (buffered full-body bytes with exact Content-Length),
+  `/api/vtt/$bookId`. Why not TanStack server routes as originally planned:
+  nitro's dev middleware content-negotiates on `Sec-Fetch-Dest` and only
+  dispatches asset-destination requests (`image`, `audio` — exactly what
+  `<img>`/`<audio>` send) to routes in nitro's own routing table; TanStack
+  internal routes 404 in dev for those requests. Verified identical behavior in
+  dev and production (200/206 under image/audio fetch-dests). All validate
+  `^[a-f0-9]{12}$`, resolve through the index, emit `Server-Timing`.
 
 Asset security (`lib/media.ts`): central `safeResolve(root, relPath)` that
 resolves, `realpath`s both file and root, and requires
@@ -698,16 +705,39 @@ Phase 5 log (2026-07-04; evidence:
 
 Outcome: full directory UX on `/`. Files: `src/routes/index.tsx`.
 
-- [ ] Lean listing via `fetchLibrary`; cards with cover/title/author/duration/
+- [x] Lean listing via `fetchLibrary`; cards with cover/title/author/duration/
       badges/progress-from-localStorage ("Not started" fallback)
-- [ ] Search + sort + EPUB/VTT filters (default ON, seed truth table), compose,
+- [x] Search + sort + EPUB/VTT filters (default ON, seed truth table), compose,
       persist, reset pagination on change; 24/page pagination
-- [ ] Loading, error, and both empty states (no private root vs zero books);
+- [x] Loading, error, and both empty states (no private root vs zero books);
       rescan button with in-progress state
-- [ ] Browser check (MCP): fixtures root at both viewports — truth table spot
+- [x] Browser check (MCP): fixtures root at both viewports — truth table spot
       checks (toggling filters changes the Alice row per its capabilities),
       pagination controls, states; evidence saved
-- [ ] CI GATE
+- [x] CI GATE
+
+Phase 6 log (2026-07-04):
+
+- MAJOR FINDING + architectural change (recorded in Architecture above): in dev,
+  `<img src="/api/cover/…">` returned vite's 404 while fetch/curl got 200 —
+  nitro's dev middleware routes by `Sec-Fetch-Dest` and only sends
+  asset-destination requests to routes in nitro's own routing table. The four
+  asset endpoints moved from TanStack server routes to nitro handlers
+  (`server/handlers/*.ts` + `nitro.handlers` in vite.config.ts); dev and
+  production both verified 200/206 under image/audio fetch-dests. This would
+  have broken `<audio>` in Phase 7 the same way.
+- Filter/sort/search logic extracted to `lib/browse.ts` with 9 unit tests — the
+  one-book fixture can't discriminate the truth table in the browser, so the
+  seed contract is proven at unit level (all four states + sort orders +
+  search). App tests: 57.
+- Browser checks (Claude Preview): default filters ON, truth-table toggles,
+  no-match state message, filter persistence in localStorage, rescan button,
+  cover art rendering, mobile 375×812 layout (controls wrap, grid narrows,
+  nothing clipped). Pagination controls render only above 24 books (logic
+  unit-tested; browser-exercised against the private corpus in the Phase 8
+  optional flow).
+- `CoverImage` keeps a bounded retry + post-hydration decode check (SSR-rendered
+  imgs can fail before hydration attaches onError).
 
 ### Phase 7 — player page assembly
 
