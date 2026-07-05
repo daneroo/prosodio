@@ -1,0 +1,263 @@
+/**
+ * Alignment loading + cue join for the AlignmentViewer (plan
+ * thoughts/plans/bookplayer-align.md). The expensive part — running the
+ * @prosodio/align engine over the book — is cached on disk per book, keyed by
+ * schema version + source mtimes. The cue join (spans -> word-level runs per
+ * transcript cue) is cheap, pure, and runs per request. @prosodio/align is
+ * imported dynamically so jsdom/epub-ts never enter a client module graph.
+ */
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+import { assetPath } from "./media.ts";
+import type { BookplayerConfig } from "./config.ts";
+import type { TranscriptCue } from "./transcript.ts";
+import type { BookRecord } from "./types.ts";
+import type { AlignmentResult } from "@prosodio/align";
+
+export interface CueRun {
+  text: string;
+  matched: boolean;
+}
+
+export interface AlignedCue {
+  startSec: number;
+  endSec: number;
+  /** Word-level match runs; matches are word-by-word, not whole-cue. */
+  runs: Array<CueRun>;
+  /** Matched words / words, 0..1. */
+  matchedRatio: number;
+  /** EPUB tokens never narrated, in the residual gap following this cue. */
+  gapEpubTokens: number;
+}
+
+export interface AlignmentSummary {
+  vttCoverage: number;
+  epubCoverage: number;
+  spanCount: number;
+  gapCount: number;
+  timing: "word" | "interpolated";
+  /** EPUB tokens in a residual gap before the first narrated word. */
+  leadingGapEpubTokens: number;
+}
+
+export type AlignmentPayload =
+  | { status: "unavailable" }
+  | { status: "ready"; summary: AlignmentSummary; cues: Array<AlignedCue> };
+
+/** The subset of VttWord the join needs (keeps tests synthetic-friendly). */
+export interface JoinWord {
+  cueIndex: number;
+  raw: string;
+}
+
+export interface JoinSpan {
+  vttStart: number;
+  vttEnd: number;
+}
+
+export interface JoinGap {
+  vttStart: number;
+  vttEnd: number;
+  epubStart: number;
+  epubEnd: number;
+}
+
+/**
+ * Join word-level span coverage onto transcript cues. Words are the flat VTT
+ * sequence (seq = array index); spans/gaps are half-open token ranges over it,
+ * sorted and non-overlapping (the engine's reconciliation invariant).
+ */
+export function joinAlignedCues(
+  cues: Array<TranscriptCue>,
+  words: Array<JoinWord>,
+  spans: Array<JoinSpan>,
+  gaps: Array<JoinGap>,
+): { cues: Array<AlignedCue>; leadingGapEpubTokens: number } {
+  const matched = new Array<boolean>(words.length).fill(false);
+  for (const span of spans) {
+    for (let seq = span.vttStart; seq < span.vttEnd; seq++) {
+      matched[seq] = true;
+    }
+  }
+
+  // Attribute each residual gap's epub side to the cue containing the last
+  // word before the gap; a gap at the stream start becomes the leading marker.
+  const gapTokensByCue = new Map<number, number>();
+  let leadingGapEpubTokens = 0;
+  for (const gap of gaps) {
+    const epubTokens = gap.epubEnd - gap.epubStart;
+    if (epubTokens <= 0) continue;
+    const before = words[gap.vttStart - 1];
+    if (!before) {
+      leadingGapEpubTokens += epubTokens;
+      continue;
+    }
+    gapTokensByCue.set(
+      before.cueIndex,
+      (gapTokensByCue.get(before.cueIndex) ?? 0) + epubTokens,
+    );
+  }
+
+  // Group the flat words back into per-cue runs of equal matched-ness.
+  const runsByCue = new Map<number, Array<CueRun>>();
+  const countsByCue = new Map<number, { total: number; matched: number }>();
+  words.forEach((word, seq) => {
+    const isMatched = matched[seq] === true;
+    const runs = runsByCue.get(word.cueIndex);
+    const last = runs?.at(-1);
+    if (runs && last && last.matched === isMatched) {
+      last.text += ` ${word.raw}`;
+    } else {
+      const run = { text: word.raw, matched: isMatched };
+      if (runs) runs.push(run);
+      else runsByCue.set(word.cueIndex, [run]);
+    }
+    const counts = countsByCue.get(word.cueIndex) ?? { total: 0, matched: 0 };
+    counts.total += 1;
+    if (isMatched) counts.matched += 1;
+    countsByCue.set(word.cueIndex, counts);
+  });
+
+  const alignedCues = cues.map((cue, cueIndex): AlignedCue => {
+    const runs = runsByCue.get(cueIndex);
+    const counts = countsByCue.get(cueIndex);
+    if (!runs || !counts) {
+      // Degenerate cue: normalization stripped every word (e.g. music note
+      // markers). Render the raw text, unmatched.
+      return {
+        startSec: cue.startSec,
+        endSec: cue.endSec,
+        runs: cue.text.length > 0 ? [{ text: cue.text, matched: false }] : [],
+        matchedRatio: 0,
+        gapEpubTokens: gapTokensByCue.get(cueIndex) ?? 0,
+      };
+    }
+    return {
+      startSec: cue.startSec,
+      endSec: cue.endSec,
+      runs,
+      matchedRatio: counts.matched / counts.total,
+      gapEpubTokens: gapTokensByCue.get(cueIndex) ?? 0,
+    };
+  });
+
+  return { cues: alignedCues, leadingGapEpubTokens };
+}
+
+export interface AlignmentCacheKey {
+  schemaVersion: number;
+  vttMtimeMs: number;
+  epubMtimeMs: number;
+}
+
+interface CacheFile {
+  key: AlignmentCacheKey;
+  result: AlignmentResult;
+}
+
+function cachePath(config: BookplayerConfig, book: BookRecord): string {
+  return join(config.dataDir, "align", `${book.id}.json`);
+}
+
+/** null on missing/corrupt file or any key mismatch (never throws). */
+export function readAlignmentCache(
+  path: string,
+  key: AlignmentCacheKey,
+): AlignmentResult | null {
+  // Parsed shape is unproven: a malformed file must read as a miss.
+  let parsed: Partial<CacheFile>;
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf8")) as Partial<CacheFile>;
+  } catch {
+    return null;
+  }
+  const cached = parsed.key;
+  if (
+    cached?.schemaVersion !== key.schemaVersion ||
+    cached.vttMtimeMs !== key.vttMtimeMs ||
+    cached.epubMtimeMs !== key.epubMtimeMs
+  ) {
+    return null;
+  }
+  return parsed.result ?? null;
+}
+
+/**
+ * The book's AlignmentResult: from the disk cache when fresh, else computed
+ * by the engine and written through. null = book lacks a vtt or epub.
+ */
+export async function loadAlignmentResult(
+  config: BookplayerConfig,
+  book: BookRecord,
+): Promise<AlignmentResult | null> {
+  const vttPath = assetPath(config, book, "vtt");
+  const epubPath = assetPath(config, book, "epub");
+  if (!vttPath || !epubPath) return null;
+
+  const align = await import("@prosodio/align");
+  const key: AlignmentCacheKey = {
+    schemaVersion: align.ALIGNMENT_RESULT_SCHEMA_VERSION,
+    vttMtimeMs: statSync(vttPath).mtimeMs,
+    epubMtimeMs: statSync(epubPath).mtimeMs,
+  };
+  const path = cachePath(config, book);
+  const cached = readAlignmentCache(path, key);
+  if (cached) return cached;
+
+  const started = performance.now();
+  const vttText = readFileSync(vttPath, "utf8");
+  const alignment = await align.alignBook(vttText, epubPath);
+  const result = align.buildAlignmentResult(alignment, {
+    root: config.activeRoot.name,
+    base: book.basename,
+    vttPath,
+    epubPath,
+    m4bPath: assetPath(config, book, "audio"),
+  });
+  console.log(
+    `[align] ${book.basename}: spans=${result.metrics.spanCount} in ${(performance.now() - started).toFixed(0)}ms`,
+  );
+
+  writeAlignmentCache(path, key, result);
+  return result;
+}
+
+export function writeAlignmentCache(
+  path: string,
+  key: AlignmentCacheKey,
+  result: AlignmentResult,
+): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify({ key, result } satisfies CacheFile));
+}
+
+/** Full payload for the AlignmentViewer; joins the cached result onto cues. */
+export async function loadAlignment(
+  config: BookplayerConfig,
+  book: BookRecord,
+  cues: Array<TranscriptCue> | null,
+): Promise<AlignmentPayload> {
+  if (!cues) return { status: "unavailable" };
+  const result = await loadAlignmentResult(config, book);
+  if (!result) return { status: "unavailable" };
+
+  const { buildVttSequence } = await import("@prosodio/align");
+  const vttPath = assetPath(config, book, "vtt");
+  if (!vttPath) return { status: "unavailable" };
+  const words = buildVttSequence(readFileSync(vttPath, "utf8")).words;
+
+  const joined = joinAlignedCues(cues, words, result.spans, result.gaps);
+  return {
+    status: "ready",
+    summary: {
+      vttCoverage: result.metrics.vttCoverage,
+      epubCoverage: result.metrics.epubCoverage,
+      spanCount: result.metrics.spanCount,
+      gapCount: result.metrics.gapCount,
+      timing: result.source.vttTiming,
+      leadingGapEpubTokens: joined.leadingGapEpubTokens,
+    },
+    cues: joined.cues,
+  };
+}

@@ -30,6 +30,7 @@
       "name": "@prosodio/bookplayer",
       "version": "0.1.0",
       "dependencies": {
+        "@prosodio/align": "workspace:*",
         "@prosodio/vtt": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/react-router": "^1.170.17",

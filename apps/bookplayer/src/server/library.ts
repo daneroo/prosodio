@@ -4,6 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 
+import { loadAlignment } from "#/lib/alignment";
 import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
 import { BOOK_ID_RE } from "#/lib/media";
@@ -70,6 +71,21 @@ export const fetchTranscript = createServerFn({ method: "GET" })
     const book = library().getBook(bookId);
     if (!book) throw new Error("Book not found.");
     return { cues: loadTranscript(getConfig(), book) };
+  });
+
+/**
+ * Alignment for the AlignmentViewer. First call for a book runs the engine
+ * (seconds to minutes on large books) and caches; later calls join from the
+ * cache. GET so the loader/client can treat it like the transcript.
+ */
+export const fetchAlignment = createServerFn({ method: "GET" })
+  .validator(validBookId)
+  .handler(async ({ data: bookId }) => {
+    library().getIndex();
+    const book = library().getBook(bookId);
+    if (!book) throw new Error("Book not found.");
+    const config = getConfig();
+    return loadAlignment(config, book, loadTranscript(config, book));
   });
 
 export const triggerRescan = createServerFn({ method: "POST" }).handler(() => {

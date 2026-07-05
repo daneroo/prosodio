@@ -191,7 +191,7 @@ type AlignmentPayload =
       (`@prosodio/align-cli`, dir unchanged per D1); config split; test imports
       updated; BACKLOG gains `align-cli-rename` (debt, deferred). Gate: root CI
       green + fixtures align run byte-identical (clean `reports/` git status).
-- [ ] Phase 2 — bookplayer plumbing: workspace dep; SPIKE jsdom/epub-ts loading
+- [x] Phase 2 — bookplayer plumbing: workspace dep; SPIKE jsdom/epub-ts loading
       inside a server function under `bun run dev` (risk gate — do this before
       writing the rest); `fetchAlignment` + disk cache + word-run cue join with
       unit tests (synthetic spans/cues; cache staleness via mtime manipulation,

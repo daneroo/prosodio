@@ -15,6 +15,7 @@
     "start": "bun run .output/server/index.mjs"
   },
   "dependencies": {
+    "@prosodio/align": "workspace:*",
     "@prosodio/vtt": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "^1.170.17",
