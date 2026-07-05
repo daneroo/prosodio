@@ -21,7 +21,7 @@ import type { FormEvent } from "react";
 import { AlignmentViewer } from "#/components/AlignmentViewer";
 import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
-import { fetchBook } from "#/server/library";
+import { fetchBook, fetchEpubAnchor } from "#/server/library";
 import type {
   ReaderController,
   SearchState,
@@ -66,6 +66,24 @@ function PlayerPage() {
     setQueryInput("");
     controller?.clearSearch();
   }, [controller]);
+
+  // "Show in book": resolve the cue's EPUB anchor server-side, then drive
+  // the reader (excerpt highlight, or plain section navigation fallback).
+  const showInBook = useCallback(
+    (cueIndex: number) => {
+      if (!controller) return;
+      void fetchEpubAnchor({ data: { bookId: book.id, cueIndex } })
+        .then(({ anchor }) => {
+          if (anchor) {
+            return controller.locate(anchor.spineHref, anchor.excerpt);
+          }
+        })
+        .catch(() => {
+          /* anchor lookup is best-effort; the reader stays put */
+        });
+    },
+    [controller, book.id],
+  );
 
   const { results, activeIndex, searching, query } = searchState;
   // After a result is chosen the panel collapses to a mini-pager, so the
@@ -307,6 +325,7 @@ function PlayerPage() {
                   bookId={book.id}
                   currentTime={audio.currentTime}
                   onSeek={audio.seek}
+                  onShowInBook={showInBook}
                 />
               </div>
             )}

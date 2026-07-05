@@ -200,7 +200,7 @@ type AlignmentPayload =
       refactored onto it) + split layout with default-on toggle; word-level run
       rendering; gap markers; playback tracking. Browser-verified on Alice
       (fixtures root), desktop + mobile viewports.
-- [ ] Phase 4 — EPUB positioning join (D5): `fetchEpubAnchor` + reader
+- [x] Phase 4 — EPUB positioning join (D5): `fetchEpubAnchor` + reader
       `locate` + affordance; fallback `goTo(href)` acceptable. Browser-verified
       on Alice matched cues.
 - [ ] Phase 5 — acceptance + docs: fixtures acceptance recorded (Alice is the

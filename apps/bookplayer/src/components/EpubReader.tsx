@@ -38,6 +38,12 @@ export interface ReaderController {
   search: (query: string) => Promise<void>;
   gotoResult: (index: number) => void;
   clearSearch: () => void;
+  /**
+   * Navigate to a spine section and highlight an excerpt found inside it
+   * (the alignment "show in book" join); falls back to plain section
+   * navigation when the excerpt is not found.
+   */
+  locate: (href: string, excerpt: string) => Promise<void>;
 }
 
 export const EMPTY_SEARCH: SearchState = {
@@ -223,6 +229,54 @@ export function EpubReader({
             pushSearch(EMPTY_SEARCH);
           },
           gotoResult,
+          locate: async (href, excerpt) => {
+            if (!book || !rendition) return;
+            removeHighlight();
+            resumeTarget.cfi = null;
+            // Extraction hrefs and epub.js spine hrefs can differ by a base
+            // dir prefix; match on either suffix.
+            const section = spineItems(book).find(
+              (item) => item.href.endsWith(href) || href.endsWith(item.href),
+            );
+            let target: { cfi: string } | null = null;
+            if (section && excerpt.length > 0) {
+              try {
+                await section.load(book.load.bind(book));
+                const cfi = findExcerptCfi(section, excerpt);
+                if (cfi) target = { cfi };
+              } catch {
+                /* malformed section: fall through to href navigation */
+              } finally {
+                try {
+                  section.unload();
+                } catch {
+                  /* ignore unload noise */
+                }
+              }
+            }
+            if (!alive()) return;
+            if (!target) {
+              await rendition.display(section?.href ?? href).catch(() => {
+                /* unknown href: leave the reader where it is */
+              });
+              return;
+            }
+            resumeTarget.cfi = target.cfi;
+            await rendition.display(normalizeCfi(target.cfi));
+            if (!alive()) return;
+            try {
+              rendition.annotations.highlight(
+                target.cfi,
+                {},
+                undefined,
+                "bp-align-hl",
+                { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" },
+              );
+              activeHighlight.cfi = target.cfi;
+            } catch {
+              /* highlight is best-effort; navigation already happened */
+            }
+          },
           search: async (query) => {
             const trimmed = query.trim();
             if (!book || trimmed.length === 0) return;
@@ -287,6 +341,9 @@ interface SpineItemLike {
   load: (loader: unknown) => Promise<unknown>;
   unload: () => void;
   find: (query: string) => Array<{ cfi: string; excerpt: string }>;
+  /** Populated between load() and unload(). */
+  document?: Document;
+  cfiFromRange: (range: Range) => string;
 }
 
 function spineItems(book: Book): Array<SpineItemLike> {
@@ -314,6 +371,62 @@ function visibleTextLength(rendition: Rendition): number {
     }, 0);
   } catch {
     return Number.MAX_SAFE_INTEGER; // unknown: don't skip anything
+  }
+}
+
+/**
+ * Whitespace- and markup-tolerant excerpt lookup in a loaded section.
+ * Section.find is a literal indexOf per text node, so source line-wrapping
+ * (Gutenberg hard-wraps) and inline markup (small-caps spans split the
+ * opening words into separate nodes) both defeat it. This accumulates the
+ * whole body's whitespace-collapsed lowercase text with a per-character
+ * node/offset map, so a hit maps back to a DOM range across node boundaries.
+ */
+function findExcerptCfi(
+  section: SpineItemLike,
+  excerpt: string,
+): string | null {
+  const doc = section.document;
+  if (!doc?.body) return null;
+  const target = excerpt.replace(/\s+/g, " ").trim().toLowerCase();
+  if (target.length === 0) return null;
+
+  let normalized = "";
+  const positions: Array<{ node: Node; offset: number }> = [];
+  let pendingSpace = false;
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    const raw = node.textContent ?? "";
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i] ?? "";
+      if (/\s/.test(ch)) {
+        pendingSpace = normalized.length > 0;
+        continue;
+      }
+      if (pendingSpace) {
+        // The space's mapped position is the following char; never a range
+        // endpoint since the target is trimmed.
+        normalized += " ";
+        positions.push({ node, offset: i });
+        pendingSpace = false;
+      }
+      normalized += ch.toLowerCase();
+      positions.push({ node, offset: i });
+    }
+  }
+
+  const hit = normalized.indexOf(target);
+  if (hit < 0) return null;
+  const start = positions[hit];
+  const end = positions[hit + target.length - 1];
+  if (!start || !end) return null;
+  try {
+    const range = doc.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset + 1);
+    return section.cfiFromRange(range);
+  } catch {
+    return null;
   }
 }
 
