@@ -9,6 +9,7 @@ import {
   writeAlignmentCache,
 } from "./alignment.ts";
 import type { AlignmentCacheKey, JoinWord } from "./alignment.ts";
+import { activeTokenIndex } from "./cues.ts";
 import type { TranscriptCue } from "./transcript.ts";
 import type { AlignmentResult } from "@prosodio/align";
 
@@ -16,13 +17,21 @@ function cue(startSec: number, text: string): TranscriptCue {
   return { startSec, endSec: startSec + 5, text };
 }
 
-/** Words laid out per cue: wordsFor(["a b", "c d e"]) -> 5 flat words. */
+/**
+ * Words laid out per cue with per-cue interpolated start times: each word
+ * starts one second after the previous within its cue (cue N starts at 5N).
+ * wordsFor(["a b", "c d e"]) -> 5 flat words.
+ */
 function wordsFor(cueTexts: Array<string>): Array<JoinWord> {
   return cueTexts.flatMap((text, cueIndex) =>
     text
       .split(" ")
       .filter((raw) => raw.length > 0)
-      .map((raw) => ({ cueIndex, raw })),
+      .map((raw, wordIndex) => ({
+        cueIndex,
+        raw,
+        timeSec: cueIndex * 5 + wordIndex,
+      })),
   );
 }
 
@@ -30,25 +39,26 @@ describe("joinAlignedCues", () => {
   const cues = [cue(0, "down the rabbit hole"), cue(5, "curiouser and")];
   const words = wordsFor(["down the rabbit hole", "curiouser and"]);
 
-  test("fully matched cue is a single matched run", () => {
+  test("every token matched; ratio 1; intervals chain to the cue end", () => {
     const { cues: aligned } = joinAlignedCues(
       cues,
       words,
       [{ vttStart: 0, vttEnd: 6 }],
       [],
     );
-    expect(aligned[0]).toEqual({
-      startSec: 0,
-      endSec: 5,
-      runs: [{ text: "down the rabbit hole", matched: true }],
-      matchedRatio: 1,
-      gapEpubTokens: 0,
-    });
+    expect(aligned[0]?.tokens).toEqual([
+      { raw: "down", startSec: 0, endSec: 1, matched: true },
+      { raw: "the", startSec: 1, endSec: 2, matched: true },
+      { raw: "rabbit", startSec: 2, endSec: 3, matched: true },
+      // last token runs to the cue end (5), not the next cue's first token.
+      { raw: "hole", startSec: 3, endSec: 5, matched: true },
+    ]);
+    expect(aligned[0]?.matchedRatio).toBe(1);
     expect(aligned[1]?.matchedRatio).toBe(1);
   });
 
-  test("word-level: a span boundary inside a cue splits it into runs", () => {
-    // Matches "down the" and "hole" but not "rabbit": three runs.
+  test("word-level: a span boundary inside a cue flags tokens individually", () => {
+    // Matches "down the" and "hole" but not "rabbit".
     const { cues: aligned } = joinAlignedCues(
       cues,
       words,
@@ -58,15 +68,14 @@ describe("joinAlignedCues", () => {
       ],
       [],
     );
-    expect(aligned[0]?.runs).toEqual([
-      { text: "down the", matched: true },
-      { text: "rabbit", matched: false },
-      { text: "hole", matched: true },
+    expect(aligned[0]?.tokens.map((t) => [t.raw, t.matched])).toEqual([
+      ["down", true],
+      ["the", true],
+      ["rabbit", false],
+      ["hole", true],
     ]);
     expect(aligned[0]?.matchedRatio).toBe(3 / 4);
-    expect(aligned[1]?.runs).toEqual([
-      { text: "curiouser and", matched: false },
-    ]);
+    expect(aligned[1]?.tokens.every((t) => !t.matched)).toBe(true);
   });
 
   test("gap epub tokens attach to the cue before the gap", () => {
@@ -94,12 +103,22 @@ describe("joinAlignedCues", () => {
     expect(aligned.every((c) => c.gapEpubTokens === 0)).toBe(true);
   });
 
+  test("active-token lookup within a cue keys on token intervals", () => {
+    const { cues: aligned } = joinAlignedCues(cues, words, [], []);
+    const tokens = aligned[0]!.tokens;
+    // "the" occupies [1,2): t=1 is inside it, t=2 has moved on to "rabbit".
+    expect(activeTokenIndex(tokens, 1)).toBe(1);
+    expect(activeTokenIndex(tokens, 2)).toBe(2);
+    // The last token "hole" spans [3,5) up to the cue end.
+    expect(activeTokenIndex(tokens, 4.9)).toBe(3);
+  });
+
   test("degenerate cue (no surviving words) renders raw text unmatched", () => {
     const sparse = [cue(0, "one two"), cue(5, "♪ ♪"), cue(10, "three")];
     const sparseWords: Array<JoinWord> = [
-      { cueIndex: 0, raw: "one" },
-      { cueIndex: 0, raw: "two" },
-      { cueIndex: 2, raw: "three" },
+      { cueIndex: 0, raw: "one", timeSec: 0 },
+      { cueIndex: 0, raw: "two", timeSec: 1 },
+      { cueIndex: 2, raw: "three", timeSec: 10 },
     ];
     const { cues: aligned } = joinAlignedCues(
       sparse,
@@ -110,7 +129,7 @@ describe("joinAlignedCues", () => {
     expect(aligned[1]).toEqual({
       startSec: 5,
       endSec: 10,
-      runs: [{ text: "♪ ♪", matched: false }],
+      tokens: [{ raw: "♪ ♪", startSec: 5, endSec: 10, matched: false }],
       matchedRatio: 0,
       gapEpubTokens: 0,
     });

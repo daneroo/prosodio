@@ -15,16 +15,23 @@ import type { TranscriptCue } from "./transcript.ts";
 import type { BookRecord } from "./types.ts";
 import type { AlignmentResult, EpubExtraction } from "@prosodio/align";
 
-export interface CueRun {
-  text: string;
+/**
+ * One normalized VTT token, carrying its own interpolated time interval so
+ * playback highlights the active WORD, not the whole cue (plan D7, P1).
+ * `matched` = covered by an accepted alignment span.
+ */
+export interface AlignedToken {
+  raw: string;
+  startSec: number;
+  endSec: number;
   matched: boolean;
 }
 
 export interface AlignedCue {
   startSec: number;
   endSec: number;
-  /** Word-level match runs; matches are word-by-word, not whole-cue. */
-  runs: Array<CueRun>;
+  /** Tokens in order; the cue is a presentation group, tokens are the unit. */
+  tokens: Array<AlignedToken>;
   /** Matched words / words, 0..1. */
   matchedRatio: number;
   /** EPUB tokens never narrated, in the residual gap following this cue. */
@@ -49,6 +56,8 @@ export type AlignmentPayload =
 export interface JoinWord {
   cueIndex: number;
   raw: string;
+  /** Interpolated token START time (seconds); end = next token's start. */
+  timeSec: number;
 }
 
 export interface JoinSpan {
@@ -99,45 +108,60 @@ export function joinAlignedCues(
     );
   }
 
-  // Group the flat words back into per-cue runs of equal matched-ness.
-  const runsByCue = new Map<number, Array<CueRun>>();
-  const countsByCue = new Map<number, { total: number; matched: number }>();
+  // Group the flat words back into per-cue token lists (start time only;
+  // end times are filled per cue below).
+  const tokensByCue = new Map<number, Array<AlignedToken>>();
   words.forEach((word, seq) => {
-    const isMatched = matched[seq] === true;
-    const runs = runsByCue.get(word.cueIndex);
-    const last = runs?.at(-1);
-    if (runs && last && last.matched === isMatched) {
-      last.text += ` ${word.raw}`;
-    } else {
-      const run = { text: word.raw, matched: isMatched };
-      if (runs) runs.push(run);
-      else runsByCue.set(word.cueIndex, [run]);
+    let tokens = tokensByCue.get(word.cueIndex);
+    if (!tokens) {
+      tokens = [];
+      tokensByCue.set(word.cueIndex, tokens);
     }
-    const counts = countsByCue.get(word.cueIndex) ?? { total: 0, matched: 0 };
-    counts.total += 1;
-    if (isMatched) counts.matched += 1;
-    countsByCue.set(word.cueIndex, counts);
+    tokens.push({
+      raw: word.raw,
+      startSec: word.timeSec,
+      endSec: word.timeSec, // provisional; set to the next token's start below
+      matched: matched[seq] === true,
+    });
   });
 
   const alignedCues = cues.map((cue, cueIndex): AlignedCue => {
-    const runs = runsByCue.get(cueIndex);
-    const counts = countsByCue.get(cueIndex);
-    if (!runs || !counts) {
-      // Degenerate cue: normalization stripped every word (e.g. music note
-      // markers). Render the raw text, unmatched.
+    const tokens = tokensByCue.get(cueIndex);
+    if (!tokens || tokens.length === 0) {
+      // Degenerate cue: normalization stripped every word (e.g. music-note
+      // markers). Render the raw text as one unmatched token spanning the cue.
       return {
         startSec: cue.startSec,
         endSec: cue.endSec,
-        runs: cue.text.length > 0 ? [{ text: cue.text, matched: false }] : [],
+        tokens:
+          cue.text.length > 0
+            ? [
+                {
+                  raw: cue.text,
+                  startSec: cue.startSec,
+                  endSec: cue.endSec,
+                  matched: false,
+                },
+              ]
+            : [],
         matchedRatio: 0,
         gapEpubTokens: gapTokensByCue.get(cueIndex) ?? 0,
       };
     }
+    // A token ends where the next begins; the last runs to the cue end. Guard
+    // non-monotonic interpolation so every interval stays non-empty.
+    let matchedCount = 0;
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i]!;
+      const nextStart = tokens[i + 1]?.startSec ?? cue.endSec;
+      token.endSec = Math.max(nextStart, token.startSec);
+      if (token.matched) matchedCount++;
+    }
     return {
       startSec: cue.startSec,
       endSec: cue.endSec,
-      runs,
-      matchedRatio: counts.matched / counts.total,
+      tokens,
+      matchedRatio: matchedCount / tokens.length,
       gapEpubTokens: gapTokensByCue.get(cueIndex) ?? 0,
     };
   });

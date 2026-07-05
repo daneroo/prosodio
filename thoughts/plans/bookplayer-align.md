@@ -339,9 +339,16 @@ rework is deferred to the global review. Salvage the good parts of the badfix
       table as base64 typed arrays (columnar), not fat objects. Hard budget:
       total `fetchAlignment` payload stays single-digit MB on Use of Weapons
       (baseline ~2 MB), NOT tens of MB. Measure and record.
-- [ ] 7d — active-token selection (P1): `activeTokenIndex(tokens, t)` by time
+- [x] 7d — active-token selection (P1): `activeTokenIndex(tokens, t)` by time
       interval; the viewer highlights the active token; follow drives off token
-      transitions (not cue transitions).
+      transitions (not cue transitions). DONE 2026-07-05: `AlignedCue.tokens`
+      carry per-token interpolated `{startSec,endSec,matched}`;
+      `activeTokenIndex` selects the active word within the active cue;
+      AlignmentViewer highlights exactly one token. Verified on Alice: at
+      27.2s/28.2s/29.4s the lone highlight was "Alice"/"beginning"/"very" (one
+      token at a time). Follow-path rewrite (token- not cue-driven) lands with
+      7e. NOTE: the per-token wire is not yet compacted (7c) — fine on Alice;
+      required before big books.
 - [ ] 7e — browser-side EPUB locate: adopt `dom-text.ts` projection; resolve the
       token address to a DOM `Range` in the loaded section →
       `section.cfiFromRange` → `annotations.highlight("bp-align-hl", …)`; cache
@@ -351,6 +358,53 @@ rework is deferred to the global review. Salvage the good parts of the badfix
       in the reader as audio plays; payload measured; the projection-parity
       limitation (browser re-normalization assumed identical to the server's
       jsdom projection) recorded as the POC's known risk.
+
+### P2 proposal — EPUB native index (awaiting Daniel's nod before 7e/7c)
+
+The badfix's `projectDomText` is a hand-rolled `textContent` walk with an offset
+trace bolted on, then RE-RUN in the browser and assumed identical to the server.
+Re-deriving position instead of capturing it. Proposal: capture the DOM position
+ONCE, during the authoritative extraction traversal, as an epub-CFI-lite;
+resolve it in the browser by walking the DOM — no re-normalization, no text
+re-projection, no excerpt search.
+
+- Native locator, captured during extraction (server, jsdom): for each EPUB
+  token, its DOM range endpoints —
+  `{ start: {path: number[], offset}, end: {path: number[], offset} }`, where
+  `path` is the `childNodes` index chain from a defined content-document root to
+  a Text node and `offset` is a UTF-16 offset in it. Handles inline splits
+  (`<em>hel</em>lo` → one token, two nodes) and is exactly what a CFI encodes.
+- Compact wire (fixes the 31 MB bloat): per spine, a SEGMENT TABLE of the
+  distinct Text-node paths in document order (segments number in the thousands,
+  tokens in the 100k+); per token, four typed-array columns
+  `(startSeg, startOffset, endSeg, endOffset)` as base64 — no fat per-token
+  JSON. For an exact span, VTT token i ↔ EPUB token `epubStart+i`, so only the
+  EPUB token table (indexed by `epubSeq`) is needed.
+- Browser resolution (EpubReader, once per section load, cached): walk each
+  segment path against the loaded section DOM → live Text node; per token,
+  `createRange(nodes[startSeg], startOffset .. nodes[endSeg], endOffset)` →
+  `section.cfiFromRange(range)` → `annotations.highlight`. A childNodes walk +
+  Range, not a normalization.
+- Parity, handled honestly (the real risk): EPUB content docs are XHTML; jsdom
+  (server) and the browser both parse XML deterministically, so child-node paths
+  line up for well-formed XHTML (the common case). Guards, in order: (1)
+  per-token assertion `normalizeText(range.toString()) === token.norm` — a
+  mismatch skips the highlight (loud), never mis-highlights; (2) a per-spine
+  structural checksum (child counts) that fails a whole section fast; (3)
+  HTML-fallback docs (strict-XHTML failures) are flagged and degrade to
+  no-highlight. This is stricter than the badfix, which silently trusted
+  re-projection.
+- Why not just keep the normalized-offset address + `dom-text.ts`? Because it
+  bakes in the projection-parity ASSUMPTION as the load-bearing mechanism.
+  Capturing the path during extraction removes the assumption from the hot path;
+  the assertion becomes a guard, not the design.
+
+Open question for Daniel: adopt this child-node-path index NOW as 7e (a bit more
+extraction work, but it is the real answer and avoids building 7e twice), OR
+ship 7e first on the imperfect normalized-offset address (faster POC, throwaway)
+and switch to child-node paths in the global review? Recommendation: do it now —
+the extraction already traverses the DOM; capturing the path there is cheap and
+it is the design we will keep.
 
 ## Global review (deferred — decided WITH Daniel after the POC proves out)
 

@@ -1,15 +1,16 @@
 /**
  * Alignment panel: the transcript cue list annotated with word-level
- * match/mismatch runs from the alignment engine (plan
+ * match/mismatch from the alignment engine (plan
  * thoughts/plans/bookplayer-align.md). Matches are word-by-word — one cue can
- * mix matched and unmatched runs. Residual-gap markers flag book content the
- * narration never reads. Follows playback exactly like Transcript (shared
- * machinery: #/lib/cues); click seeks.
+ * mix matched and unmatched tokens. During playback the single active TOKEN
+ * (its own interpolated interval) is highlighted, not the whole cue (D7, P1).
+ * Residual-gap markers flag book content the narration never reads. Click
+ * seeks; shared time-interval machinery is in #/lib/cues.
  */
 import { BookOpenText } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
-import { activeCueIndex } from "#/lib/cues";
+import { activeCueIndex, activeTokenIndex } from "#/lib/cues";
 import { formatDuration } from "#/lib/browse";
 import { fetchAlignment } from "#/server/library";
 import type { AlignedCue, AlignmentSummary } from "#/lib/alignment";
@@ -68,6 +69,14 @@ export function AlignmentViewer({
       state.status === "ready" ? activeCueIndex(state.cues, currentTime) : -1,
     [state, currentTime],
   );
+
+  // The single active token WITHIN the active cue (P1): its own interval, not
+  // the cue's. -1 when between tokens or outside any cue.
+  const activeToken = useMemo(() => {
+    if (state.status !== "ready" || activeIndex < 0) return -1;
+    const cue = state.cues[activeIndex];
+    return cue ? activeTokenIndex(cue.tokens, currentTime) : -1;
+  }, [state, activeIndex, currentTime]);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -145,21 +154,27 @@ export function AlignmentViewer({
                   <span className="mr-1.5 text-[10px] tabular-nums text-slate-600">
                     {formatDuration(cue.startSec)}
                   </span>
-                  {cue.runs.map((run, runIndex) => (
-                    <span
-                      key={runIndex}
-                      className={
-                        run.matched
-                          ? isActive
-                            ? "text-cyan-300"
-                            : "text-slate-300"
-                          : "text-rose-400/90"
-                      }
-                    >
-                      {runIndex > 0 ? " " : ""}
-                      {run.text}
-                    </span>
-                  ))}
+                  {cue.tokens.map((token, tokenIndex) => {
+                    const isActiveToken =
+                      isActive && tokenIndex === activeToken;
+                    return (
+                      <span
+                        key={tokenIndex}
+                        className={
+                          isActiveToken
+                            ? "rounded-sm bg-cyan-400/30 text-white"
+                            : token.matched
+                              ? isActive
+                                ? "text-cyan-300"
+                                : "text-slate-300"
+                              : "text-rose-400/90"
+                        }
+                      >
+                        {tokenIndex > 0 ? " " : ""}
+                        {token.raw}
+                      </span>
+                    );
+                  })}
                 </button>
                 {canShow && (
                   <button
