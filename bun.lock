@@ -18,18 +18,12 @@
       },
     },
     "apps/align": {
-      "name": "@prosodio/align",
+      "name": "@prosodio/align-cli",
       "version": "0.1.0",
       "dependencies": {
-        "@likecoin/epub-ts": "catalog:runtime",
-        "@prosodio/vtt": "workspace:*",
+        "@prosodio/align": "workspace:*",
         "@types/yargs": "^17.0.35",
-        "jsdom": "catalog:runtime",
         "yargs": "^18.0.0",
-        "zod": "catalog:runtime",
-      },
-      "devDependencies": {
-        "@types/jsdom": "^28.0.3",
       },
     },
     "apps/bookplayer": {
@@ -86,6 +80,19 @@
         "@types/yargs": "^17.0.35",
         "yargs": "^18.0.0",
         "zod": "catalog:runtime",
+      },
+    },
+    "packages/align": {
+      "name": "@prosodio/align",
+      "version": "0.1.0",
+      "dependencies": {
+        "@likecoin/epub-ts": "catalog:runtime",
+        "@prosodio/vtt": "workspace:*",
+        "jsdom": "catalog:runtime",
+        "zod": "catalog:runtime",
+      },
+      "devDependencies": {
+        "@types/jsdom": "^28.0.3",
       },
     },
     "packages/vtt": {
@@ -257,7 +264,9 @@
 
     "@oxc-project/types": ["@oxc-project/types@0.138.0", "", {}, "sha512-1a7ZKmrRTCoN1XMZ4L0PyyqrMnrNlLyPuOkdSX2MZg7IiIGRUyurNhAm73ptDOraoBcIordsIGKNPKUzy3ZmfA=="],
 
-    "@prosodio/align": ["@prosodio/align@workspace:apps/align"],
+    "@prosodio/align": ["@prosodio/align@workspace:packages/align"],
+
+    "@prosodio/align-cli": ["@prosodio/align-cli@workspace:apps/align"],
 
     "@prosodio/bookplayer": ["@prosodio/bookplayer@workspace:apps/bookplayer"],
 

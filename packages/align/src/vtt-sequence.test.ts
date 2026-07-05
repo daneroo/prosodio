@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { config } from "./config.ts";
+import { fixturePaths } from "./fixture-paths.ts";
 import { buildVttSequence } from "./vtt-sequence.ts";
 
-const aliceVttText = await Bun.file(config.aliceVtt).text();
+const aliceVttText = await Bun.file(fixturePaths.aliceVtt).text();
 
 describe("buildVttSequence on the Alice fixture (interpolation path)", () => {
   const sequence = buildVttSequence(aliceVttText);

@@ -7,6 +7,13 @@ gate; later passes add matches inside residual gaps without touching stronger
 anchors. Design:
 [`thoughts/design/epoch4-alignment-design.md`](../../thoughts/design/epoch4-alignment-design.md).
 
+This app is the CLI (`@prosodio/align-cli`): discovery, report writing, and the
+manual-review workflow. The engine lives in
+[`packages/align`](../../packages/align) (`@prosodio/align`), shared with
+`apps/bookplayer` (extraction decision record:
+[`thoughts/plans/bookplayer-align.md`](../../thoughts/plans/bookplayer-align.md);
+the app-dir rename is deferred debt, BACKLOG `align-cli-rename`).
+
 ## TODO
 
 - Corpus-evidence decisions pending the first full private run: `linear="no"`
@@ -53,8 +60,10 @@ No `false-anchor` is allowed in the Pass 1 high-confidence tier.
 ## Setup
 
 `bun install` from the repo root. The private corpus root
-(`/Volumes/Space/Reading/audiobooks`) and all parameters live in
+(`/Volumes/Space/Reading/audiobooks`) and all paths live in
 [`lib/config.ts`](lib/config.ts); missing roots are skipped with a warning.
+Algorithm parameters live with the engine
+([`packages/align/src/config.ts`](../../packages/align/src/config.ts)).
 
 ## Context
 

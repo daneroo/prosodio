@@ -30,6 +30,15 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
   - revisit-when: hardening extraction beyond epoch 4 (before the alignment
     viewer or a trusted production run relies on it).
 
+- [ ] align-cli-rename — rename the `apps/align/` directory to match its
+      CLI-only role (npm name is already `@prosodio/align-cli`)
+  - why: the engine moved to `packages/align` (`@prosodio/align`; plan
+    `thoughts/plans/bookplayer-align.md` D1), so the dir name no longer says
+    what the app is. Deferred as debt: a dir rename breaks references in the
+    epoch4 design/plan, READMEs, BACKLOG items, and Daniel's validation commands
+    — it must ship with a full reference sweep.
+  - revisit-when: next time align-cli itself gets real work.
+
 - [ ] align-better-fixture-pair — replace the Alice public fixture and add a
       second quality audiobook<->epub pair (id kept stable; now shared beyond
       align — see references in `plans/archive/epoch4-alignment.md`)

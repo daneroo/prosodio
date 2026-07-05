@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { alignBook } from "../lib/align-book.ts";
+import { alignBook, alignConfig, computeGaps } from "@prosodio/align";
 import { config } from "../lib/config.ts";
-import { computeGaps } from "../lib/reconcile.ts";
 
 // The multipass safety proof (design): a weaker pass — exact k=4 n-grams with
 // uniqueness and LIS scoped per residual gap — adds correct spans inside real
@@ -15,8 +14,8 @@ describe("multipass proof on Alice", async () => {
   });
   const full = await alignBook(vttText, config.aliceEpub);
 
-  const pass1Id = `pass1-exact-k${config.passes.pass1NgramSize}`;
-  const proofId = `proof-exact-k${config.passes.proofNgramSize}`;
+  const pass1Id = `pass1-exact-k${alignConfig.passes.pass1NgramSize}`;
+  const proofId = `proof-exact-k${alignConfig.passes.proofNgramSize}`;
 
   test("every Pass 1 span survives the proof pass unchanged", () => {
     const pass1SpansInFull = full.spans.filter((s) => s.passId === pass1Id);
@@ -40,7 +39,7 @@ describe("multipass proof on Alice", async () => {
       );
       expect(containingGap).toBeDefined();
       expect(span.evidence.uniquenessScope).toBe("gap");
-      expect(span.evidence.ngramSize).toBe(config.passes.proofNgramSize);
+      expect(span.evidence.ngramSize).toBe(alignConfig.passes.proofNgramSize);
     }
   });
 

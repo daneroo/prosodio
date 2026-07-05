@@ -186,8 +186,8 @@ type AlignmentPayload =
 
 ## Phases
 
-- [ ] Phase 0 — commit plan to main; branch `bookplayer-align`.
-- [ ] Phase 1 — extract `packages/align`; `apps/align` → CLI-only
+- [x] Phase 0 — commit plan to main; branch `bookplayer-align`.
+- [x] Phase 1 — extract `packages/align`; `apps/align` → CLI-only
       (`@prosodio/align-cli`, dir unchanged per D1); config split; test imports
       updated; BACKLOG gains `align-cli-rename` (debt, deferred). Gate: root CI
       green + fixtures align run byte-identical (clean `reports/` git status).

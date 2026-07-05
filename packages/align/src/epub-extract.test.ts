@@ -5,6 +5,7 @@ import {
   resolveAddresses,
   visibleTextFromHtml,
 } from "./epub-extract.ts";
+import { fixturePaths } from "./fixture-paths.ts";
 import { normalizeText } from "./normalize.ts";
 
 const EXCLUDED = config.extraction.excludedElements;
@@ -57,7 +58,10 @@ describe("visibleTextFromHtml", () => {
 });
 
 describe("extractEpub on the committed Alice EPUB", async () => {
-  const extraction = await extractEpub(config.aliceEpub, config.extraction);
+  const extraction = await extractEpub(
+    fixturePaths.aliceEpub,
+    config.extraction,
+  );
 
   test("walks spine documents in spine order with recorded config", () => {
     expect(extraction.spineDocs.length).toBeGreaterThan(0);
@@ -109,7 +113,7 @@ describe("extractEpub on the committed Alice EPUB", async () => {
   });
 
   test("extraction is deterministic", async () => {
-    const again = await extractEpub(config.aliceEpub, config.extraction);
+    const again = await extractEpub(fixturePaths.aliceEpub, config.extraction);
     expect(again).toEqual(extraction);
   });
 });

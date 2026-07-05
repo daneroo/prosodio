@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import type { AlignmentResult } from "./result.ts";
+import type { AlignmentResult } from "@prosodio/align";
 
 /**
  * Report writing into the private reports home (gitignored; see

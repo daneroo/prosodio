@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { alignBook } from "../lib/align-book.ts";
+import { alignBook } from "@prosodio/align";
 import { config } from "../lib/config.ts";
 
 // End-to-end Pass 1 on the committed public triplet (VTT + EPUB; no m4b

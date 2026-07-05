@@ -3,7 +3,11 @@
 // and write private reports (see docs/PRIVACY.md).
 import process from "node:process";
 import yargs from "yargs";
-import { alignBook, type AlignOptions } from "./lib/align-book.ts";
+import {
+  alignBook,
+  buildAlignmentResult,
+  type AlignOptions,
+} from "@prosodio/align";
 import { config } from "./lib/config.ts";
 import {
   filterBySearch,
@@ -20,7 +24,6 @@ import {
   writeRunSummary,
   type RunSummary,
 } from "./lib/report.ts";
-import { buildAlignmentResult } from "./lib/result.ts";
 
 export const APP_NAME = "align";
 

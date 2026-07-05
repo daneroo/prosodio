@@ -1,0 +1,20 @@
+{
+  "name": "@prosodio/align",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@likecoin/epub-ts": "catalog:runtime",
+    "@prosodio/vtt": "workspace:*",
+    "jsdom": "catalog:runtime",
+    "zod": "catalog:runtime"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^28.0.3"
+  }
+}
