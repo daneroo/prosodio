@@ -1,7 +1,10 @@
 # bookplayer-align — The Prosodio Bookplayer - Alignment Visualisation
 
-Status: implemented (Phases 0-6 done) — awaiting Daniel's corpus revalidation,
-then merge + archive
+Status: CORRECTIVE REVISION — Phases 0-6 shipped a working visualization but on
+a broken synchronization model (see "Corrective revision" below). Phase 7 is a
+browser-side, compact-transport POC that proves exact token-level sync; the full
+data-model rework is scoped in "Global review (deferred)" and gated on the POC.
+Not mergeable until the POC lands and the global review is decided.
 
 Goal: Visualize the epub/vtt alignment in the bookplayer UI
 
@@ -260,6 +263,110 @@ one active root per server run.
   seconds, not minutes, even for a full-length novel.
 - Engine extraction gate held: root CI green throughout; fixtures alignment
   report byte-identical after the packages/align move.
+
+## Corrective revision (2026-07-05, after Phase 6 demo)
+
+The Phase 0-6 visualization renders correctly but is built on the wrong
+synchronization model. Three defects, one root cause. Full analysis:
+[bookplayer-align-bad-design.md](bookplayer-align-bad-design.md) (post-mortem
+authored on the rejected spike branch `bookplayer-align-badfix`, preserved here
+as the authoritative problem statement).
+
+Root cause: the engine's job is to produce normalized text for MATCHING while
+preserving, per token, a durable INDEX back into each source's native,
+un-normalized structure. We produced the match but discarded/mangled the native
+index; every symptom below follows.
+
+- P1 — sync is cue-based, must be token-based. `updatetime` highlights the whole
+  active cue via `activeCueIndex`. We matched tokens; the active unit at time
+  `t` is the single token whose interpolated time interval contains `t`. Cue
+  highlighting throws away the resolution the matcher computed.
+- P2 — the "index" is a flat/derived offset, not a native address.
+  - VTT: spans carry `vttStart/vttEnd`, half-open offsets into a flattened
+    CROSS-CUE normalized word stream. The native address is
+    `{ cueIndex, start, end }` (UTF-16 offsets into the cue's raw text) plus the
+    token's own interpolated time interval. We flattened away cue identity and
+    per-token time, then reconstructed cues by re-grouping — backwards.
+  - EPUB: spans carry `epubStart/epubEnd` and the derived `EpubTextAddress`
+    `start/end` are CHARACTER OFFSETS INTO A FLATTENED normalized string per
+    spine doc — not a DOM position. The native address is a DOM child-node path
+    (an epubcfi-lite: `childNodes` indices from a defined root to a Text node) +
+    intra-node offset, captured DURING extraction traversal. We stored an offset
+    into a projection we then destroyed, forcing later re-derivation.
+- P3 — the engine is not browser-runnable. `extractEpub` does
+  `await Bun.file(epubPath).arrayBuffer()` then `new Book(bytes)`
+  (epub-extract.ts) — a Bun-only, filesystem-only read. The bytes are the only
+  thing needed; the function must take `bytes: ArrayBuffer` as a PARAMETER
+  (server passes `readFileSync`'d bytes; the browser passes bytes epub.js
+  already holds). This is the "IO at the edges" of D2, which we violated.
+
+Lesson from the badfix (what NOT to do): it proved the mechanics but
+reconstructed positioning by expanding a per-token UI model ON THE SERVER —
+134,322 VTT tokens became a 31 MB JSON object (~60 MB over transport). The
+resolution work belongs in the BROWSER (which already owns the parsed section
+DOM), fed by COMPACT coordinates, resolved once and cached.
+
+### D7 — synchronization is token-based, resolved browser-side, compact wire
+
+- Playback sync keys on the active TOKEN (its interpolated time interval), not
+  the cue or span. Cues remain presentation groups.
+- Every rendered token carries its VTT identity, its time interval, and (when
+  matched) its EPUB sequence offset. EPUB positioning resolves that token's
+  address against epub.js's DOM in the BROWSER, generating the CFI locally.
+- The server ships COMPACT columnar/typed-array coordinates, never a per-token
+  JSON UI model. Excerpt-search is not an alignment locator and is retired from
+  the follow path.
+
+## Phase 7 — POC: exact token-level sync (browser-side, compact)
+
+Goal: prove, end to end, that a single active token highlights by its own time
+interval AND locates the same token in the EPUB — browser-side, from compact
+data, fast, cached — WITHOUT the badfix's server-expanded payload. "Even using
+the current (imperfect) address" this must be possible; the true native-index
+rework is deferred to the global review. Salvage the good parts of the badfix
+(`dom-text.ts` browser projection; compact base64 typed-array epub index;
+`activeTokenIndex`); drop the fat per-token wire model.
+
+- [ ] 7a — engine IO-fix (P3): `extractEpub(bytes: ArrayBuffer, config)` and
+      `alignBook(vttText, epubBytes, opts)` take bytes; the CLI + server
+      wrappers read the file (`readFileSync`/`Bun.file`) and pass bytes. Gate:
+      root CI green AND fixtures alignment report byte-identical.
+- [ ] 7b — token identity through the wire (P1/P2, POC level): VTT tokens keep
+      `{ cueIndex, rawStart, rawEnd, startSec, endSec }`; matched tokens carry
+      `epubSeq`. EPUB keeps the normalized address per token for now (resolved
+      browser-side), documented as POC-limited.
+- [ ] 7c — compact transport: ship the epub address index AND the VTT token
+      table as base64 typed arrays (columnar), not fat objects. Hard budget:
+      total `fetchAlignment` payload stays single-digit MB on Use of Weapons
+      (baseline ~2 MB), NOT tens of MB. Measure and record.
+- [ ] 7d — active-token selection (P1): `activeTokenIndex(tokens, t)` by time
+      interval; the viewer highlights the active token; follow drives off token
+      transitions (not cue transitions).
+- [ ] 7e — browser-side EPUB locate: adopt `dom-text.ts` projection; resolve the
+      token address to a DOM `Range` in the loaded section →
+      `section.cfiFromRange` → `annotations.highlight("bp-align-hl", …)`; cache
+      the per-section projection (`normalizedDomText` once per load). No server
+      DOM reconstruction.
+- [ ] 7f — verify on Alice (fixtures): active token highlights in the panel and
+      in the reader as audio plays; payload measured; the projection-parity
+      limitation (browser re-normalization assumed identical to the server's
+      jsdom projection) recorded as the POC's known risk.
+
+## Global review (deferred — decided WITH Daniel after the POC proves out)
+
+The POC keeps the imperfect address; the real fix (scope, not yet scheduled):
+
+- EPUB native index: capture a DOM child-node-path range per token DURING
+  extraction traversal (kills the projection-parity assumption); the server
+  serializes that, the browser walks it — no re-normalization.
+- VTT native index: first-class serialized `{ cueIndex, start, end }` cue-text
+  ranges on every token, not reconstructed from a flattened stream.
+- Fully IO-free, browser-runnable `@prosodio/align` (P3 finished end to end).
+- A serialization contract that separates (1) matcher coordinates, (2) native
+  source indices, (3) disposable presentation — per the acceptance criteria in
+  [bookplayer-align-bad-design.md](bookplayer-align-bad-design.md).
+- Parser-parity: make server/browser tree compatibility explicit and TESTED;
+  drift must fail loudly, never silently highlight a plausible repeated word.
 
 ## My Validation - after implementation
 
