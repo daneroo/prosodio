@@ -327,18 +327,20 @@ rework is deferred to the global review. Salvage the good parts of the badfix
 (`dom-text.ts` browser projection; compact base64 typed-array epub index;
 `activeTokenIndex`); drop the fat per-token wire model.
 
-- [ ] 7a — engine IO-fix (P3): `extractEpub(bytes: ArrayBuffer, config)` and
-      `alignBook(vttText, epubBytes, opts)` take bytes; the CLI + server
-      wrappers read the file (`readFileSync`/`Bun.file`) and pass bytes. Gate:
-      root CI green AND fixtures alignment report byte-identical.
-- [ ] 7b — token identity through the wire (P1/P2, POC level): VTT tokens keep
-      `{ cueIndex, rawStart, rawEnd, startSec, endSec }`; matched tokens carry
-      `epubSeq`. EPUB keeps the normalized address per token for now (resolved
-      browser-side), documented as POC-limited.
-- [ ] 7c — compact transport: ship the epub address index AND the VTT token
-      table as base64 typed arrays (columnar), not fat objects. Hard budget:
-      total `fetchAlignment` payload stays single-digit MB on Use of Weapons
-      (baseline ~2 MB), NOT tens of MB. Measure and record.
+- [x] 7a — engine IO-fix (P3): DONE 2026-07-05 (commit c1e3150).
+      `extractEpub(bytes: ArrayBuffer)` / `alignBook(vttText, epubBytes)`;
+      callers read the file. CI green, fixtures report byte-identical.
+- [x] 7b — token identity through the wire: DONE. Matched `AlignedToken`s carry
+      `epubSeq`; the EPUB side ships a captured DOM child-node-path index (P2
+      proposal adopted — better than the "normalized address for now" this line
+      originally scoped). Engine capture: commit 40c2afe; wire: aadd3a6.
+- [~] 7c — compact transport: PARTIAL. The EPUB locator index is compact (base64
+  columnar): measured 0.36 MB on Alice (13k epub tokens) — the badfix's 31 MB
+  offender is GONE. STILL TODO: the VTT `cues` array is fat per-token JSON —
+  2.67 MB on Alice (27k tokens), so ~13 MB extrapolated to a full novel.
+  Columnar-compact the VTT token table (same base64 pattern) to hit the
+  single-digit-MB budget on Use of Weapons. This is the one remaining POC
+  scaling item.
 - [x] 7d — active-token selection (P1): `activeTokenIndex(tokens, t)` by time
       interval; the viewer highlights the active token; follow drives off token
       transitions (not cue transitions). DONE 2026-07-05: `AlignedCue.tokens`
@@ -349,17 +351,23 @@ rework is deferred to the global review. Salvage the good parts of the badfix
       token at a time). Follow-path rewrite (token- not cue-driven) lands with
       7e. NOTE: the per-token wire is not yet compacted (7c) — fine on Alice;
       required before big books.
-- [ ] 7e — browser-side EPUB locate: adopt `dom-text.ts` projection; resolve the
-      token address to a DOM `Range` in the loaded section →
-      `section.cfiFromRange` → `annotations.highlight("bp-align-hl", …)`; cache
-      the per-section projection (`normalizedDomText` once per load). No server
-      DOM reconstruction.
-- [ ] 7f — verify on Alice (fixtures): active token highlights in the panel and
-      in the reader as audio plays; payload measured; the projection-parity
-      limitation (browser re-normalization assumed identical to the server's
-      jsdom projection) recorded as the POC's known risk.
+- [x] 7e — browser-side EPUB locate: DONE (commit aadd3a6), but via CAPTURED DOM
+      PATHS, not `dom-text.ts` re-projection. `rangeFromDomPath` walks the
+      token's child-node segment path against the loaded `section.document` →
+      `section.cfiFromRange` → `annotations.highlight("bp-align-hl")`; section
+      documents cached (LRU 2). Guard: normalized-equality of the resolved range
+      vs the expected token — a mismatch SKIPS the highlight (never
+      mis-highlights), no excerpt fallback. No server DOM reconstruction.
+- [x] 7f — verify on Alice (fixtures): DONE 2026-07-05. The active word
+      highlights in BOTH the AlignmentViewer and the reader, in sync, one token
+      at a time, tracking playback (beginning→very→by); screenshot confirms
+      "very" boxed in the reader sentence and in the panel simultaneously.
+      Payload measured (see 7c). Parity limitation (the captured paths assume
+      the browser's section parse matches the engine's XML-first parse) is
+      handled by the runtime skip-guard, not assumed away — recorded as the
+      POC's known risk, resolved fully in the global review.
 
-### P2 proposal — EPUB native index (awaiting Daniel's nod before 7e/7c)
+### P2 proposal — EPUB native index (ADOPTED as 7e; kept for the rationale)
 
 The badfix's `projectDomText` is a hand-rolled `textContent` walk with an offset
 trace bolted on, then RE-RUN in the browser and assumed identical to the server.
