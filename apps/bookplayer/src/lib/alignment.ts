@@ -9,8 +9,10 @@
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { buildEpubLocatorIndex } from "./epub-locator.ts";
 import { assetPath } from "./media.ts";
 import type { BookplayerConfig } from "./config.ts";
+import type { EpubLocatorIndex } from "./epub-locator.ts";
 import type { TranscriptCue } from "./transcript.ts";
 import type { BookRecord } from "./types.ts";
 import type { AlignmentResult, EpubExtraction } from "@prosodio/align";
@@ -18,13 +20,15 @@ import type { AlignmentResult, EpubExtraction } from "@prosodio/align";
 /**
  * One normalized VTT token, carrying its own interpolated time interval so
  * playback highlights the active WORD, not the whole cue (plan D7, P1).
- * `matched` = covered by an accepted alignment span.
+ * `matched` = covered by an accepted alignment span; `epubSeq` is the token's
+ * position in the flat EPUB token sequence when matched, else null.
  */
 export interface AlignedToken {
   raw: string;
   startSec: number;
   endSec: number;
   matched: boolean;
+  epubSeq: number | null;
 }
 
 export interface AlignedCue {
@@ -50,7 +54,12 @@ export interface AlignmentSummary {
 
 export type AlignmentPayload =
   | { status: "unavailable" }
-  | { status: "ready"; summary: AlignmentSummary; cues: Array<AlignedCue> };
+  | {
+      status: "ready";
+      summary: AlignmentSummary;
+      cues: Array<AlignedCue>;
+      epub: EpubLocatorIndex;
+    };
 
 /** The subset of VttWord the join needs (keeps tests synthetic-friendly). */
 export interface JoinWord {
@@ -63,6 +72,9 @@ export interface JoinWord {
 export interface JoinSpan {
   vttStart: number;
   vttEnd: number;
+  /** First flat EPUB token this span maps to; exact spans are equal-length,
+   * so a matched word at vttSeq resolves to `epubStart + (vttSeq - vttStart)`. */
+  epubStart: number;
 }
 
 export interface JoinGap {
@@ -84,9 +96,11 @@ export function joinAlignedCues(
   gaps: Array<JoinGap>,
 ): { cues: Array<AlignedCue>; leadingGapEpubTokens: number } {
   const matched = new Array<boolean>(words.length).fill(false);
+  const epubSeqAt = new Array<number | null>(words.length).fill(null);
   for (const span of spans) {
     for (let seq = span.vttStart; seq < span.vttEnd; seq++) {
       matched[seq] = true;
+      epubSeqAt[seq] = span.epubStart + (seq - span.vttStart);
     }
   }
 
@@ -122,6 +136,7 @@ export function joinAlignedCues(
       startSec: word.timeSec,
       endSec: word.timeSec, // provisional; set to the next token's start below
       matched: matched[seq] === true,
+      epubSeq: epubSeqAt[seq] ?? null,
     });
   });
 
@@ -141,6 +156,7 @@ export function joinAlignedCues(
                   startSec: cue.startSec,
                   endSec: cue.endSec,
                   matched: false,
+                  epubSeq: null,
                 },
               ]
             : [],
@@ -257,12 +273,9 @@ export function writeAlignmentCache(
   writeFileSync(path, JSON.stringify({ key, result } satisfies CacheFile));
 }
 
-export interface EpubAnchor {
-  spineHref: string;
-  excerpt: string;
-}
-
-// Extraction LRU of 1: anchor lookups hit the same open book repeatedly.
+// Extraction LRU of 1: the locator index is rebuilt per request from the same
+// open book repeatedly (the on-disk AlignmentResult cache holds the matcher
+// output, not this — see plan D7/P2, "derived at request time").
 let extractionCache: { key: string; extraction: EpubExtraction } | null = null;
 
 async function extractionFor(epubPath: string): Promise<EpubExtraction> {
@@ -273,75 +286,6 @@ async function extractionFor(epubPath: string): Promise<EpubExtraction> {
   const extraction = await extractEpub(epubBytes, alignConfig.extraction);
   extractionCache = { key, extraction };
   return extraction;
-}
-
-/**
- * The "show in book" join (plan D5): the cue's first span-covered word,
- * mapped through its covering span into the EPUB — a spine href plus a short
- * raw-text excerpt the reader can search for. null = cue has no matched word
- * (or the book has no alignment).
- */
-export async function loadEpubAnchor(
-  config: BookplayerConfig,
-  book: BookRecord,
-  cueIndex: number,
-): Promise<EpubAnchor | null> {
-  const result = await loadAlignmentResult(config, book);
-  const vttPath = assetPath(config, book, "vtt");
-  const epubPath = assetPath(config, book, "epub");
-  if (!result || !vttPath || !epubPath) return null;
-
-  const { buildVttSequence } = await import("@prosodio/align");
-  const words = buildVttSequence(readFileSync(vttPath, "utf8")).words;
-
-  // First word of the cue covered by a span (spans sorted, non-overlapping;
-  // words are cue-ordered, so stop once past the cue).
-  let covering: { span: (typeof result.spans)[number]; seq: number } | null =
-    null;
-  for (let seq = 0; seq < words.length; seq++) {
-    const word = words[seq];
-    if (!word || word.cueIndex > cueIndex) break;
-    if (word.cueIndex !== cueIndex) continue;
-    const span = result.spans.find((s) => s.vttStart <= seq && seq < s.vttEnd);
-    if (span) {
-      covering = { span, seq };
-      break;
-    }
-  }
-  if (!covering) return null;
-
-  // Exact spans are equal-length on both sides: map the word linearly.
-  const { span, seq } = covering;
-  const epubSeq = Math.min(
-    span.epubStart + (seq - span.vttStart),
-    span.epubEnd - 1,
-  );
-
-  const extraction = await extractionFor(epubPath);
-  const first = extraction.tokens[epubSeq];
-  if (!first) return null;
-  const doc = extraction.spineDocs[first.spineIndex];
-  if (!doc) return null;
-
-  // Up to 8 tokens, clamped to the span and to the same spine document.
-  let endSeq = Math.min(span.epubEnd, epubSeq + 8);
-  while (
-    endSeq > epubSeq + 1 &&
-    extraction.tokens[endSeq - 1]?.spineIndex !== first.spineIndex
-  ) {
-    endSeq--;
-  }
-  const last = extraction.tokens[endSeq - 1];
-  if (!last) return null;
-  const rawStart = doc.normalized.tokens[first.tokenIndex]?.rawStart;
-  const rawEnd = doc.normalized.tokens[last.tokenIndex]?.rawEnd;
-  if (rawStart === undefined || rawEnd === undefined) return null;
-
-  // Block boundaries are newlines in visibleText; epub.js Section.find only
-  // matches within one text node, so keep the excerpt to the first block.
-  const raw = doc.visibleText.slice(rawStart, rawEnd);
-  const excerpt = (raw.split(/\n+/)[0] ?? raw).replace(/\s+/g, " ").trim();
-  return { spineHref: doc.spineHref, excerpt };
 }
 
 /** Full payload for the AlignmentViewer; joins the cached result onto cues. */
@@ -356,12 +300,15 @@ export async function loadAlignment(
 
   const { buildVttSequence } = await import("@prosodio/align");
   const vttPath = assetPath(config, book, "vtt");
-  if (!vttPath) return { status: "unavailable" };
+  const epubPath = assetPath(config, book, "epub");
+  if (!vttPath || !epubPath) return { status: "unavailable" };
   const words = buildVttSequence(readFileSync(vttPath, "utf8")).words;
 
   const joined = joinAlignedCues(cues, words, result.spans, result.gaps);
+  const extraction = await extractionFor(epubPath);
   return {
     status: "ready",
+    epub: buildEpubLocatorIndex(extraction),
     summary: {
       vttCoverage: result.metrics.vttCoverage,
       epubCoverage: result.metrics.epubCoverage,

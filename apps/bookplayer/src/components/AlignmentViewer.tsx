@@ -13,38 +13,44 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { activeCueIndex, activeTokenIndex } from "#/lib/cues";
 import { formatDuration } from "#/lib/browse";
 import { fetchAlignment } from "#/server/library";
-import type { AlignedCue, AlignmentSummary } from "#/lib/alignment";
+import type { AlignedToken, AlignmentPayload } from "#/lib/alignment";
 
 interface AlignmentViewerProps {
   bookId: string;
   currentTime: number;
   onSeek: (sec: number) => void;
-  /** "Show in book": navigate the reader to this cue's EPUB position. */
-  onShowInBook?: (cueIndex: number) => void;
+  /** "Show in book": the clicked cue's first matched token. */
+  onShowInBook?: (token: AlignedToken) => void;
   /**
-   * Active-cue transitions (null = between cues), with whether the cue has
-   * any matched words — the reader-follow signal (plan D6).
+   * The active token's EPUB position (null = unmatched or between tokens) —
+   * the reader-follow signal (plan D7). Fires on token transitions.
    */
-  onActiveCue?: (cueIndex: number | null, matched: boolean) => void;
+  onActiveToken?: (token: AlignedToken | null) => void;
+  /** The full payload once loaded, so the route can drive the reader without
+   * a second fetch (the compact EPUB locator index lives here too). */
+  onPayload?: (payload: AlignmentPayload) => void;
 }
 
 type LoadState =
   | { status: "loading" }
   | { status: "error" }
   | { status: "unavailable" }
-  | { status: "ready"; summary: AlignmentSummary; cues: Array<AlignedCue> };
+  | Extract<AlignmentPayload, { status: "ready" }>;
 
 export function AlignmentViewer({
   bookId,
   currentTime,
   onSeek,
   onShowInBook,
-  onActiveCue,
+  onActiveToken,
+  onPayload,
 }: AlignmentViewerProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const activeRef = useRef<HTMLButtonElement>(null);
-  const onActiveCueRef = useRef(onActiveCue);
-  onActiveCueRef.current = onActiveCue;
+  const onActiveTokenRef = useRef(onActiveToken);
+  onActiveTokenRef.current = onActiveToken;
+  const onPayloadRef = useRef(onPayload);
+  onPayloadRef.current = onPayload;
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +61,7 @@ export function AlignmentViewer({
         setState(
           payload.status === "ready" ? payload : { status: "unavailable" },
         );
+        if (payload.status === "ready") onPayloadRef.current?.(payload);
       })
       .catch(() => {
         if (!cancelled) setState({ status: "error" });
@@ -82,19 +89,19 @@ export function AlignmentViewer({
     activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [activeIndex]);
 
-  // Report cue transitions (not every currentTime tick) for reader follow.
-  const activeCue =
-    state.status === "ready" && activeIndex >= 0
-      ? state.cues[activeIndex]
-      : undefined;
+  // Report token transitions (not every currentTime tick) for reader follow
+  // (plan D7): the active token itself, keyed on its identity so repeats
+  // within the same token interval don't re-fire.
+  const activeTokenValue: AlignedToken | null =
+    state.status === "ready" && activeIndex >= 0 && activeToken >= 0
+      ? (state.cues[activeIndex]?.tokens[activeToken] ?? null)
+      : null;
   useEffect(() => {
-    onActiveCueRef.current?.(
-      activeCue ? activeIndex : null,
-      (activeCue?.matchedRatio ?? 0) > 0,
-    );
-    // activeIndex identifies the transition; activeCue is derived from it.
+    onActiveTokenRef.current?.(activeTokenValue);
+    // activeIndex/activeToken identify the transition; activeTokenValue is
+    // derived from them.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIndex]);
+  }, [activeIndex, activeToken]);
 
   if (state.status !== "ready") {
     const message =
@@ -139,7 +146,11 @@ export function AlignmentViewer({
         )}
         {cues.map((cue, index) => {
           const isActive = index === activeIndex;
-          const canShow = onShowInBook !== undefined && cue.matchedRatio > 0;
+          const firstMatched = cue.tokens.find(
+            (token) => token.matched && token.epubSeq !== null,
+          );
+          const canShow =
+            onShowInBook !== undefined && firstMatched !== undefined;
           return (
             <Fragment key={`${cue.startSec}-${index}`}>
               <div className="group relative">
@@ -179,7 +190,7 @@ export function AlignmentViewer({
                 {canShow && (
                   <button
                     type="button"
-                    onClick={() => onShowInBook(index)}
+                    onClick={() => onShowInBook(firstMatched)}
                     className={`absolute right-1 top-0.5 rounded p-0.5 text-slate-500 transition-opacity hover:text-cyan-300 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                       isActive
                         ? "opacity-100"

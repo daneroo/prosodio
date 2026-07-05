@@ -6,7 +6,8 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./browser": "./browser.ts"
   },
   "dependencies": {
     "@likecoin/epub-ts": "catalog:runtime",

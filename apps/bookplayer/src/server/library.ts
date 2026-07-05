@@ -4,7 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 
-import { loadAlignment, loadEpubAnchor } from "#/lib/alignment";
+import { loadAlignment } from "#/lib/alignment";
 import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
 import { BOOK_ID_RE } from "#/lib/media";
@@ -86,22 +86,6 @@ export const fetchAlignment = createServerFn({ method: "GET" })
     if (!book) throw new Error("Book not found.");
     const config = getConfig();
     return loadAlignment(config, book, loadTranscript(config, book));
-  });
-
-/** "Show in book": EPUB anchor (href + searchable excerpt) for a cue. */
-export const fetchEpubAnchor = createServerFn({ method: "GET" })
-  .validator((input: { bookId: string; cueIndex: number }) => {
-    validBookId(input.bookId);
-    if (!Number.isInteger(input.cueIndex) || input.cueIndex < 0) {
-      throw new Error("Invalid cue index.");
-    }
-    return input;
-  })
-  .handler(async ({ data }) => {
-    library().getIndex();
-    const book = library().getBook(data.bookId);
-    if (!book) throw new Error("Book not found.");
-    return { anchor: await loadEpubAnchor(getConfig(), book, data.cueIndex) };
   });
 
 export const triggerRescan = createServerFn({ method: "POST" }).handler(() => {

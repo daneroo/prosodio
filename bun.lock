@@ -47,11 +47,13 @@
       "devDependencies": {
         "@tanstack/eslint-config": "^0.4.0",
         "@tanstack/router-cli": "^1.132.0",
+        "@types/jsdom": "^28.0.3",
         "@types/node": "^22.10.2",
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",
         "@vitejs/plugin-react": "^6.0.1",
         "eslint-plugin-react-hooks": "^7.1.1",
+        "jsdom": "catalog:runtime",
         "vite": "^8.0.0",
       },
     },

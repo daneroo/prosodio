@@ -43,15 +43,15 @@ describe("joinAlignedCues", () => {
     const { cues: aligned } = joinAlignedCues(
       cues,
       words,
-      [{ vttStart: 0, vttEnd: 6 }],
+      [{ vttStart: 0, vttEnd: 6, epubStart: 100 }],
       [],
     );
     expect(aligned[0]?.tokens).toEqual([
-      { raw: "down", startSec: 0, endSec: 1, matched: true },
-      { raw: "the", startSec: 1, endSec: 2, matched: true },
-      { raw: "rabbit", startSec: 2, endSec: 3, matched: true },
+      { raw: "down", startSec: 0, endSec: 1, matched: true, epubSeq: 100 },
+      { raw: "the", startSec: 1, endSec: 2, matched: true, epubSeq: 101 },
+      { raw: "rabbit", startSec: 2, endSec: 3, matched: true, epubSeq: 102 },
       // last token runs to the cue end (5), not the next cue's first token.
-      { raw: "hole", startSec: 3, endSec: 5, matched: true },
+      { raw: "hole", startSec: 3, endSec: 5, matched: true, epubSeq: 103 },
     ]);
     expect(aligned[0]?.matchedRatio).toBe(1);
     expect(aligned[1]?.matchedRatio).toBe(1);
@@ -63,8 +63,8 @@ describe("joinAlignedCues", () => {
       cues,
       words,
       [
-        { vttStart: 0, vttEnd: 2 },
-        { vttStart: 3, vttEnd: 4 },
+        { vttStart: 0, vttEnd: 2, epubStart: 100 },
+        { vttStart: 3, vttEnd: 4, epubStart: 300 },
       ],
       [],
     );
@@ -84,7 +84,7 @@ describe("joinAlignedCues", () => {
     const { cues: aligned, leadingGapEpubTokens } = joinAlignedCues(
       cues,
       words,
-      [{ vttStart: 0, vttEnd: 4 }],
+      [{ vttStart: 0, vttEnd: 4, epubStart: 0 }],
       [{ vttStart: 4, vttEnd: 6, epubStart: 500, epubEnd: 620 }],
     );
     expect(aligned[0]?.gapEpubTokens).toBe(120);
@@ -96,7 +96,7 @@ describe("joinAlignedCues", () => {
     const { cues: aligned, leadingGapEpubTokens } = joinAlignedCues(
       cues,
       words,
-      [{ vttStart: 0, vttEnd: 6 }],
+      [{ vttStart: 0, vttEnd: 6, epubStart: 0 }],
       [{ vttStart: 0, vttEnd: 0, epubStart: 0, epubEnd: 300 }],
     );
     expect(leadingGapEpubTokens).toBe(300);
@@ -123,13 +123,15 @@ describe("joinAlignedCues", () => {
     const { cues: aligned } = joinAlignedCues(
       sparse,
       sparseWords,
-      [{ vttStart: 0, vttEnd: 3 }],
+      [{ vttStart: 0, vttEnd: 3, epubStart: 0 }],
       [],
     );
     expect(aligned[1]).toEqual({
       startSec: 5,
       endSec: 10,
-      tokens: [{ raw: "♪ ♪", startSec: 5, endSec: 10, matched: false }],
+      tokens: [
+        { raw: "♪ ♪", startSec: 5, endSec: 10, matched: false, epubSeq: null },
+      ],
       matchedRatio: 0,
       gapEpubTokens: 0,
     });

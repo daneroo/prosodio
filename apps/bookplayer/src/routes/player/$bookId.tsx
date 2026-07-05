@@ -22,7 +22,9 @@ import type { FormEvent } from "react";
 import { AlignmentViewer } from "#/components/AlignmentViewer";
 import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
-import { fetchBook, fetchEpubAnchor } from "#/server/library";
+import { epubTokenLocator } from "#/lib/epub-locator";
+import { fetchBook } from "#/server/library";
+import type { AlignedToken, AlignmentPayload } from "#/lib/alignment";
 import type {
   ReaderController,
   SearchState,
@@ -52,10 +54,17 @@ function PlayerPage() {
   // Alignment split: default on (plan D3) whenever both sides exist.
   const canAlign = book.hasEpub && book.hasVtt;
   const [alignOpen, setAlignOpen] = useState(canAlign);
-  // Reader follow (plan D6): the reader tracks the active matched cue while
+  // Reader follow (plan D6): the reader tracks the active matched token while
   // on; any manual reader navigation disengages it.
   const [followReader, setFollowReader] = useState(canAlign);
-  const lastFollowedCueRef = useRef(-1);
+  const lastFollowedSeqRef = useRef(-1);
+  // The compact EPUB locator index (plan D7/P2), lifted from the
+  // AlignmentViewer's own fetch — resolution happens entirely client-side
+  // from here on, no further server round-trips.
+  const [epubIndex, setEpubIndex] = useState<
+    Extract<AlignmentPayload, { status: "ready" }>["epub"] | null
+  >(null);
+  const latestTokenRef = useRef<AlignedToken | null>(null);
   const audio = useAudioTransport(book.id);
 
   const submitSearch = useCallback(
@@ -72,50 +81,48 @@ function PlayerPage() {
     controller?.clearSearch();
   }, [controller]);
 
-  // "Show in book": resolve the cue's EPUB anchor server-side, then drive
-  // the reader (excerpt highlight, or plain section navigation fallback).
+  const onPayload = useCallback((payload: AlignmentPayload) => {
+    if (payload.status === "ready") setEpubIndex(payload.epub);
+  }, []);
+
+  // "Show in book": decode the token's compact locator and resolve it to a
+  // Range entirely in the browser (plan D7) — no server round-trip.
   const showInBook = useCallback(
-    (cueIndex: number) => {
-      if (!controller) return;
-      void fetchEpubAnchor({ data: { bookId: book.id, cueIndex } })
-        .then(({ anchor }) => {
-          if (anchor) {
-            return controller.locate(anchor.spineHref, anchor.excerpt);
-          }
-        })
+    (token: AlignedToken) => {
+      if (!controller || !epubIndex || token.epubSeq === null) return;
+      const locator = epubTokenLocator(epubIndex, token.epubSeq);
+      if (!locator) return;
+      void controller
+        .locate({ ...locator, expectedRaw: token.raw })
         .catch(() => {
-          /* anchor lookup is best-effort; the reader stays put */
+          /* positioning is best-effort; the reader stays put */
         });
     },
-    [controller, book.id],
+    [controller, epubIndex],
   );
 
-  // Cue transitions drive follow; repeats are skipped so the reader is not
-  // re-located on every currentTime tick within the same cue.
-  const latestCueRef = useRef<{ cueIndex: number; matched: boolean } | null>(
-    null,
-  );
-  const onActiveCue = useCallback(
-    (cueIndex: number | null, matched: boolean) => {
-      if (cueIndex === null) return;
-      latestCueRef.current = { cueIndex, matched };
-      if (!followReader || !matched) return;
-      if (lastFollowedCueRef.current === cueIndex) return;
-      lastFollowedCueRef.current = cueIndex;
-      showInBook(cueIndex);
+  // Token transitions drive follow; repeats are skipped so the reader is not
+  // re-located on every currentTime tick within the same token's interval.
+  const onActiveToken = useCallback(
+    (token: AlignedToken | null) => {
+      latestTokenRef.current = token;
+      if (!followReader || !token || token.epubSeq === null) return;
+      if (lastFollowedSeqRef.current === token.epubSeq) return;
+      lastFollowedSeqRef.current = token.epubSeq;
+      showInBook(token);
     },
     [followReader, showInBook],
   );
 
-  // Re-enabling follow locates the current cue immediately rather than
+  // Re-enabling follow locates the current token immediately rather than
   // waiting for the next transition.
   const toggleFollow = useCallback(() => {
     const enabling = !followReader;
     setFollowReader(enabling);
-    const latest = latestCueRef.current;
-    if (enabling && latest?.matched) {
-      lastFollowedCueRef.current = latest.cueIndex;
-      showInBook(latest.cueIndex);
+    const latest = latestTokenRef.current;
+    if (enabling && latest && latest.epubSeq !== null) {
+      lastFollowedSeqRef.current = latest.epubSeq;
+      showInBook(latest);
     }
   }, [followReader, showInBook]);
 
@@ -390,7 +397,8 @@ function PlayerPage() {
                   currentTime={audio.currentTime}
                   onSeek={audio.seek}
                   onShowInBook={showInBook}
-                  onActiveCue={onActiveCue}
+                  onActiveToken={onActiveToken}
+                  onPayload={onPayload}
                 />
               </div>
             )}

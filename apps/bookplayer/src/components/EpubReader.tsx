@@ -12,6 +12,8 @@
  */
 import { useEffect, useRef } from "react";
 
+import { normalizeText, rangeFromDomPath } from "@prosodio/align/browser";
+import type { DomTokenLocator, SegPath } from "@prosodio/align/browser";
 import type { Book, NavItem, Rendition } from "epubjs";
 
 export interface TocItem {
@@ -31,6 +33,16 @@ export interface SearchState {
   activeIndex: number | null;
 }
 
+/** A single EPUB token's native DOM address (plan D7/P2): resolved directly
+ * to a Range in the loaded section, no text re-projection. */
+export interface EpubTokenLocate {
+  spineHref: string;
+  segPaths: Array<SegPath>;
+  loc: DomTokenLocator;
+  /** The token's raw source text, for the parity guard (see `locate`). */
+  expectedRaw: string;
+}
+
 export interface ReaderController {
   prev: () => void;
   next: () => void;
@@ -39,11 +51,14 @@ export interface ReaderController {
   gotoResult: (index: number) => void;
   clearSearch: () => void;
   /**
-   * Navigate to a spine section and highlight an excerpt found inside it
-   * (the alignment "show in book" join); falls back to plain section
-   * navigation when the excerpt is not found.
+   * Resolve a captured DOM path locator to a Range in the loaded section and
+   * highlight it (the alignment follow/"show in book" join, plan D7). Skips
+   * silently — no highlight, no fallback — when the path doesn't resolve or
+   * the resolved text doesn't match `expectedRaw` (parser-parity guard: the
+   * browser's parsed section DOM must structurally match the server's
+   * extraction-time jsdom parse).
    */
-  locate: (href: string, excerpt: string) => Promise<void>;
+  locate: (locator: EpubTokenLocate) => Promise<void>;
 }
 
 export const EMPTY_SEARCH: SearchState = {
@@ -106,6 +121,19 @@ export function EpubReader({
     // The reflow-preservation target: set when a search result is the last
     // navigation intent, cleared once the user navigates elsewhere.
     const resumeTarget: { cfi: string | null } = { cfi: null };
+    // Small LRU of loaded section documents, keyed by href: word-transition
+    // follow re-locates repeatedly within the same section, and re-loading
+    // (parse + traverse) per token would be wasteful.
+    const SECTION_CACHE_SIZE = 2;
+    const sectionCache = new Map<string, Document>();
+    const cacheSection = (href: string, document: Document) => {
+      sectionCache.delete(href);
+      sectionCache.set(href, document);
+      if (sectionCache.size > SECTION_CACHE_SIZE) {
+        const oldest = sectionCache.keys().next().value;
+        if (oldest !== undefined) sectionCache.delete(oldest);
+      }
+    };
 
     const pushSearch = (next: SearchState) => {
       searchState.current = next;
@@ -229,50 +257,64 @@ export function EpubReader({
             pushSearch(EMPTY_SEARCH);
           },
           gotoResult,
-          locate: async (href, excerpt) => {
+          locate: async (locator) => {
             if (!book || !rendition) return;
-            removeHighlight();
-            resumeTarget.cfi = null;
             // Extraction hrefs and epub.js spine hrefs can differ by a base
             // dir prefix; match on either suffix.
             const section = spineItems(book).find(
-              (item) => item.href.endsWith(href) || href.endsWith(item.href),
+              (item) =>
+                item.href.endsWith(locator.spineHref) ||
+                locator.spineHref.endsWith(item.href),
             );
-            let target: { cfi: string } | null = null;
-            if (section && excerpt.length > 0) {
+            if (!section) return;
+
+            let document = sectionCache.get(section.href);
+            if (!document) {
               try {
                 await section.load(book.load.bind(book));
-                const cfi = findExcerptCfi(section, excerpt);
-                if (cfi) target = { cfi };
               } catch {
-                /* malformed section: fall through to href navigation */
-              } finally {
-                try {
-                  section.unload();
-                } catch {
-                  /* ignore unload noise */
-                }
+                return; // malformed section: skip, never mis-highlight
               }
+              if (!alive()) return;
+              document = section.document;
+              if (!document) return;
+              cacheSection(section.href, document);
+            }
+
+            const range = rangeFromDomPath(
+              document,
+              locator.segPaths,
+              locator.loc,
+            );
+            // Parity guard (plan D7/P2): the browser-parsed section DOM must
+            // match the server's extraction-time jsdom parse structurally. A
+            // mismatch means the captured path no longer lands on the same
+            // text — skip the highlight rather than risk a wrong one.
+            if (!range) return;
+            const resolvedText = normalizeText(range.toString()).text;
+            const expectedText = normalizeText(locator.expectedRaw).text;
+            if (resolvedText !== expectedText) return;
+
+            let cfi: string;
+            try {
+              cfi = section.cfiFromRange(range);
+            } catch {
+              return; // best-effort: navigation/highlight both skipped
             }
             if (!alive()) return;
-            if (!target) {
-              await rendition.display(section?.href ?? href).catch(() => {
-                /* unknown href: leave the reader where it is */
-              });
-              return;
-            }
-            resumeTarget.cfi = target.cfi;
-            await rendition.display(normalizeCfi(target.cfi));
+            removeHighlight();
+            resumeTarget.cfi = cfi;
+            await rendition.display(normalizeCfi(cfi));
             if (!alive()) return;
             try {
               rendition.annotations.highlight(
-                target.cfi,
+                cfi,
                 {},
                 undefined,
                 "bp-align-hl",
                 { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" },
               );
-              activeHighlight.cfi = target.cfi;
+              activeHighlight.cfi = cfi;
             } catch {
               /* highlight is best-effort; navigation already happened */
             }
@@ -371,62 +413,6 @@ function visibleTextLength(rendition: Rendition): number {
     }, 0);
   } catch {
     return Number.MAX_SAFE_INTEGER; // unknown: don't skip anything
-  }
-}
-
-/**
- * Whitespace- and markup-tolerant excerpt lookup in a loaded section.
- * Section.find is a literal indexOf per text node, so source line-wrapping
- * (Gutenberg hard-wraps) and inline markup (small-caps spans split the
- * opening words into separate nodes) both defeat it. This accumulates the
- * whole body's whitespace-collapsed lowercase text with a per-character
- * node/offset map, so a hit maps back to a DOM range across node boundaries.
- */
-function findExcerptCfi(
-  section: SpineItemLike,
-  excerpt: string,
-): string | null {
-  const doc = section.document;
-  if (!doc?.body) return null;
-  const target = excerpt.replace(/\s+/g, " ").trim().toLowerCase();
-  if (target.length === 0) return null;
-
-  let normalized = "";
-  const positions: Array<{ node: Node; offset: number }> = [];
-  let pendingSpace = false;
-  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
-  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-    const raw = node.textContent ?? "";
-    for (let i = 0; i < raw.length; i++) {
-      const ch = raw[i] ?? "";
-      if (/\s/.test(ch)) {
-        pendingSpace = normalized.length > 0;
-        continue;
-      }
-      if (pendingSpace) {
-        // The space's mapped position is the following char; never a range
-        // endpoint since the target is trimmed.
-        normalized += " ";
-        positions.push({ node, offset: i });
-        pendingSpace = false;
-      }
-      normalized += ch.toLowerCase();
-      positions.push({ node, offset: i });
-    }
-  }
-
-  const hit = normalized.indexOf(target);
-  if (hit < 0) return null;
-  const start = positions[hit];
-  const end = positions[hit + target.length - 1];
-  if (!start || !end) return null;
-  try {
-    const range = doc.createRange();
-    range.setStart(start.node, start.offset);
-    range.setEnd(end.node, end.offset + 1);
-    return section.cfiFromRange(range);
-  } catch {
-    return null;
   }
 }
 

@@ -1,0 +1,11 @@
+/**
+ * Browser-safe subset of @prosodio/align: pure DOM/text code with NO jsdom or
+ * node imports, so client bundles (bookplayer) can import it without pulling
+ * in the server-only extraction engine (epub-extract.ts imports jsdom at
+ * module scope). Import this from client code; the package root ("@prosodio/
+ * align") is server-only and must stay behind a dynamic import().
+ */
+export { rangeFromDomPath } from "./src/epub-dom-path.ts";
+export type { DomTokenLocator, SegPath } from "./src/epub-dom-path.ts";
+export { normalizeText } from "./src/normalize.ts";
+export type { NormalizedText, Token } from "./src/normalize.ts";
