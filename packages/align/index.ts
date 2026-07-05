@@ -15,7 +15,13 @@ export type {
   ResidualGap,
   SpanEvidence,
 } from "./src/contracts.ts";
-export { extractEpub, resolveAddresses } from "./src/epub-extract.ts";
+export { rangeFromDomPath } from "./src/epub-dom-path.ts";
+export type { DomTokenLocator, SegPath } from "./src/epub-dom-path.ts";
+export {
+  extractEpub,
+  projectVisibleText,
+  resolveAddresses,
+} from "./src/epub-extract.ts";
 export type { EpubExtraction } from "./src/epub-extract.ts";
 export { computeGaps } from "./src/reconcile.ts";
 export {

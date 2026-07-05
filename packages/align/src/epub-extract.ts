@@ -1,5 +1,6 @@
 import { JSDOM } from "jsdom";
 import type { EpubTextAddress } from "./contracts.ts";
+import type { DomTokenLocator, SegPath } from "./epub-dom-path.ts";
 import { normalizeText, type NormalizedText } from "./normalize.ts";
 
 /**
@@ -43,6 +44,12 @@ export interface SpineDocExtraction {
   /** Document-order visible text — the raw side of the offset map. */
   visibleText: string;
   normalized: NormalizedText;
+  /**
+   * Native DOM index captured in the same traversal as visibleText, for
+   * resolving a token straight to a DOM Range without re-normalizing text.
+   * `tokenLocators` is parallel to `normalized.tokens`.
+   */
+  dom: { segPaths: SegPath[]; tokenLocators: DomTokenLocator[] };
 }
 
 export interface EpubToken {
@@ -123,31 +130,114 @@ function parseContentDocument(html: string): Document {
   return new JSDOM(html, { contentType: "text/html" }).window.document;
 }
 
+/**
+ * Project a content document's visible text AND, in the same walk, the DOM
+ * index needed to resolve any offset in that text back to a Text node: a
+ * segment per non-empty Text node encountered, in document order, recording
+ * its `[start, end)` range in the projected text and its childNodes index
+ * path from the document root. Segments are emitted in text order, so their
+ * ranges are sorted and non-overlapping (binary-searchable).
+ */
+export function projectVisibleText(
+  html: string,
+  excludedElements: readonly string[],
+): {
+  text: string;
+  segPaths: Array<SegPath>;
+  segRanges: Array<{ start: number; end: number }>;
+} {
+  const excluded = new Set(excludedElements.map((e) => e.toLowerCase()));
+  const document = parseContentDocument(html);
+  const parts: string[] = [];
+  const segPaths: Array<SegPath> = [];
+  const segRanges: Array<{ start: number; end: number }> = [];
+  let length = 0;
+  const path: number[] = [];
+
+  const walk = (node: Node): void => {
+    node.childNodes.forEach((child, index) => {
+      path.push(index);
+      if (child.nodeType === 3 /* TEXT_NODE */) {
+        const text = child.nodeValue ?? "";
+        if (text.length > 0) {
+          segRanges.push({ start: length, end: length + text.length });
+          segPaths.push([...path]);
+        }
+        parts.push(text);
+        length += text.length;
+        path.pop();
+        return;
+      }
+      if (child.nodeType !== 1 /* ELEMENT_NODE */) {
+        path.pop();
+        return;
+      }
+      const tag = (child as Element).tagName.toLowerCase();
+      if (excluded.has(tag)) {
+        path.pop();
+        return;
+      }
+      const isBlock = BLOCK_ELEMENTS.has(tag);
+      if (isBlock) {
+        parts.push("\n");
+        length += 1;
+      }
+      walk(child);
+      if (isBlock) {
+        parts.push("\n");
+        length += 1;
+      }
+      path.pop();
+    });
+  };
+  walk(document);
+  return { text: parts.join(""), segPaths, segRanges };
+}
+
 /** Visible text of one content document, in document order. */
 export function visibleTextFromHtml(
   html: string,
   excludedElements: readonly string[],
 ): string {
-  const excluded = new Set(excludedElements.map((e) => e.toLowerCase()));
-  const document = parseContentDocument(html);
-  const parts: string[] = [];
-  const walk = (node: Node): void => {
-    for (const child of node.childNodes) {
-      if (child.nodeType === 3 /* TEXT_NODE */) {
-        parts.push(child.nodeValue ?? "");
-        continue;
-      }
-      if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
-      const tag = (child as Element).tagName.toLowerCase();
-      if (excluded.has(tag)) continue;
-      const isBlock = BLOCK_ELEMENTS.has(tag);
-      if (isBlock) parts.push("\n");
-      walk(child);
-      if (isBlock) parts.push("\n");
-    }
+  return projectVisibleText(html, excludedElements).text;
+}
+
+/** Binary search for the segment whose `[start, end)` contains `offset`. */
+function segmentIndexAt(
+  segRanges: ReadonlyArray<{ start: number; end: number }>,
+  offset: number,
+): number {
+  let low = 0;
+  let high = segRanges.length - 1;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    const range = segRanges[mid]!;
+    if (offset < range.start) high = mid - 1;
+    else if (offset >= range.end) low = mid + 1;
+    else return mid;
+  }
+  throw new Error(`no text segment contains offset ${offset}`);
+}
+
+/**
+ * Map a normalized token's raw `[rawStart, rawEnd)` range (UTF-16 offsets
+ * into the projected text) to a DOM locator. Tokens never cross a block "\n"
+ * separator (normalize.ts treats it as a boundary), but CAN span adjacent
+ * inline Text nodes, so start and end are resolved to segments independently.
+ */
+function tokenLocatorFor(
+  segRanges: ReadonlyArray<{ start: number; end: number }>,
+  rawStart: number,
+  rawEnd: number,
+): DomTokenLocator {
+  const startSeg = segmentIndexAt(segRanges, rawStart);
+  const endSeg = segmentIndexAt(segRanges, rawEnd - 1);
+  return {
+    startSeg,
+    startOffset: rawStart - segRanges[startSeg]!.start,
+    endSeg,
+    endOffset: rawEnd - segRanges[endSeg]!.start,
   };
-  walk(document);
-  return parts.join("");
 }
 
 /**
@@ -191,13 +281,26 @@ export async function extractEpub(
     const linear = item.linear !== "no";
     const included = linear || options.includeNonLinearSpineItems;
     let visibleText = "";
+    let dom: SpineDocExtraction["dom"] = { segPaths: [], tokenLocators: [] };
+    let normalized = normalizeText(visibleText);
     if (included) {
       const archiveUrl = bookAny.path?.resolve(spineHref) ?? "/" + spineHref;
       const content = await bookAny.archive?.getText(archiveUrl);
       if (content == null) {
         warnings.push(`unreadable spine item: ${spineHref}`);
       } else {
-        visibleText = visibleTextFromHtml(content, options.excludedElements);
+        const projection = projectVisibleText(
+          content,
+          options.excludedElements,
+        );
+        visibleText = projection.text;
+        normalized = normalizeText(visibleText);
+        dom = {
+          segPaths: projection.segPaths,
+          tokenLocators: normalized.tokens.map((token) =>
+            tokenLocatorFor(projection.segRanges, token.rawStart, token.rawEnd),
+          ),
+        };
       }
     }
     spineDocs.push({
@@ -206,7 +309,8 @@ export async function extractEpub(
       linear,
       included,
       visibleText,
-      normalized: normalizeText(visibleText),
+      normalized,
+      dom,
     });
   }
   book.destroy();
