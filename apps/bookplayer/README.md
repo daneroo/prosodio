@@ -1,9 +1,13 @@
 # @prosodio/bookplayer
 
 Local-first web app: browse the audiobook library, read the EPUB while
-listening, follow the VTT transcript. Design and decision record (worked
-exemplar, kept while backlog items reference it):
-[thoughts/plans/archive/bookplayer.md](../../thoughts/plans/archive/bookplayer.md).
+listening, follow the VTT transcript, and inspect the narration<->book alignment
+(word-level match runs via `@prosodio/align`, with the reader following
+playback). Design and decision records (worked exemplars, kept while backlog
+items reference them):
+[thoughts/plans/archive/bookplayer.md](../../thoughts/plans/archive/bookplayer.md)
+and
+[thoughts/plans/bookplayer-align.md](../../thoughts/plans/bookplayer-align.md).
 
 ## TODO
 
@@ -18,7 +22,9 @@ exemplar, kept while backlog items reference it):
 - `bun run dev` — dev server on port 3000 (run from this directory)
 - `bun run build` then `bun run start` — production build + serve
 - Quality gates are root-level: `bun run ci` from the repo root
-- Volatile state: `data/bookplayer/{cache,evidence}` (gitignored)
+- Volatile state: `data/bookplayer/{cache,evidence,align}` (gitignored);
+  `align/` caches per-book `AlignmentResult` JSON keyed by schema version +
+  source mtimes — delete a file to force recompute
 
 ## Setup
 

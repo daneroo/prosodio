@@ -1,6 +1,7 @@
 # bookplayer-align — The Prosodio Bookplayer - Alignment Visualisation
 
-Status: approved — executing on branch `bookplayer-align`
+Status: implemented (Phases 0-6 done) — awaiting Daniel's corpus revalidation,
+then merge + archive
 
 Goal: Visualize the epub/vtt alignment in the bookplayer UI
 
@@ -214,7 +215,7 @@ type AlignmentPayload =
       player locates the reader on matched-cue changes (throttled to cue
       transitions, skipping repeats); top-bar follow toggle (default on),
       auto-disengaged by manual reader navigation. Browser-verified on Alice.
-- [ ] Phase 6 — acceptance + docs: fixtures acceptance recorded (Alice is the
+- [x] Phase 6 — acceptance + docs: fixtures acceptance recorded (Alice is the
       deliberately hard mismatch case — abridged EPUB vs full narration, so
       mixed runs and gap markers show prominently); private dev-time spot-check
       on a high-coverage book (NOT in CI); READMEs + docs/FILE-LAYOUT.md (new
@@ -236,6 +237,29 @@ one active root per server run.
 - Private (dev-time only): a high-coverage book renders mostly matched runs;
   tracking follows playback across the panel.
 - Root CI green; no private paths or private-corpus dependence in any test.
+
+### Acceptance evidence (2026-07-05)
+
+- Fixtures (Alice, browser-verified via Claude Preview, desktop + 390x844):
+  - Panel default-on: 2524 cue rows, 333 mixed word-level rows (e.g. first cue:
+    "Chapter 1" unmatched / "of Alice s Adventures in Wonderland" matched), 252
+    gap markers incl. the leading `⧉ ~4 words` marker; header
+    `narration 34% · book 70% · 440 spans · 441 gaps` — identical numbers to the
+    align CLI.
+  - Click-seek (26.94s), active-cue tracking, toggle off/on (reader reclaims
+    full width), mobile vertical stack all verified.
+  - Show-in-book: reader lands on "I—DOWN THE RABBIT-HOLE" with "Alice was
+    beginning to get very tired of" highlighted across the small-caps drop-cap
+    markup (`bp-align-hl` range CFI, in-bounds).
+  - Follow mode: seek to a matched cue auto-locates the reader; next cue moves
+    the highlight; manual paging disengages (reader stays put during playback);
+    re-enabling locates immediately.
+- Private (dev-time, NOT CI): Use of Weapons — vtt 92% / epub 93% coverage, 4785
+  spans, engine compute 1364ms (cache write-through, warm reads after); 9113
+  cues: 87% mostly-matched (>=0.8), 1% unmatched. The compute-time risk retired:
+  seconds, not minutes, even for a full-length novel.
+- Engine extraction gate held: root CI green throughout; fixtures alignment
+  report byte-identical after the packages/align move.
 
 ## My Validation - after implementation
 

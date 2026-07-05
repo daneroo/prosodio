@@ -251,18 +251,17 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
   - revisit-when: search/highlight reliability or reader theming becomes a real
     limitation. See [plan](plans/archive/bookplayer.md) §EPUB reader.
 
-- [ ] bookplayer-alignment-layout — revisit the player component structure to
+- [x] bookplayer-alignment-layout — revisit the player component structure to
       surface alignment data
-  - why: v1 keeps a seam for Prosodio word/sentence-level alignment (stable
-    `bookId`, transcript cues in seconds, transcript isolated behind one
-    `fetchTranscript` server fn) but deliberately does NOT render it. Showing
-    alignment (audio-position <-> EPUB passage, karaoke-style cue<->word
-    highlighting) likely needs the three-band layout and the reader/transcript
-    components to change.
-  - depends on align producing per-book alignment artifacts attachable by
-    `bookId`; do not expand the v1 seam before then.
-  - revisit-when: align (epoch 4) has trustworthy alignment output to consume.
-    See [plan](plans/archive/bookplayer.md) §Non-goals (the alignment seam).
+  - done 2026-07-05 on branch `bookplayer-align`: AlignmentViewer panel
+    (word-level match runs + residual-gap markers), 50/50 split with toggle,
+    show-in-book EPUB positioning, and playback-synced three-view follow mode.
+    Engine extracted to `packages/align` (`@prosodio/align`); design + decision
+    record: [plan](plans/bookplayer-align.md).
+  - v1 limitation carried forward: reader follow is driven by the
+    AlignmentViewer's active cue, so it only operates while the alignment panel
+    is open (open by default). Decouple if a "follow with panel closed" flow is
+    wanted.
 
 - [ ] bookplayer-public-acceptance — commit a public-fixture browser acceptance
       for the search -> navigate -> highlight flow
