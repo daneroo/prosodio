@@ -132,7 +132,8 @@ async function alignTriplet(
   options: AlignOptions,
 ): Promise<ReturnType<typeof summarizeBook>> {
   const vttText = await Bun.file(triplet.vtt).text();
-  const alignment = await alignBook(vttText, triplet.epub, options);
+  const epubBytes = await Bun.file(triplet.epub).arrayBuffer();
+  const alignment = await alignBook(vttText, epubBytes, options);
   const result = buildAlignmentResult(alignment, {
     root: triplet.root,
     base: triplet.base,

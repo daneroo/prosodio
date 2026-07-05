@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { alignBook } from "./align-book.ts";
 import { config } from "./config.ts";
-import { fixturePaths } from "./fixture-paths.ts";
+import { aliceEpubBytes, fixturePaths } from "./fixture-paths.ts";
 import { alignmentResultSchema, buildAlignmentResult } from "./result.ts";
 
 const vttText = await Bun.file(fixturePaths.aliceVtt).text();
+const epubBytes = await aliceEpubBytes();
 const source = {
   root: "fixtures",
   base: "Lewis Carroll - Alices Adventures in Wonderland",
@@ -14,7 +15,7 @@ const source = {
 };
 
 describe("buildAlignmentResult", async () => {
-  const alignment = await alignBook(vttText, fixturePaths.aliceEpub);
+  const alignment = await alignBook(vttText, epubBytes);
   const result = buildAlignmentResult(alignment, source);
 
   test("validates against the strict schema and survives a JSON round-trip", () => {
@@ -26,7 +27,7 @@ describe("buildAlignmentResult", async () => {
 
   test("serialization is deterministic byte-for-byte", async () => {
     const again = buildAlignmentResult(
-      await alignBook(vttText, fixturePaths.aliceEpub),
+      await alignBook(vttText, epubBytes),
       source,
     );
     expect(JSON.stringify(again)).toBe(JSON.stringify(result));

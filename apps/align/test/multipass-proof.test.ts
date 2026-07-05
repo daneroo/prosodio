@@ -7,12 +7,13 @@ import { config } from "../lib/config.ts";
 // gaps while every Pass 1 span survives byte-for-byte. Alice is the
 // evaluation book.
 const vttText = await Bun.file(config.aliceVtt).text();
+const epubBytes = await Bun.file(config.aliceEpub).arrayBuffer();
 
 describe("multipass proof on Alice", async () => {
-  const pass1Only = await alignBook(vttText, config.aliceEpub, {
+  const pass1Only = await alignBook(vttText, epubBytes, {
     proofPass: false,
   });
-  const full = await alignBook(vttText, config.aliceEpub);
+  const full = await alignBook(vttText, epubBytes);
 
   const pass1Id = `pass1-exact-k${alignConfig.passes.pass1NgramSize}`;
   const proofId = `proof-exact-k${alignConfig.passes.proofNgramSize}`;

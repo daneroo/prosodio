@@ -7,9 +7,10 @@ import { config } from "../lib/config.ts";
 // Gutenberg #11 text while the committed EPUB is the abridged illustrated
 // #19033 retelling — coverage is partial by construction, correctness is not.
 const vttText = await Bun.file(config.aliceVtt).text();
+const epubBytes = await Bun.file(config.aliceEpub).arrayBuffer();
 
 describe("Alice end-to-end Pass 1", async () => {
-  const result = await alignBook(vttText, config.aliceEpub);
+  const result = await alignBook(vttText, epubBytes);
 
   test("produces sparse anchors", () => {
     expect(result.spans.length).toBeGreaterThan(0);
@@ -66,7 +67,7 @@ describe("Alice end-to-end Pass 1", async () => {
   });
 
   test("repeated runs are deterministic", async () => {
-    const again = await alignBook(vttText, config.aliceEpub);
+    const again = await alignBook(vttText, epubBytes);
     expect(again.spans).toEqual(result.spans);
     expect(again.gaps).toEqual(result.gaps);
     expect(again.metrics).toEqual(result.metrics);

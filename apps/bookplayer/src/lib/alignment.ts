@@ -231,7 +231,8 @@ export async function loadAlignmentResult(
 
   const started = performance.now();
   const vttText = readFileSync(vttPath, "utf8");
-  const alignment = await align.alignBook(vttText, epubPath);
+  const epubBytes = await Bun.file(epubPath).arrayBuffer();
+  const alignment = await align.alignBook(vttText, epubBytes);
   const result = align.buildAlignmentResult(alignment, {
     root: config.activeRoot.name,
     base: book.basename,
@@ -268,7 +269,8 @@ async function extractionFor(epubPath: string): Promise<EpubExtraction> {
   const key = `${epubPath}:${statSync(epubPath).mtimeMs}`;
   if (extractionCache?.key === key) return extractionCache.extraction;
   const { extractEpub, alignConfig } = await import("@prosodio/align");
-  const extraction = await extractEpub(epubPath, alignConfig.extraction);
+  const epubBytes = await Bun.file(epubPath).arrayBuffer();
+  const extraction = await extractEpub(epubBytes, alignConfig.extraction);
   extractionCache = { key, extraction };
   return extraction;
 }

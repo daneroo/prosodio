@@ -13,3 +13,8 @@ export const fixturePaths = {
   aliceVtt: join(REPO_ROOT, "fixtures", "transcriptions", `${ALICE}.vtt`),
   aliceEpub: join(REPO_ROOT, "fixtures", "audiobooks", ALICE, `${ALICE}.epub`),
 };
+
+/** Bytes of the committed Alice EPUB fixture, for engine calls that take bytes. */
+export async function aliceEpubBytes(): Promise<ArrayBuffer> {
+  return Bun.file(fixturePaths.aliceEpub).arrayBuffer();
+}

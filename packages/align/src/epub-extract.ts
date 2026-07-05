@@ -150,8 +150,13 @@ export function visibleTextFromHtml(
   return parts.join("");
 }
 
+/**
+ * Extract spine text from EPUB bytes. Takes the EPUB file's raw bytes rather
+ * than a filesystem path so the engine stays IO-free (callers own reading the
+ * file, which keeps this runnable in a browser).
+ */
 export async function extractEpub(
-  epubPath: string,
+  bytes: ArrayBuffer,
   options: {
     includeNonLinearSpineItems: boolean;
     excludedElements: readonly string[];
@@ -165,7 +170,6 @@ export async function extractEpub(
   };
   const warnings: string[] = [];
 
-  const bytes = await Bun.file(epubPath).arrayBuffer();
   const book = new Book(bytes, { replacements: "none" });
   await book.opened;
   // Same untyped surface epub-validate's worker documents: spine idrefs join

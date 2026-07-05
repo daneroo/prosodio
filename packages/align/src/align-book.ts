@@ -36,11 +36,11 @@ export interface AlignOptions {
 
 export async function alignBook(
   vttText: string,
-  epubPath: string,
+  epubBytes: ArrayBuffer,
   options: AlignOptions = {},
 ): Promise<BookAlignment> {
   const vtt = buildVttSequence(vttText);
-  const epub = await extractEpub(epubPath, {
+  const epub = await extractEpub(epubBytes, {
     ...config.extraction,
     includeNonLinearSpineItems:
       options.includeNonLinearSpineItems ??
