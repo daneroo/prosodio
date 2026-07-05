@@ -196,7 +196,7 @@ type AlignmentPayload =
       writing the rest); `fetchAlignment` + disk cache + word-run cue join with
       unit tests (synthetic spans/cues; cache staleness via mtime manipulation,
       not sleeps).
-- [ ] Phase 3 — AlignmentViewer + shared `src/lib/cues.ts` (Transcript
+- [x] Phase 3 — AlignmentViewer + shared `src/lib/cues.ts` (Transcript
       refactored onto it) + split layout with default-on toggle; word-level run
       rendering; gap markers; playback tracking. Browser-verified on Alice
       (fixtures root), desktop + mobile viewports.

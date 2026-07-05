@@ -4,6 +4,7 @@ import {
   BookOpenText,
   ChevronLeft,
   ChevronRight,
+  Columns2,
   Search,
   X,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import {
 } from "react";
 import type { FormEvent } from "react";
 
+import { AlignmentViewer } from "#/components/AlignmentViewer";
 import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
 import { fetchBook } from "#/server/library";
@@ -46,6 +48,9 @@ function PlayerPage() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [queryInput, setQueryInput] = useState("");
   const [readerError, setReaderError] = useState<string | null>(null);
+  // Alignment split: default on (plan D3) whenever both sides exist.
+  const canAlign = book.hasEpub && book.hasVtt;
+  const [alignOpen, setAlignOpen] = useState(canAlign);
   const audio = useAudioTransport(book.id);
 
   const submitSearch = useCallback(
@@ -87,6 +92,21 @@ function PlayerPage() {
           </span>
         )}
         <div className="flex-1" />
+        {canAlign && (
+          <button
+            type="button"
+            onClick={() => setAlignOpen((open) => !open)}
+            className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+              alignOpen ? "text-cyan-400" : "text-slate-400"
+            }`}
+            aria-label={
+              alignOpen ? "Hide alignment panel" : "Show alignment panel"
+            }
+            aria-pressed={alignOpen}
+          >
+            <Columns2 className="h-4 w-4" />
+          </button>
+        )}
         {book.hasEpub && !readerError && (
           <>
             {toc.length > 0 && (
@@ -257,24 +277,40 @@ function PlayerPage() {
             </div>
           </div>
         ) : (
-          <Suspense
-            fallback={
-              <div className="flex h-full items-center justify-center">
-                <p className="animate-pulse text-sm text-slate-400">
-                  Loading EPUB…
-                </p>
+          // Alignment split (plan D3): desktop side-by-side 50/50, mobile
+          // stacks vertically; closed = full-band reader (EpubReader's
+          // ResizeObserver re-paginates on toggle).
+          <div className="flex h-full min-h-0 flex-col sm:flex-row">
+            <div className="min-h-0 min-w-0 flex-1">
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center">
+                    <p className="animate-pulse text-sm text-slate-400">
+                      Loading EPUB…
+                    </p>
+                  </div>
+                }
+              >
+                <EpubReader
+                  bookId={book.id}
+                  epubUrl={`/api/epub/${book.id}`}
+                  onController={setController}
+                  onToc={setToc}
+                  onSearchState={setSearchState}
+                  onError={setReaderError}
+                />
+              </Suspense>
+            </div>
+            {canAlign && alignOpen && (
+              <div className="min-h-0 min-w-0 flex-1 border-t border-slate-700 sm:border-l sm:border-t-0">
+                <AlignmentViewer
+                  bookId={book.id}
+                  currentTime={audio.currentTime}
+                  onSeek={audio.seek}
+                />
               </div>
-            }
-          >
-            <EpubReader
-              bookId={book.id}
-              epubUrl={`/api/epub/${book.id}`}
-              onController={setController}
-              onToc={setToc}
-              onSearchState={setSearchState}
-              onError={setReaderError}
-            />
-          </Suspense>
+            )}
+          </div>
         )}
       </main>
 

@@ -2,11 +2,12 @@
  * Transcript strip: always rendered (capped height, own scroll), with
  * explicit loading / error / no-transcript states. Cues come pre-parsed in
  * seconds from the fetchTranscript server function; the active cue follows
- * currentTime via binary search, click seeks, auto-scroll keeps the active
- * cue visible without yanking the page.
+ * currentTime (shared machinery: #/lib/cues), click seeks, auto-scroll keeps
+ * the active cue visible without yanking the page.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { activeCueIndex } from "#/lib/cues";
 import { fetchTranscript } from "#/server/library";
 import type { TranscriptCue } from "#/lib/transcript";
 
@@ -21,27 +22,6 @@ type LoadState =
   | { status: "error" }
   | { status: "none" }
   | { status: "ready"; cues: Array<TranscriptCue> };
-
-/** Index of the cue containing t, else -1 (cues sorted by startSec). */
-export function activeCueIndex(cues: Array<TranscriptCue>, t: number): number {
-  let lo = 0;
-  let hi = cues.length - 1;
-  let candidate = -1;
-  while (lo <= hi) {
-    const mid = (lo + hi) >>> 1;
-    const cue = cues[mid];
-    if (!cue) break;
-    if (cue.startSec <= t) {
-      candidate = mid;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
-    }
-  }
-  if (candidate < 0) return -1;
-  const cue = cues[candidate];
-  return cue && cue.endSec > t ? candidate : -1;
-}
 
 export function Transcript({ bookId, currentTime, onSeek }: TranscriptProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
