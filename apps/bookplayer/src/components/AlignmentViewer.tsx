@@ -20,6 +20,11 @@ interface AlignmentViewerProps {
   onSeek: (sec: number) => void;
   /** "Show in book": navigate the reader to this cue's EPUB position. */
   onShowInBook?: (cueIndex: number) => void;
+  /**
+   * Active-cue transitions (null = between cues), with whether the cue has
+   * any matched words — the reader-follow signal (plan D6).
+   */
+  onActiveCue?: (cueIndex: number | null, matched: boolean) => void;
 }
 
 type LoadState =
@@ -33,9 +38,12 @@ export function AlignmentViewer({
   currentTime,
   onSeek,
   onShowInBook,
+  onActiveCue,
 }: AlignmentViewerProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const activeRef = useRef<HTMLButtonElement>(null);
+  const onActiveCueRef = useRef(onActiveCue);
+  onActiveCueRef.current = onActiveCue;
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +71,20 @@ export function AlignmentViewer({
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [activeIndex]);
+
+  // Report cue transitions (not every currentTime tick) for reader follow.
+  const activeCue =
+    state.status === "ready" && activeIndex >= 0
+      ? state.cues[activeIndex]
+      : undefined;
+  useEffect(() => {
+    onActiveCueRef.current?.(
+      activeCue ? activeIndex : null,
+      (activeCue?.matchedRatio ?? 0) > 0,
+    );
+    // activeIndex identifies the transition; activeCue is derived from it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
   if (state.status !== "ready") {

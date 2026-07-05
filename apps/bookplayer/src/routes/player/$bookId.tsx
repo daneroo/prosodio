@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns2,
+  LocateFixed,
   Search,
   X,
 } from "lucide-react";
@@ -51,6 +52,10 @@ function PlayerPage() {
   // Alignment split: default on (plan D3) whenever both sides exist.
   const canAlign = book.hasEpub && book.hasVtt;
   const [alignOpen, setAlignOpen] = useState(canAlign);
+  // Reader follow (plan D6): the reader tracks the active matched cue while
+  // on; any manual reader navigation disengages it.
+  const [followReader, setFollowReader] = useState(canAlign);
+  const lastFollowedCueRef = useRef(-1);
   const audio = useAudioTransport(book.id);
 
   const submitSearch = useCallback(
@@ -85,6 +90,35 @@ function PlayerPage() {
     [controller, book.id],
   );
 
+  // Cue transitions drive follow; repeats are skipped so the reader is not
+  // re-located on every currentTime tick within the same cue.
+  const latestCueRef = useRef<{ cueIndex: number; matched: boolean } | null>(
+    null,
+  );
+  const onActiveCue = useCallback(
+    (cueIndex: number | null, matched: boolean) => {
+      if (cueIndex === null) return;
+      latestCueRef.current = { cueIndex, matched };
+      if (!followReader || !matched) return;
+      if (lastFollowedCueRef.current === cueIndex) return;
+      lastFollowedCueRef.current = cueIndex;
+      showInBook(cueIndex);
+    },
+    [followReader, showInBook],
+  );
+
+  // Re-enabling follow locates the current cue immediately rather than
+  // waiting for the next transition.
+  const toggleFollow = useCallback(() => {
+    const enabling = !followReader;
+    setFollowReader(enabling);
+    const latest = latestCueRef.current;
+    if (enabling && latest?.matched) {
+      lastFollowedCueRef.current = latest.cueIndex;
+      showInBook(latest.cueIndex);
+    }
+  }, [followReader, showInBook]);
+
   const { results, activeIndex, searching, query } = searchState;
   // After a result is chosen the panel collapses to a mini-pager, so the
   // results stay actionable without an overlay eating the reader.
@@ -113,6 +147,24 @@ function PlayerPage() {
         {canAlign && (
           <button
             type="button"
+            onClick={toggleFollow}
+            className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+              followReader ? "text-cyan-400" : "text-slate-400"
+            }`}
+            aria-label={
+              followReader
+                ? "Stop following playback in book"
+                : "Follow playback in book"
+            }
+            aria-pressed={followReader}
+            title="Follow playback in book"
+          >
+            <LocateFixed className="h-4 w-4" />
+          </button>
+        )}
+        {canAlign && (
+          <button
+            type="button"
             onClick={() => setAlignOpen((open) => !open)}
             className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
               alignOpen ? "text-cyan-400" : "text-slate-400"
@@ -133,7 +185,10 @@ function PlayerPage() {
                 className="max-w-36 truncate rounded bg-slate-700 px-2 py-1 text-xs text-slate-300 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 sm:max-w-52"
                 defaultValue=""
                 onChange={(e) => {
-                  if (e.target.value) controller?.goTo(e.target.value);
+                  if (e.target.value) {
+                    setFollowReader(false);
+                    controller?.goTo(e.target.value);
+                  }
                   e.target.value = "";
                 }}
               >
@@ -149,7 +204,10 @@ function PlayerPage() {
             )}
             <button
               type="button"
-              onClick={() => controller?.prev()}
+              onClick={() => {
+                setFollowReader(false);
+                controller?.prev();
+              }}
               className="p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"
               aria-label="Previous page"
             >
@@ -157,7 +215,10 @@ function PlayerPage() {
             </button>
             <button
               type="button"
-              onClick={() => controller?.next()}
+              onClick={() => {
+                setFollowReader(false);
+                controller?.next();
+              }}
               className="p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"
               aria-label="Next page"
             >
@@ -222,7 +283,10 @@ function PlayerPage() {
                 <li key={result.cfi}>
                   <button
                     type="button"
-                    onClick={() => controller?.gotoResult(index)}
+                    onClick={() => {
+                      setFollowReader(false);
+                      controller?.gotoResult(index);
+                    }}
                     className="block w-full truncate rounded px-2 py-1 text-left text-xs text-slate-300 transition-colors hover:bg-slate-700"
                   >
                     {result.excerpt}
@@ -326,6 +390,7 @@ function PlayerPage() {
                   currentTime={audio.currentTime}
                   onSeek={audio.seek}
                   onShowInBook={showInBook}
+                  onActiveCue={onActiveCue}
                 />
               </div>
             )}

@@ -55,6 +55,13 @@ The cue join itself (parse VTT + sweep spans) is cheap and runs per request.
 - D5 (new phase, last): position the text in the ebook — the other join.
   Clicking a matched cue navigates the EpubReader to the corresponding EPUB
   location. Done after the panel works end-to-end.
+- D6 (ruled by Daniel after Phase 4 demo): the normal flow syncs all three views
+  as audio plays — play position → Transcript highlight+scroll → AlignmentViewer
+  highlight+scroll → EpubReader highlight+scroll. Reader follow is a toggle,
+  default ON; manual reader navigation (page, chapter, search) disengages it so
+  the reader never fights the user. v1 limitation: follow is driven by the
+  AlignmentViewer's active cue, so it operates while the alignment panel is open
+  (it is open by default, D3).
 
 ## Design
 
@@ -203,7 +210,11 @@ type AlignmentPayload =
 - [x] Phase 4 — EPUB positioning join (D5): `fetchEpubAnchor` + reader
       `locate` + affordance; fallback `goTo(href)` acceptable. Browser-verified
       on Alice matched cues.
-- [ ] Phase 5 — acceptance + docs: fixtures acceptance recorded (Alice is the
+- [x] Phase 5 — follow mode (D6): AlignmentViewer reports its active cue up; the
+      player locates the reader on matched-cue changes (throttled to cue
+      transitions, skipping repeats); top-bar follow toggle (default on),
+      auto-disengaged by manual reader navigation. Browser-verified on Alice.
+- [ ] Phase 6 — acceptance + docs: fixtures acceptance recorded (Alice is the
       deliberately hard mismatch case — abridged EPUB vs full narration, so
       mixed runs and gap markers show prominently); private dev-time spot-check
       on a high-coverage book (NOT in CI); READMEs + docs/FILE-LAYOUT.md (new
