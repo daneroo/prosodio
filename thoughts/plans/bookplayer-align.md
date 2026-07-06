@@ -1,10 +1,9 @@
 # bookplayer-align — The Prosodio Bookplayer - Alignment Visualisation
 
-Status: CORRECTIVE REVISION — Phases 0-6 shipped a working visualization but on
-a broken synchronization model (see "Corrective revision" below). Phase 7 is a
-browser-side, compact-transport POC that proves exact token-level sync; the full
-data-model rework is scoped in "Global review (deferred)" and gated on the POC.
-Not mergeable until the POC lands and the global review is decided.
+Status: POC COMPLETE (Phase 7, 7a-7f done) — token-level sync proven end-to-end,
+browser-side, compact wire (Alice payload 1.28 MB). Ready for Daniel's review +
+merge. The full data-model rework is a SEPARATE post-merge task (see "Global
+review (deferred)"), per Daniel's ruling 2026-07-05.
 
 Goal: Visualize the epub/vtt alignment in the bookplayer UI
 
@@ -334,13 +333,16 @@ rework is deferred to the global review. Salvage the good parts of the badfix
       `epubSeq`; the EPUB side ships a captured DOM child-node-path index (P2
       proposal adopted — better than the "normalized address for now" this line
       originally scoped). Engine capture: commit 40c2afe; wire: aadd3a6.
-- [~] 7c — compact transport: PARTIAL. The EPUB locator index is compact (base64
-  columnar): measured 0.36 MB on Alice (13k epub tokens) — the badfix's 31 MB
-  offender is GONE. STILL TODO: the VTT `cues` array is fat per-token JSON —
-  2.67 MB on Alice (27k tokens), so ~13 MB extrapolated to a full novel.
-  Columnar-compact the VTT token table (same base64 pattern) to hit the
-  single-digit-MB budget on Use of Weapons. This is the one remaining POC
-  scaling item.
+- [x] 7c — compact transport: DONE 2026-07-05 (commits 59eaefe + the
+      alignment-wire split). Both sides columnar base64 now: EPUB index 0.36 MB;
+      VTT token table compacted from 2.67 MB fat JSON to 0.92 MB (Float32
+      start/end, Int32 epubSeq with -1 sentinel, concatenated rawText + Uint32
+      lengths; cues carry only [tokenStart,tokenCount)). Alice total 3.03 MB ->
+      1.28 MB; a full novel extrapolates to ~6 MB — single-digit, budget met.
+      The client decodes back into `AlignedCue[]` in a browser-safe module
+      (`alignment-wire.ts`) so the server-only `alignment.ts` (node:fs/path)
+      never enters the client bundle — a regression the browser caught that
+      tsc/tests did not (lesson for the global review). UI logic unchanged.
 - [x] 7d — active-token selection (P1): `activeTokenIndex(tokens, t)` by time
       interval; the viewer highlights the active token; follow drives off token
       transitions (not cue transitions). DONE 2026-07-05: `AlignedCue.tokens`
