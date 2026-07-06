@@ -24,7 +24,7 @@ import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
 import { epubTokenLocator } from "#/lib/epub-locator";
 import { fetchBook } from "#/server/library";
-import type { AlignedToken, AlignmentPayload } from "#/lib/alignment";
+import type { AlignedToken, AlignmentPayload } from "#/lib/alignment-wire";
 import type {
   ReaderController,
   SearchState,

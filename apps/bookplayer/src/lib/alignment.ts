@@ -11,55 +11,26 @@ import { dirname, join } from "node:path";
 
 import { buildEpubLocatorIndex } from "./epub-locator.ts";
 import { assetPath } from "./media.ts";
+import { encodeAlignedCues } from "./alignment-wire.ts";
 import type { BookplayerConfig } from "./config.ts";
-import type { EpubLocatorIndex } from "./epub-locator.ts";
 import type { TranscriptCue } from "./transcript.ts";
 import type { BookRecord } from "./types.ts";
 import type { AlignmentResult, EpubExtraction } from "@prosodio/align";
+import type {
+  AlignedCue,
+  AlignedToken,
+  AlignmentPayload,
+} from "./alignment-wire.ts";
 
-/**
- * One normalized VTT token, carrying its own interpolated time interval so
- * playback highlights the active WORD, not the whole cue (plan D7, P1).
- * `matched` = covered by an accepted alignment span; `epubSeq` is the token's
- * position in the flat EPUB token sequence when matched, else null.
- */
-export interface AlignedToken {
-  raw: string;
-  startSec: number;
-  endSec: number;
-  matched: boolean;
-  epubSeq: number | null;
-}
-
-export interface AlignedCue {
-  startSec: number;
-  endSec: number;
-  /** Tokens in order; the cue is a presentation group, tokens are the unit. */
-  tokens: Array<AlignedToken>;
-  /** Matched words / words, 0..1. */
-  matchedRatio: number;
-  /** EPUB tokens never narrated, in the residual gap following this cue. */
-  gapEpubTokens: number;
-}
-
-export interface AlignmentSummary {
-  vttCoverage: number;
-  epubCoverage: number;
-  spanCount: number;
-  gapCount: number;
-  timing: "word" | "interpolated";
-  /** EPUB tokens in a residual gap before the first narrated word. */
-  leadingGapEpubTokens: number;
-}
-
-export type AlignmentPayload =
-  | { status: "unavailable" }
-  | {
-      status: "ready";
-      summary: AlignmentSummary;
-      cues: Array<AlignedCue>;
-      epub: EpubLocatorIndex;
-    };
+export type {
+  AlignedToken,
+  AlignedCue,
+  AlignmentSummary,
+  CompactCue,
+  CompactTokenTable,
+  AlignmentPayload,
+} from "./alignment-wire.ts";
+export { encodeAlignedCues, decodeAlignedCues } from "./alignment-wire.ts";
 
 /** The subset of VttWord the join needs (keeps tests synthetic-friendly). */
 export interface JoinWord {
@@ -306,6 +277,7 @@ export async function loadAlignment(
 
   const joined = joinAlignedCues(cues, words, result.spans, result.gaps);
   const extraction = await extractionFor(epubPath);
+  const compact = encodeAlignedCues(joined.cues);
   return {
     status: "ready",
     epub: buildEpubLocatorIndex(extraction),
@@ -317,6 +289,7 @@ export async function loadAlignment(
       timing: result.source.vttTiming,
       leadingGapEpubTokens: joined.leadingGapEpubTokens,
     },
-    cues: joined.cues,
+    cues: compact.cues,
+    tokens: compact.tokens,
   };
 }

@@ -10,10 +10,11 @@
 import { BookOpenText } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
+import { decodeAlignedCues } from "#/lib/alignment-wire";
 import { activeCueIndex, activeTokenIndex } from "#/lib/cues";
 import { formatDuration } from "#/lib/browse";
 import { fetchAlignment } from "#/server/library";
-import type { AlignedToken, AlignmentPayload } from "#/lib/alignment";
+import type { AlignedToken, AlignmentPayload } from "#/lib/alignment-wire";
 
 interface AlignmentViewerProps {
   bookId: string;
@@ -71,19 +72,30 @@ export function AlignmentViewer({
     };
   }, [bookId]);
 
+  // Decode the compact wire columns back into the UI's AlignedCue[] shape
+  // once per payload, not once per render (Phase 7c: the server ships
+  // columnar base64 typed arrays instead of fat per-token JSON).
+  const decodedCues = useMemo(
+    () =>
+      state.status === "ready"
+        ? decodeAlignedCues(state.cues, state.tokens)
+        : [],
+    [state],
+  );
+
   const activeIndex = useMemo(
     () =>
-      state.status === "ready" ? activeCueIndex(state.cues, currentTime) : -1,
-    [state, currentTime],
+      state.status === "ready" ? activeCueIndex(decodedCues, currentTime) : -1,
+    [state, decodedCues, currentTime],
   );
 
   // The single active token WITHIN the active cue (P1): its own interval, not
   // the cue's. -1 when between tokens or outside any cue.
   const activeToken = useMemo(() => {
     if (state.status !== "ready" || activeIndex < 0) return -1;
-    const cue = state.cues[activeIndex];
+    const cue = decodedCues[activeIndex];
     return cue ? activeTokenIndex(cue.tokens, currentTime) : -1;
-  }, [state, activeIndex, currentTime]);
+  }, [state, decodedCues, activeIndex, currentTime]);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -94,7 +106,7 @@ export function AlignmentViewer({
   // within the same token interval don't re-fire.
   const activeTokenValue: AlignedToken | null =
     state.status === "ready" && activeIndex >= 0 && activeToken >= 0
-      ? (state.cues[activeIndex]?.tokens[activeToken] ?? null)
+      ? (decodedCues[activeIndex]?.tokens[activeToken] ?? null)
       : null;
   useEffect(() => {
     onActiveTokenRef.current?.(activeTokenValue);
@@ -124,7 +136,8 @@ export function AlignmentViewer({
     );
   }
 
-  const { summary, cues } = state;
+  const { summary } = state;
+  const cues = decodedCues;
   return (
     <div
       className="flex h-full min-h-0 flex-col bg-slate-900/60"

@@ -4,11 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  decodeAlignedCues,
+  encodeAlignedCues,
   joinAlignedCues,
   readAlignmentCache,
   writeAlignmentCache,
 } from "./alignment.ts";
-import type { AlignmentCacheKey, JoinWord } from "./alignment.ts";
+import type { AlignedCue, AlignmentCacheKey, JoinWord } from "./alignment.ts";
 import { activeTokenIndex } from "./cues.ts";
 import type { TranscriptCue } from "./transcript.ts";
 import type { AlignmentResult } from "@prosodio/align";
@@ -135,6 +137,102 @@ describe("joinAlignedCues", () => {
       matchedRatio: 0,
       gapEpubTokens: 0,
     });
+  });
+});
+
+describe("encodeAlignedCues / decodeAlignedCues round-trip (Phase 7c)", () => {
+  // Mixes a fully-matched cue, a cue with unmatched tokens (epubSeq null),
+  // and a degenerate single-token cue — the three shapes joinAlignedCues
+  // actually produces.
+  const original: Array<AlignedCue> = [
+    {
+      startSec: 0,
+      endSec: 5,
+      tokens: [
+        { raw: "down", startSec: 0, endSec: 1, matched: true, epubSeq: 100 },
+        { raw: "the", startSec: 1, endSec: 2.5, matched: true, epubSeq: 101 },
+        {
+          raw: "rabbit",
+          startSec: 2.5,
+          endSec: 5,
+          matched: true,
+          epubSeq: 102,
+        },
+      ],
+      matchedRatio: 1,
+      gapEpubTokens: 0,
+    },
+    {
+      startSec: 5,
+      endSec: 10,
+      tokens: [
+        {
+          raw: "curiouser",
+          startSec: 5,
+          endSec: 7,
+          matched: true,
+          epubSeq: 200,
+        },
+        {
+          raw: "and",
+          startSec: 7,
+          endSec: 8.25,
+          matched: false,
+          epubSeq: null,
+        },
+        {
+          raw: "curiouser",
+          startSec: 8.25,
+          endSec: 10,
+          matched: false,
+          epubSeq: null,
+        },
+      ],
+      matchedRatio: 1 / 3,
+      gapEpubTokens: 42,
+    },
+    {
+      startSec: 10,
+      endSec: 12,
+      tokens: [
+        { raw: "♪ ♪", startSec: 10, endSec: 12, matched: false, epubSeq: null },
+      ],
+      matchedRatio: 0,
+      gapEpubTokens: 0,
+    },
+  ];
+
+  test("round-trips raw/matched/epubSeq exactly, times within Float32 precision", () => {
+    const { cues, tokens } = encodeAlignedCues(original);
+    const decoded = decodeAlignedCues(cues, tokens);
+
+    expect(decoded.length).toBe(original.length);
+    decoded.forEach((decodedCue, cueIndex) => {
+      const expectedCue = original[cueIndex]!;
+      expect(decodedCue.matchedRatio).toBe(expectedCue.matchedRatio);
+      expect(decodedCue.gapEpubTokens).toBe(expectedCue.gapEpubTokens);
+      expect(decodedCue.startSec).toBeCloseTo(expectedCue.startSec, 3);
+      expect(decodedCue.endSec).toBeCloseTo(expectedCue.endSec, 3);
+      expect(decodedCue.tokens.length).toBe(expectedCue.tokens.length);
+      decodedCue.tokens.forEach((token, tokenIndex) => {
+        const expectedToken = expectedCue.tokens[tokenIndex]!;
+        expect(token.raw).toBe(expectedToken.raw);
+        expect(token.matched).toBe(expectedToken.matched);
+        expect(token.epubSeq).toBe(expectedToken.epubSeq);
+        expect(token.startSec).toBeCloseTo(expectedToken.startSec, 3);
+        expect(token.endSec).toBeCloseTo(expectedToken.endSec, 3);
+      });
+    });
+  });
+
+  test("flat token table records each cue's tokenStart/tokenCount", () => {
+    const { cues, tokens } = encodeAlignedCues(original);
+    expect(tokens.count).toBe(7);
+    expect(cues.map((c) => [c.tokenStart, c.tokenCount])).toEqual([
+      [0, 3],
+      [3, 3],
+      [6, 1],
+    ]);
   });
 });
 

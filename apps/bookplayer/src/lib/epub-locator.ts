@@ -7,6 +7,7 @@
  * mistake). The browser decodes lazily and resolves a token straight to a DOM
  * Range via `rangeFromDomPath` (@prosodio/align/browser); no re-normalization.
  */
+import { decodeUint32, encodeUint32 } from "./typed-base64.ts";
 import type { EpubExtraction } from "@prosodio/align";
 import type { DomTokenLocator, SegPath } from "@prosodio/align/browser";
 
@@ -26,26 +27,6 @@ export interface EpubLocatorIndex {
   endSegData: string;
   endOffsetData: string;
   tokenCount: number;
-}
-
-function encodeUint32(values: Uint32Array): string {
-  const bytes = new Uint8Array(
-    values.buffer,
-    values.byteOffset,
-    values.byteLength,
-  );
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-
-function decodeUint32(base64: string): Uint32Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  // Uint32Array requires 4-byte alignment; base64-decoded buffers always
-  // start at offset 0, so this is safe.
-  return new Uint32Array(bytes.buffer, 0, bytes.length / 4);
 }
 
 /** Build the index from an extraction (server-side; the extraction carries
