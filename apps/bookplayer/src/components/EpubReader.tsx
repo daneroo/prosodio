@@ -3,8 +3,8 @@
  * import) and pushes state up through callbacks; the player route owns the
  * chrome. Lessons encoded from the experiment record:
  * - load lifecycle keyed to epubUrl only — relocation must never re-open
- * - range CFIs from Section.find are normalized to start points for
- *   display, while the highlight uses the full range
+ * - range CFIs are passed intact to both display and highlight; their common
+ *   ancestor alone is not the range's start point
  * - only the outer container clips; epub.js internal scroll math is left
  *   alone, or highlights land off-screen
  * - on resize, the active search target is re-displayed so a reflow cannot
@@ -12,7 +12,10 @@
  */
 import { useEffect, useRef } from "react";
 
-import { normalizeText, rangeFromDomPath } from "@prosodio/align/browser";
+import {
+  diagnoseRangeFromDomPath,
+  normalizeText,
+} from "@prosodio/align/browser";
 import type { DomTokenLocator, SegPath } from "@prosodio/align/browser";
 import type { Book, NavItem, Rendition } from "epubjs";
 
@@ -43,6 +46,23 @@ export interface EpubTokenLocate {
   expectedRaw: string;
 }
 
+export type LocateResult =
+  | { ok: true; cfi: string }
+  | {
+      ok: false;
+      reason:
+        | "reader-not-ready"
+        | "section-not-found"
+        | "section-load-failed"
+        | "section-document-missing"
+        | "range-path-failed"
+        | "text-mismatch"
+        | "cfi-generation-failed"
+        | "unexpected-error";
+      locator: EpubTokenLocate;
+      details?: unknown;
+    };
+
 export interface ReaderController {
   prev: () => void;
   next: () => void;
@@ -52,13 +72,13 @@ export interface ReaderController {
   clearSearch: () => void;
   /**
    * Resolve a captured DOM path locator to a Range in the loaded section and
-   * highlight it (the alignment follow/"show in book" join, plan D7). Skips
-   * silently — no highlight, no fallback — when the path doesn't resolve or
-   * the resolved text doesn't match `expectedRaw` (parser-parity guard: the
-   * browser's parsed section DOM must structurally match the server's
-   * extraction-time jsdom parse).
+   * highlight it (the alignment follow/"show in book" join, plan D7). Returns
+   * a structured failure — no highlight, no fallback — when the path doesn't
+   * resolve or the resolved text doesn't match `expectedRaw` (parser-parity
+   * guard: the browser's parsed section DOM must structurally match the
+   * server's extraction-time jsdom parse).
    */
-  locate: (locator: EpubTokenLocate) => Promise<void>;
+  locate: (locator: EpubTokenLocate) => Promise<LocateResult>;
 }
 
 export const EMPTY_SEARCH: SearchState = {
@@ -81,13 +101,6 @@ const MAX_RESULTS = 100;
 
 function cfiKey(bookId: string): string {
   return `bookplayer:${bookId}:cfi`;
-}
-
-/** Range CFI → start-point CFI for display (IndexSizeError guard). */
-function normalizeCfi(cfi: string): string {
-  if (!cfi.includes(",")) return cfi;
-  const base = cfi.split(",")[0] ?? cfi;
-  return base.endsWith(")") ? base : `${base})`;
 }
 
 export function EpubReader({
@@ -155,7 +168,7 @@ export function EpubReader({
       if (!rendition || !result) return;
       removeHighlight();
       resumeTarget.cfi = result.cfi;
-      void rendition.display(normalizeCfi(result.cfi)).then(() => {
+      void rendition.display(result.cfi).then(() => {
         if (!alive() || !rendition) return;
         try {
           rendition.annotations.highlight(
@@ -233,7 +246,7 @@ export function EpubReader({
           if (resizeTimer) clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
             if (!alive() || !rendition || !resumeTarget.cfi) return;
-            void rendition.display(normalizeCfi(resumeTarget.cfi));
+            void rendition.display(resumeTarget.cfi);
           }, 150);
         });
         resizeObserver.observe(container);
@@ -258,7 +271,21 @@ export function EpubReader({
           },
           gotoResult,
           locate: async (locator) => {
-            if (!book || !rendition) return;
+            const fail = (
+              reason: Extract<LocateResult, { ok: false }>["reason"],
+              details?: unknown,
+            ): LocateResult => {
+              const result: LocateResult = {
+                ok: false,
+                reason,
+                locator,
+                details,
+              };
+              console.warn("[EPUB locate failed]", result);
+              return result;
+            };
+
+            if (!book || !rendition) return fail("reader-not-ready");
             // Extraction hrefs and epub.js spine hrefs can differ by a base
             // dir prefix; match on either suffix.
             const section = spineItems(book).find(
@@ -266,22 +293,34 @@ export function EpubReader({
                 item.href.endsWith(locator.spineHref) ||
                 locator.spineHref.endsWith(item.href),
             );
-            if (!section) return;
+            if (!section) {
+              return fail("section-not-found", {
+                requestedSpineHref: locator.spineHref,
+                spineHrefs: spineItems(book).map((item) => item.href),
+              });
+            }
 
             let document = sectionCache.get(section.href);
             if (!document) {
               try {
                 await section.load(book.load.bind(book));
-              } catch {
-                return; // malformed section: skip, never mis-highlight
+              } catch (error) {
+                return fail("section-load-failed", {
+                  sectionHref: section.href,
+                  error,
+                });
               }
-              if (!alive()) return;
+              if (!alive()) return fail("reader-not-ready");
               document = section.document;
-              if (!document) return;
+              if (!document) {
+                return fail("section-document-missing", {
+                  sectionHref: section.href,
+                });
+              }
               cacheSection(section.href, document);
             }
 
-            const range = rangeFromDomPath(
+            const rangeResult = diagnoseRangeFromDomPath(
               document,
               locator.segPaths,
               locator.loc,
@@ -290,22 +329,39 @@ export function EpubReader({
             // match the server's extraction-time jsdom parse structurally. A
             // mismatch means the captured path no longer lands on the same
             // text — skip the highlight rather than risk a wrong one.
-            if (!range) return;
+            if (!rangeResult.ok) {
+              return fail("range-path-failed", {
+                sectionHref: section.href,
+                failure: rangeResult.failure,
+              });
+            }
+            const { range } = rangeResult;
+
             const resolvedText = normalizeText(range.toString()).text;
             const expectedText = normalizeText(locator.expectedRaw).text;
-            if (resolvedText !== expectedText) return;
+            if (resolvedText !== expectedText) {
+              return fail("text-mismatch", {
+                sectionHref: section.href,
+                expectedText,
+                resolvedText,
+              });
+            }
 
             let cfi: string;
             try {
               cfi = section.cfiFromRange(range);
-            } catch {
-              return; // best-effort: navigation/highlight both skipped
+            } catch (error) {
+              return fail("cfi-generation-failed", {
+                sectionHref: section.href,
+                error,
+              });
             }
-            if (!alive()) return;
+            if (!alive()) return fail("reader-not-ready");
             removeHighlight();
             resumeTarget.cfi = cfi;
-            await rendition.display(normalizeCfi(cfi));
-            if (!alive()) return;
+            await rendition.display(cfi);
+
+            if (!alive()) return fail("reader-not-ready");
             try {
               rendition.annotations.highlight(
                 cfi,
@@ -318,6 +374,7 @@ export function EpubReader({
             } catch {
               /* highlight is best-effort; navigation already happened */
             }
+            return { ok: true, cfi };
           },
           search: async (query) => {
             const trimmed = query.trim();

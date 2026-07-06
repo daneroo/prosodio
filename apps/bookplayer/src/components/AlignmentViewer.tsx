@@ -2,10 +2,10 @@
  * Alignment panel: the transcript cue list annotated with word-level
  * match/mismatch from the alignment engine (plan
  * thoughts/plans/bookplayer-align.md). Matches are word-by-word — one cue can
- * mix matched and unmatched tokens. During playback the single active TOKEN
- * (its own interpolated interval) is highlighted, not the whole cue (D7, P1).
- * Residual-gap markers flag book content the narration never reads. Click
- * seeks; shared time-interval machinery is in #/lib/cues.
+ * mix matched and unmatched tokens. During playback the active cue and its
+ * active token are highlighted. Residual-gap markers flag book content the
+ * narration never reads. Click seeks; shared time-interval machinery is in
+ * #/lib/cues.
  */
 import { BookOpenText } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +14,10 @@ import { decodeAlignedCues } from "#/lib/alignment-wire";
 import { activeCueIndex, activeTokenIndex } from "#/lib/cues";
 import { formatDuration } from "#/lib/browse";
 import { fetchAlignment } from "#/server/library";
+import type { LocateResult } from "#/components/EpubReader";
 import type { AlignedToken, AlignmentPayload } from "#/lib/alignment-wire";
+
+type LocateFailure = Extract<LocateResult, { ok: false }>;
 
 interface AlignmentViewerProps {
   bookId: string;
@@ -22,14 +25,14 @@ interface AlignmentViewerProps {
   onSeek: (sec: number) => void;
   /** "Show in book": the clicked cue's first matched token. */
   onShowInBook?: (token: AlignedToken) => void;
-  /**
-   * The active token's EPUB position (null = unmatched or between tokens) —
-   * the reader-follow signal (plan D7). Fires on token transitions.
-   */
+  /** The active token's EPUB position used for reader follow. This remains
+   * token-level even though the UI highlights only the containing cue. */
   onActiveToken?: (token: AlignedToken | null) => void;
   /** The full payload once loaded, so the route can drive the reader without
    * a second fetch (the compact EPUB locator index lives here too). */
   onPayload?: (payload: AlignmentPayload) => void;
+  /** Last failed EPUB follow/show-in-book attempt; rendered as a status hint. */
+  locateFailure?: LocateFailure | null;
 }
 
 type LoadState =
@@ -45,6 +48,7 @@ export function AlignmentViewer({
   onShowInBook,
   onActiveToken,
   onPayload,
+  locateFailure,
 }: AlignmentViewerProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -89,29 +93,26 @@ export function AlignmentViewer({
     [state, decodedCues, currentTime],
   );
 
-  // The single active token WITHIN the active cue (P1): its own interval, not
-  // the cue's. -1 when between tokens or outside any cue.
+  // Keep token-level selection as both the EPUB-follow signal and the active
+  // word highlight inside the active cue.
   const activeToken = useMemo(() => {
     if (state.status !== "ready" || activeIndex < 0) return -1;
     const cue = decodedCues[activeIndex];
-    return cue ? activeTokenIndex(cue.tokens, currentTime) : -1;
+    if (!cue) return -1;
+    return activeTokenIndex(cue.tokens, currentTime);
   }, [state, decodedCues, activeIndex, currentTime]);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [activeIndex]);
 
-  // Report token transitions (not every currentTime tick) for reader follow
-  // (plan D7): the active token itself, keyed on its identity so repeats
-  // within the same token interval don't re-fire.
   const activeTokenValue: AlignedToken | null =
     state.status === "ready" && activeIndex >= 0 && activeToken >= 0
       ? (decodedCues[activeIndex]?.tokens[activeToken] ?? null)
       : null;
   useEffect(() => {
     onActiveTokenRef.current?.(activeTokenValue);
-    // activeIndex/activeToken identify the transition; activeTokenValue is
-    // derived from them.
+    // The indexes identify the transition; activeTokenValue is derived.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, activeToken]);
 
@@ -144,6 +145,14 @@ export function AlignmentViewer({
       data-testid="alignment-viewer"
     >
       <div className="shrink-0 border-b border-slate-700 px-3 py-1.5 text-[11px] text-slate-500">
+        {locateFailure && (
+          <span
+            className="mr-2 font-medium text-rose-400"
+            title={`EPUB location failed: ${locateFailure.reason}. Open the console for details.`}
+          >
+            ✕ location
+          </span>
+        )}
         <span className="tabular-nums">
           narration {percent(summary.vttCoverage)} · book{" "}
           {percent(summary.epubCoverage)} · {summary.spanCount} spans ·{" "}

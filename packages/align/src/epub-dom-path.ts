@@ -24,15 +24,62 @@ export interface DomTokenLocator {
   endOffset: number;
 }
 
-/** Walk root by a childNodes index path to the Text node it names, or null. */
-function nodeAtPath(root: Node, path: SegPath): Text | null {
+export type DomPathNodeResult =
+  | { ok: true; node: Text; path: SegPath }
+  | {
+      ok: false;
+      path: SegPath;
+      reason: "missing-child" | "not-text-node";
+      failedAt: number;
+      requestedIndex?: number;
+      childCount?: number;
+      nodeType?: number;
+      nodeName?: string;
+    };
+
+export type DomPathRangeFailure =
+  | { reason: "missing-segment"; segment: "start" | "end"; segIndex: number }
+  | { reason: "start-path-failed"; path: DomPathNodeResult }
+  | { reason: "end-path-failed"; path: DomPathNodeResult }
+  | {
+      reason: "start-offset-out-of-range" | "end-offset-out-of-range";
+      offset: number;
+      length: number;
+    };
+
+export type DomPathRangeDiagnostic =
+  { ok: true; range: Range } | { ok: false; failure: DomPathRangeFailure };
+
+/** Walk root by a childNodes index path and explain why it fails. */
+function resolveNodeAtPath(root: Node, path: SegPath): DomPathNodeResult {
   let node: Node = root;
-  for (const index of path) {
+  for (const [failedAt, index] of path.entries()) {
     const child: ChildNode | undefined = node.childNodes[index];
-    if (child === undefined) return null;
+    if (child === undefined) {
+      return {
+        ok: false,
+        path,
+        reason: "missing-child",
+        failedAt,
+        requestedIndex: index,
+        childCount: node.childNodes.length,
+        nodeType: node.nodeType,
+        nodeName: node.nodeName,
+      };
+    }
     node = child;
   }
-  return node.nodeType === 3 /* TEXT_NODE */ ? (node as Text) : null;
+  if (node.nodeType !== 3 /* TEXT_NODE */) {
+    return {
+      ok: false,
+      path,
+      reason: "not-text-node",
+      failedAt: path.length,
+      nodeType: node.nodeType,
+      nodeName: node.nodeName,
+    };
+  }
+  return { ok: true, node: node as Text, path };
 }
 
 /**
@@ -47,22 +94,77 @@ export function rangeFromDomPath(
   segPaths: ReadonlyArray<SegPath>,
   loc: DomTokenLocator,
 ): Range | null {
+  const diagnostic = diagnoseRangeFromDomPath(root, segPaths, loc);
+  return diagnostic.ok ? diagnostic.range : null;
+}
+
+/** Same resolver as `rangeFromDomPath`, but preserves the failing step. */
+export function diagnoseRangeFromDomPath(
+  root: Node,
+  segPaths: ReadonlyArray<SegPath>,
+  loc: DomTokenLocator,
+): DomPathRangeDiagnostic {
   const startPath = segPaths[loc.startSeg];
   const endPath = segPaths[loc.endSeg];
-  if (startPath === undefined || endPath === undefined) return null;
+  if (startPath === undefined) {
+    return {
+      ok: false,
+      failure: {
+        reason: "missing-segment",
+        segment: "start",
+        segIndex: loc.startSeg,
+      },
+    };
+  }
+  if (endPath === undefined) {
+    return {
+      ok: false,
+      failure: {
+        reason: "missing-segment",
+        segment: "end",
+        segIndex: loc.endSeg,
+      },
+    };
+  }
 
-  const startNode = nodeAtPath(root, startPath);
-  const endNode = nodeAtPath(root, endPath);
-  if (startNode === null || endNode === null) return null;
+  const startNode = resolveNodeAtPath(root, startPath);
+  if (!startNode.ok) {
+    return {
+      ok: false,
+      failure: { reason: "start-path-failed", path: startNode },
+    };
+  }
+  const endNode = resolveNodeAtPath(root, endPath);
+  if (!endNode.ok) {
+    return { ok: false, failure: { reason: "end-path-failed", path: endNode } };
+  }
 
-  const startLength = startNode.nodeValue?.length ?? 0;
-  const endLength = endNode.nodeValue?.length ?? 0;
-  if (loc.startOffset < 0 || loc.startOffset > startLength) return null;
-  if (loc.endOffset < 0 || loc.endOffset > endLength) return null;
+  const startLength = startNode.node.nodeValue?.length ?? 0;
+  const endLength = endNode.node.nodeValue?.length ?? 0;
+  if (loc.startOffset < 0 || loc.startOffset > startLength) {
+    return {
+      ok: false,
+      failure: {
+        reason: "start-offset-out-of-range",
+        offset: loc.startOffset,
+        length: startLength,
+      },
+    };
+  }
+  if (loc.endOffset < 0 || loc.endOffset > endLength) {
+    return {
+      ok: false,
+      failure: {
+        reason: "end-offset-out-of-range",
+        offset: loc.endOffset,
+        length: endLength,
+      },
+    };
+  }
 
   const ownerDocument = root.ownerDocument ?? (root as Document);
   const range = ownerDocument.createRange();
-  range.setStart(startNode, loc.startOffset);
-  range.setEnd(endNode, loc.endOffset);
-  return range;
+  range.setStart(startNode.node, loc.startOffset);
+  range.setEnd(endNode.node, loc.endOffset);
+  return { ok: true, range };
 }

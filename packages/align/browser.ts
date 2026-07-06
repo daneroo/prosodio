@@ -5,7 +5,10 @@
  * module scope). Import this from client code; the package root ("@prosodio/
  * align") is server-only and must stay behind a dynamic import().
  */
-export { rangeFromDomPath } from "./src/epub-dom-path.ts";
+export {
+  diagnoseRangeFromDomPath,
+  rangeFromDomPath,
+} from "./src/epub-dom-path.ts";
 export type { DomTokenLocator, SegPath } from "./src/epub-dom-path.ts";
 export { normalizeText } from "./src/normalize.ts";
 export type { NormalizedText, Token } from "./src/normalize.ts";

@@ -1,9 +1,11 @@
 # bookplayer-align — The Prosodio Bookplayer - Alignment Visualisation
 
-Status: POC COMPLETE (Phase 7, 7a-7f done) — token-level sync proven end-to-end,
-browser-side, compact wire (Alice payload 1.28 MB). Ready for Daniel's review +
-merge. The full data-model rework is a SEPARATE post-merge task (see "Global
-review (deferred)"), per Daniel's ruling 2026-07-05.
+Status: POC COMPLETE (Phase 7, 7a-7f done), CORRECTIVE HARDENING OPEN (Phase 8).
+Token-level sync is proven end-to-end, browser-side, on a compact wire (Alice
+payload 1.28 MB), but the branch is not ready to merge until CFI navigation and
+long-list rendering are corrected. The full data-model rework remains a separate
+post-merge task (see "Global review (deferred)"), per Daniel's ruling
+2026-07-05.
 
 Goal: Visualize the epub/vtt alignment in the bookplayer UI
 
@@ -368,6 +370,71 @@ rework is deferred to the global review. Salvage the good parts of the badfix
       the browser's section parse matches the engine's XML-first parse) is
       handled by the runtime skip-guard, not assumed away — recorded as the
       POC's known risk, resolved fully in the global review.
+
+## Phase 8 — pre-merge usability fixes
+
+Browser investigation on private full-length books found two independent
+problems. Both must be fixed before this feature closes.
+
+### 8a — correct EPUB range-CFI navigation
+
+`section.cfiFromRange(range)` returns a valid EPUB range CFI. The current
+`normalizeCfi()` does not convert that range to its start point: splitting at
+the first comma discards both relative endpoints and leaves only the range's
+common ancestor. For example:
+
+```text
+range:  epubcfi(/6/2!/4/4/4/2,/1:0,/1:6)
+broken: epubcfi(/6/2!/4/4/4/2)
+```
+
+EPUB.js accepts the original range CFI in `rendition.display(cfi)`. Passing the
+truncated ancestor caused EPUB.js `Range.setEnd` `IndexSizeError` diagnostics;
+passing the full range removed them.
+
+- [x] Remove `normalizeCfi()` and pass the full CFI to `rendition.display` for
+      both playback follow and search-result navigation where applicable.
+- [ ] Manually browser-verify navigation plus highlight on a single-page text
+      and a multi-page/multi-section book. This feature has no browser-test
+      harness; introducing one solely for this regression is out of scope.
+
+Positioning and highlighting remain separate operations: `display(cfi)` makes
+the target page visible; `annotations.highlight(cfi)` marks the word. Both are
+required when playback crosses a page boundary.
+
+### 8b — virtualize both cue views
+
+The apparent EPUB layout stall was primarily paint starvation caused by both cue
+views rendering their complete datasets on every `currentTime` update. A full
+novel produced thousands of cue rows/token spans; active-token binary search
+measured effectively 0 ms, while temporarily limiting each rendered list to 100
+cues restored responsive playback and EPUB painting.
+
+- [ ] Add `@tanstack/react-virtual` and virtualize both `Transcript` and
+      `AlignmentViewer` with their existing scroll containers.
+- [ ] Keep the complete cue/token arrays for binary search, seek behavior, and
+      token-level EPUB follow; virtualize rendering only.
+- [ ] Support variable-height wrapped rows with element measurement and a modest
+      overscan; preserve a normal full-length scrollbar.
+- [ ] Replace `scrollIntoView()` with `virtualizer.scrollToIndex(activeIndex)`
+      so playback follows rows outside the mounted window.
+- [ ] Preserve click-to-seek, cue highlighting, token highlighting, gap markers,
+      and manual scrolling.
+- [ ] Remove the temporary `slice(0, 100)` diagnostic caps after virtualization
+      lands.
+
+### 8c — cleanup and acceptance
+
+- [x] Remove all temporary console timing/path diagnostics and paint probes.
+- [ ] After `bookplayer-align` merges, delete the dead `bookplayer-align-badfix`
+      branch (local and remote, if published). Its durable findings remain in
+      [bookplayer-align-bad-design.md](bookplayer-align-bad-design.md).
+- [ ] Re-run root `bun run ci` and the Phase 6 browser acceptance.
+- [ ] Private browser acceptance on at least one long book: continuous audio,
+      responsive scrolling, token-level alignment highlighting, and EPUB
+      display/highlight without multi-second paint starvation.
+- [ ] Record book-specific DOM-path failures as deferred locator hardening, not
+      as silent success (BACKLOG `bookplayer-epub-locator-hardening`).
 
 ### P2 proposal — EPUB native index (ADOPTED as 7e; kept for the rationale)
 

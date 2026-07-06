@@ -251,6 +251,33 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
   - revisit-when: search/highlight reliability or reader theming becomes a real
     limitation. See [plan](plans/archive/bookplayer.md) §EPUB reader.
 
+- [ ] bookplayer-epub-locator-hardening — make token DOM locators portable
+      across the engine and EPUB.js parsers
+  - why: token follow works when the server-captured child-node path resolves
+    against EPUB.js's browser document, but some real books return `range null`.
+    This is book/DOM-specific rather than book-length-specific: long books also
+    succeed when both parsers produce compatible trees.
+  - observed contract: a range CFI such as `epubcfi(/6/2!/4/4/4/2,/1:0,/1:6)`
+    contains a common path plus relative start/end paths. Splitting at the first
+    comma yields only the common ancestor, not a start-point CFI. EPUB.js
+    accepts the full range CFI for both display and annotation.
+  - parser risk: extraction captures `childNodes` paths from the server's
+    jsdom/XML-first parse; EPUB.js resolves against the browser's parsed section
+    DOM. HTML fallback, repaired markup, injected nodes, or differing XML/HTML
+    parsing can shift those paths. The current parity guard correctly skips
+    instead of highlighting the wrong repeated word, but supplies no fallback.
+  - investigate: record extraction parse mode per spine; compare structural
+    paths/checksums against EPUB.js; classify corpus failures; decide whether to
+    generate durable CFIs during extraction, reproduce the authoritative parse
+    in the browser, or add a constrained text fallback after structural failure.
+  - EPUB.js operational lessons: `display()` and `annotations.highlight()` are
+    distinct; Promise completion is not visual paint completion; repeated
+    display should eventually become latest-wins and avoid repagination when the
+    target is already visible. Keep EPUB script execution sandboxed—the
+    `about:srcdoc` blocked-script warning is expected for scripted EPUB content.
+  - revisit-when: after the alignment UI is made usable and before claiming
+    corpus-wide token-follow compatibility.
+
 - [x] bookplayer-alignment-layout — revisit the player component structure to
       surface alignment data
   - done 2026-07-05 on branch `bookplayer-align`: AlignmentViewer panel
@@ -278,3 +305,6 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
   - partly blocked by `align-better-fixture-pair` for a trustworthy pair, but
     the Alice search path works today. See [plan](plans/archive/bookplayer.md)
     §Final acceptance checklist.
+
+- [ ] Media-Chrome Web components consider using
+      [react version](https://www.media-chrome.org/docs/en/react/get-started)

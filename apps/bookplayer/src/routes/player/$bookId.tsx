@@ -26,10 +26,13 @@ import { epubTokenLocator } from "#/lib/epub-locator";
 import { fetchBook } from "#/server/library";
 import type { AlignedToken, AlignmentPayload } from "#/lib/alignment-wire";
 import type {
+  LocateResult,
   ReaderController,
   SearchState,
   TocItem,
 } from "#/components/EpubReader";
+
+type LocateFailure = Extract<LocateResult, { ok: false }>;
 
 const EpubReader = lazy(() =>
   import("#/components/EpubReader").then((m) => ({ default: m.EpubReader })),
@@ -51,6 +54,9 @@ function PlayerPage() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [queryInput, setQueryInput] = useState("");
   const [readerError, setReaderError] = useState<string | null>(null);
+  const [locateFailure, setLocateFailure] = useState<LocateFailure | null>(
+    null,
+  );
   // Alignment split: default on (plan D3) whenever both sides exist.
   const canAlign = book.hasEpub && book.hasVtt;
   const [alignOpen, setAlignOpen] = useState(canAlign);
@@ -94,15 +100,29 @@ function PlayerPage() {
       if (!locator) return;
       void controller
         .locate({ ...locator, expectedRaw: token.raw })
-        .catch(() => {
-          /* positioning is best-effort; the reader stays put */
+        .then((result) => {
+          if (result.ok) {
+            setLocateFailure(null);
+          } else {
+            setLocateFailure(result);
+          }
+        })
+        .catch((error) => {
+          const result: LocateFailure = {
+            ok: false,
+            reason: "unexpected-error",
+            locator: { ...locator, expectedRaw: token.raw },
+            details: { error },
+          };
+          console.warn("[EPUB locate failed]", result);
+          setLocateFailure(result);
         });
     },
     [controller, epubIndex],
   );
 
-  // Token transitions drive follow; repeats are skipped so the reader is not
-  // re-located on every currentTime tick within the same token's interval.
+  // Token transitions drive reader follow independently of visual styling in
+  // the alignment panel.
   const onActiveToken = useCallback(
     (token: AlignedToken | null) => {
       latestTokenRef.current = token;
@@ -399,6 +419,7 @@ function PlayerPage() {
                   onShowInBook={showInBook}
                   onActiveToken={onActiveToken}
                   onPayload={onPayload}
+                  locateFailure={locateFailure}
                 />
               </div>
             )}
