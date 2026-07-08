@@ -410,18 +410,21 @@ novel produced thousands of cue rows/token spans; active-token binary search
 measured effectively 0 ms, while temporarily limiting each rendered list to 100
 cues restored responsive playback and EPUB painting.
 
-- [ ] Add `@tanstack/react-virtual` and virtualize both `Transcript` and
+- [x] Add `@tanstack/react-virtual` and virtualize both `Transcript` and
       `AlignmentViewer` with their existing scroll containers.
-- [ ] Keep the complete cue/token arrays for binary search, seek behavior, and
+- [x] Keep the complete cue/token arrays for binary search, seek behavior, and
       token-level EPUB follow; virtualize rendering only.
-- [ ] Support variable-height wrapped rows with element measurement and a modest
+- [x] Support variable-height wrapped rows with element measurement and a modest
       overscan; preserve a normal full-length scrollbar.
-- [ ] Replace `scrollIntoView()` with `virtualizer.scrollToIndex(activeIndex)`
+- [x] Replace `scrollIntoView()` with `virtualizer.scrollToIndex(activeIndex)`
       so playback follows rows outside the mounted window.
-- [ ] Preserve click-to-seek, cue highlighting, token highlighting, gap markers,
+- [x] Preserve click-to-seek, cue highlighting, token highlighting, gap markers,
       and manual scrolling.
-- [ ] Remove the temporary `slice(0, 100)` diagnostic caps after virtualization
+- [x] Remove the temporary `slice(0, 100)` diagnostic caps after virtualization
       lands.
+- [ ] Browser-verify both virtualized lists on a long private book. Code and CI
+      are green; local verification was deferred because `localhost:3000`
+      refused the browser connection during implementation.
 
 ### 8c — cleanup and acceptance
 
