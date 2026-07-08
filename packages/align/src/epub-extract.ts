@@ -32,8 +32,14 @@ export interface ExtractionConfig {
   includeNonLinearSpineItems: boolean;
   excludedElements: readonly string[];
   domParser: "jsdom";
-  parseMode: "text/html";
+  parseMode: "xhtml-or-html-fallback";
 }
+
+/** Which parser actually produced a spine document's tree (design D10): XML
+ * first, lenient HTML fallback on malformed XML. epub.js picks its parser by
+ * file extension, so this recorded mode — not the config's static policy
+ * name — is what predicts cross-parser parity risk for a given section. */
+export type ParseMode = "xhtml" | "html-fallback";
 
 export interface SpineDocExtraction {
   spineIndex: number;
@@ -44,12 +50,19 @@ export interface SpineDocExtraction {
   /** Document-order visible text — the raw side of the offset map. */
   visibleText: string;
   normalized: NormalizedText;
+  /** "xhtml" by convention for excluded/empty docs — they have no content. */
+  parseMode: ParseMode;
   /**
    * Native DOM index captured in the same traversal as visibleText, for
    * resolving a token straight to a DOM Range without re-normalizing text.
-   * `tokenLocators` is parallel to `normalized.tokens`.
+   * `tokenLocators` is parallel to `normalized.tokens`; `segTextLen` is
+   * parallel to `segPaths` (UTF-16 length per text segment).
    */
-  dom: { segPaths: SegPath[]; tokenLocators: DomTokenLocator[] };
+  dom: {
+    segPaths: SegPath[];
+    segTextLen: number[];
+    tokenLocators: DomTokenLocator[];
+  };
 }
 
 export interface EpubToken {
@@ -118,16 +131,26 @@ const BLOCK_ELEMENTS = new Set([
  * elements — `<title/>` opens a never-closed RCDATA element that swallows the
  * entire body, yielding zero visible text (real books do this). Fall back to
  * the lenient HTML parser for any document that is not well-formed XML.
+ * Exported (T1.5) so the L1 capture self-check can re-parse the same section
+ * HTML the same way, outside this module's own extraction pass.
  */
-function parseContentDocument(html: string): Document {
+export function parseContentDocument(html: string): {
+  document: Document;
+  mode: ParseMode;
+} {
   try {
     const doc = new JSDOM(html, { contentType: "application/xhtml+xml" }).window
       .document;
-    if (doc.getElementsByTagName("parsererror").length === 0) return doc;
+    if (doc.getElementsByTagName("parsererror").length === 0) {
+      return { document: doc, mode: "xhtml" };
+    }
   } catch {
     // fall through to the lenient HTML parser
   }
-  return new JSDOM(html, { contentType: "text/html" }).window.document;
+  return {
+    document: new JSDOM(html, { contentType: "text/html" }).window.document,
+    mode: "html-fallback",
+  };
 }
 
 /**
@@ -145,9 +168,10 @@ export function projectVisibleText(
   text: string;
   segPaths: Array<SegPath>;
   segRanges: Array<{ start: number; end: number }>;
+  parseMode: ParseMode;
 } {
   const excluded = new Set(excludedElements.map((e) => e.toLowerCase()));
-  const document = parseContentDocument(html);
+  const { document, mode: parseMode } = parseContentDocument(html);
   const parts: string[] = [];
   const segPaths: Array<SegPath> = [];
   const segRanges: Array<{ start: number; end: number }> = [];
@@ -191,7 +215,7 @@ export function projectVisibleText(
     });
   };
   walk(document);
-  return { text: parts.join(""), segPaths, segRanges };
+  return { text: parts.join(""), segPaths, segRanges, parseMode };
 }
 
 /** Visible text of one content document, in document order. */
@@ -256,7 +280,7 @@ export async function extractEpub(
     includeNonLinearSpineItems: options.includeNonLinearSpineItems,
     excludedElements: options.excludedElements,
     domParser: "jsdom",
-    parseMode: "text/html",
+    parseMode: "xhtml-or-html-fallback",
   };
   const warnings: string[] = [];
 
@@ -281,7 +305,14 @@ export async function extractEpub(
     const linear = item.linear !== "no";
     const included = linear || options.includeNonLinearSpineItems;
     let visibleText = "";
-    let dom: SpineDocExtraction["dom"] = { segPaths: [], tokenLocators: [] };
+    let dom: SpineDocExtraction["dom"] = {
+      segPaths: [],
+      segTextLen: [],
+      tokenLocators: [],
+    };
+    // Excluded/empty docs have no content, so no parser ever ran on them —
+    // "xhtml" by convention (see SpineDocExtraction doc comment).
+    let parseMode: ParseMode = "xhtml";
     let normalized = normalizeText(visibleText);
     if (included) {
       const archiveUrl = bookAny.path?.resolve(spineHref) ?? "/" + spineHref;
@@ -294,9 +325,11 @@ export async function extractEpub(
           options.excludedElements,
         );
         visibleText = projection.text;
+        parseMode = projection.parseMode;
         normalized = normalizeText(visibleText);
         dom = {
           segPaths: projection.segPaths,
+          segTextLen: projection.segRanges.map((r) => r.end - r.start),
           tokenLocators: normalized.tokens.map((token) =>
             tokenLocatorFor(projection.segRanges, token.rawStart, token.rawEnd),
           ),
@@ -310,6 +343,7 @@ export async function extractEpub(
       included,
       visibleText,
       normalized,
+      parseMode,
       dom,
     });
   }

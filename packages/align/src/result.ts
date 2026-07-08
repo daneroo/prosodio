@@ -142,7 +142,7 @@ export const alignmentResultSchema = z.strictObject({
       includeNonLinearSpineItems: z.boolean(),
       excludedElements: z.array(z.string()),
       domParser: z.literal("jsdom"),
-      parseMode: z.literal("text/html"),
+      parseMode: z.literal("xhtml-or-html-fallback"),
     }),
   }),
   spans: z.array(spanSchema),

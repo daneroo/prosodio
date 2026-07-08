@@ -78,7 +78,7 @@ export interface AlignmentArtifact {
       includeNonLinearSpineItems: boolean;
       excludedElements: string[];
       domParser: "jsdom";
-      parseMode: "text/html";
+      parseMode: "xhtml-or-html-fallback"; // T1.1 renames the v1 echo literal
     };
   };
   match: {

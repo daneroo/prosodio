@@ -39,9 +39,14 @@ function syntheticExtraction(html: string): EpubExtraction {
         spineHref: "text/chapter1.xhtml",
         linear: true,
         included: true,
+        parseMode: projection.parseMode,
         visibleText: projection.text,
         normalized,
-        dom: { segPaths: projection.segPaths, tokenLocators },
+        dom: {
+          segPaths: projection.segPaths,
+          segTextLen: projection.segRanges.map((r) => r.end - r.start),
+          tokenLocators,
+        },
       },
     ],
     tokens: normalized.tokens.map((token, tokenIndex) => ({
@@ -54,7 +59,7 @@ function syntheticExtraction(html: string): EpubExtraction {
       includeNonLinearSpineItems: false,
       excludedElements,
       domParser: "jsdom",
-      parseMode: "text/html",
+      parseMode: "xhtml-or-html-fallback",
     },
     warnings: [],
   };
