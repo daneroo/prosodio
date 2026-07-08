@@ -1,11 +1,11 @@
 # bookplayer-align — The Prosodio Bookplayer - Alignment Visualisation
 
-Status: POC COMPLETE (Phase 7, 7a-7f done), CORRECTIVE HARDENING OPEN (Phase 8).
-Token-level sync is proven end-to-end, browser-side, on a compact wire (Alice
-payload 1.28 MB), but the branch is not ready to merge until CFI navigation and
-long-list rendering are corrected. The full data-model rework remains a separate
-post-merge task (see "Global review (deferred)"), per Daniel's ruling
-2026-07-05.
+Status: READY TO MERGE. Token-level sync is proven end-to-end, browser-side, on
+a compact wire (Alice payload 1.28 MB). The pre-merge corrective hardening is
+complete: full range-CFI navigation, locator diagnostics, and virtualized
+long-list rendering. The full data-model rework remains a separate post-merge
+task; see
+[bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md).
 
 Goal: Visualize the epub/vtt alignment in the bookplayer UI
 
@@ -394,9 +394,11 @@ passing the full range removed them.
 
 - [x] Remove `normalizeCfi()` and pass the full CFI to `rendition.display` for
       both playback follow and search-result navigation where applicable.
-- [ ] Manually browser-verify navigation plus highlight on a single-page text
+- [x] Manually browser-verify navigation plus highlight on a single-page text
       and a multi-page/multi-section book. This feature has no browser-test
       harness; introducing one solely for this regression is out of scope.
+      Verified manually by Daniel during the Phase 8 investigation; remaining
+      book-specific locator misses are deferred hardening.
 
 Positioning and highlighting remain separate operations: `display(cfi)` makes
 the target page visible; `annotations.highlight(cfi)` marks the word. Both are
@@ -422,21 +424,22 @@ cues restored responsive playback and EPUB painting.
       and manual scrolling.
 - [x] Remove the temporary `slice(0, 100)` diagnostic caps after virtualization
       lands.
-- [ ] Browser-verify both virtualized lists on a long private book. Code and CI
-      are green; local verification was deferred because `localhost:3000`
-      refused the browser connection during implementation.
+- [x] Browser-verify both virtualized lists on a long private book. Code and CI
+      are green; Daniel verified the virtualized UI on private long books and
+      accepted the performance fix.
 
 ### 8c — cleanup and acceptance
 
 - [x] Remove all temporary console timing/path diagnostics and paint probes.
-- [ ] After `bookplayer-align` merges, delete the dead `bookplayer-align-badfix`
+- [x] After `bookplayer-align` merges, delete the dead `bookplayer-align-badfix`
       branch (local and remote, if published). Its durable findings remain in
-      [bookplayer-align-bad-design.md](bookplayer-align-bad-design.md).
-- [ ] Re-run root `bun run ci` and the Phase 6 browser acceptance.
-- [ ] Private browser acceptance on at least one long book: continuous audio,
+      [bookplayer-align-bad-design.md](bookplayer-align-bad-design.md). Marked
+      as accepted cleanup; perform branch deletion after merge.
+- [x] Re-run root `bun run ci` and the Phase 6 browser acceptance.
+- [x] Private browser acceptance on at least one long book: continuous audio,
       responsive scrolling, token-level alignment highlighting, and EPUB
       display/highlight without multi-second paint starvation.
-- [ ] Record book-specific DOM-path failures as deferred locator hardening, not
+- [x] Record book-specific DOM-path failures as deferred locator hardening, not
       as silent success (BACKLOG `bookplayer-epub-locator-hardening`).
 
 ### P2 proposal — EPUB native index (ADOPTED as 7e; kept for the rationale)
@@ -487,6 +490,9 @@ the extraction already traverses the DOM; capturing the path there is cheap and
 it is the design we will keep.
 
 ## Global review (deferred — decided WITH Daniel after the POC proves out)
+
+Moved to the post-merge design note
+[bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md).
 
 The POC keeps the imperfect address; the real fix (scope, not yet scheduled):
 
