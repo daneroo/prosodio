@@ -1,9 +1,17 @@
-// The serialized alignment result — the single source of truth for what an
-// alignment run produces on disk. Every TS type is inferred from its Zod
+// The serialized alignment result (v1) — the single source of truth for what
+// an alignment run produces on disk. Every TS type is inferred from its Zod
 // schema (never hand-written in parallel); strictObject rejects undeclared
 // fields. Determinism: no run-instant, hostname, or wall-clock value may
 // appear here — the VTT provenance block is source data read from the input
 // file, so identical inputs still serialize byte-identically.
+//
+// NOTE (bookplayer-align-refine T2.1): this module is kept alive ONLY because
+// apps/bookplayer/src/lib/alignment.ts still calls buildAlignmentResult at
+// runtime (its compute path hasn't cut over to the v2 artifact yet). The CLI
+// (apps/align) no longer uses this file — its report projection moved to
+// apps/align/lib/report.ts (bookReportSchema/buildBookReport), which is a
+// near-duplicate of the schema/builder below. The duplication is intentional
+// and short-lived: Phase 5 deletes this file once bookplayer moves off it.
 import { z } from "zod";
 import type { BookAlignment } from "./align-book.ts";
 import { gapSchema, metricsSchema, spanEvidenceSchema } from "./artifact.ts";

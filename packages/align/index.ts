@@ -12,6 +12,9 @@ export {
   ALIGNMENT_ARTIFACT_SCHEMA_VERSION,
   alignmentArtifactSchema,
   buildAlignmentArtifact,
+  gapSchema,
+  metricsSchema,
+  spanEvidenceSchema,
 } from "./src/artifact.ts";
 export type { AlignmentArtifact, ArtifactSource } from "./src/artifact.ts";
 export {
