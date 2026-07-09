@@ -99,9 +99,14 @@ function PlayerPage() {
       if (!controller || !prepared || token.epubSeq === null) return;
       const located = epubLocatorAt(prepared.artifact.epub, token.epubSeq);
       if (!located) return;
-      // T4.3 wires section parity + segTextLen here
-      const { spineHref, segPaths, loc } = located;
-      const locator = { spineHref, segPaths, loc, expectedRaw: token.raw };
+      const { spineHref, segPaths, segTextLen, loc } = located;
+      const locator = {
+        spineHref,
+        segPaths,
+        segTextLen,
+        loc,
+        expectedRaw: token.raw,
+      };
       void controller
         .locate(locator)
         .then((result) => {
