@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayerBookIdRouteImport } from './routes/player/$bookId'
+import { Route as DevLocateBookIdRouteImport } from './routes/dev.locate.$bookId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const PlayerBookIdRoute = PlayerBookIdRouteImport.update({
   path: '/player/$bookId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevLocateBookIdRoute = DevLocateBookIdRouteImport.update({
+  id: '/dev/locate/$bookId',
+  path: '/dev/locate/$bookId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/player/$bookId': typeof PlayerBookIdRoute
+  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/player/$bookId': typeof PlayerBookIdRoute
+  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/player/$bookId': typeof PlayerBookIdRoute
+  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/player/$bookId'
+  fullPaths: '/' | '/player/$bookId' | '/dev/locate/$bookId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/player/$bookId'
-  id: '__root__' | '/' | '/player/$bookId'
+  to: '/' | '/player/$bookId' | '/dev/locate/$bookId'
+  id: '__root__' | '/' | '/player/$bookId' | '/dev/locate/$bookId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PlayerBookIdRoute: typeof PlayerBookIdRoute
+  DevLocateBookIdRoute: typeof DevLocateBookIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayerBookIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev/locate/$bookId': {
+      id: '/dev/locate/$bookId'
+      path: '/dev/locate/$bookId'
+      fullPath: '/dev/locate/$bookId'
+      preLoaderRoute: typeof DevLocateBookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PlayerBookIdRoute: PlayerBookIdRoute,
+  DevLocateBookIdRoute: DevLocateBookIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -543,7 +543,9 @@ the real browser through the real epub.js". Dev tool, never CI.
 - Route is dev-gated: render "not available" unless `import.meta.env.DEV`.
 - `locate-sweep.ts` (browser-only module, dynamic `import("epubjs")` like
   EpubReader):
-  - `sweepBook(artifact: AlignmentArtifact, prepared: PreparedAlignment, epubUrl: string, onProgress): Promise<SweepReport>`;
+  - `sweepBook(artifact: AlignmentArtifact, epubUrl: string, onProgress?): Promise<SweepReport>`
+    (as built: the sweep derives its vttSeq/expected-text lookup from spans
+    directly; no PreparedAlignment parameter);
   - matched EPUB token set = union of `[epubStart, epubEnd)` over
     `artifact.match.spans`, grouped by `spineIndex`;
   - per section with matched tokens: find the epub.js section by href suffix
