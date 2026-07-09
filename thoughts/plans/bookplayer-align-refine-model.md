@@ -1,6 +1,10 @@
 # bookplayer-align-refine — AlignmentArtifact v2
 
-Status: planning
+Status: IMPLEMENTED (Phases 0-5 complete, all orchestrator acceptance recorded
+in Phase 6) — awaiting Daniel's dev-time items: Crippled God sizes/stability,
+private-corpus sweep triage (Daniel's out-of-repo sweep report to integrate —
+see BACKLOG bookplayer-epub-locator-hardening), and CLI corpus revalidation.
+Then plan → archive.
 
 Design (authoritative for WHY):
 [design/bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md)
@@ -630,12 +634,21 @@ Phase 5 commit: `refine-model P5 — delete v1 model + wire modules; docs`.
       one gap marker; click seeks; active token follows playback; double-click
       show-in-book highlights in the reader; locate warning appears on a forced
       failure (dev-tools induced) with a single console report; 304 served on
-      reload (network tab). PARTIAL 2026-07-09: verified live —
-      punctuation-intact rendering, leading + interior gap markers,
-      click-to-seek (26.94s), active token "tired" correct at 30s, reader follow
-      highlight painted via the parity gate, zero console warnings. Remaining:
-      forced locate-failure warning check + network-tab 304 (trivial; roll into
-      final acceptance).
+      reload (network tab). DONE 2026-07-09: verified live — punctuation-intact
+      rendering, leading + interior gap markers, click-to-seek (26.94s), active
+      token "tired" correct at 30s, reader follow highlight painted via the
+      parity gate, zero console warnings. 304: browser reload revalidated
+      (transferSize 300 B vs 166,746 B encoded body — headers only). Forced
+      failure: corrupted a cached artifact's segTextLen (served from a second
+      origin to defeat the browser's HTTP cache, which otherwise correctly kept
+      serving the intact cached body — two layers of caching resisted the
+      sabotage before the corrupt bytes got through) → UI hint "EPUB location
+      failed: section-parity-failed", and two further locates in the bad section
+      produced ZERO additional console warnings (measured with a console.warn
+      wrapper). Known dev nuance: React StrictMode double-mount computes parity
+      ~2x per PAGE LOAD (bounded, dev-only); the per-token spam the design
+      targeted is confirmed suppressed. Cache restored (regenerates on next
+      request).
 - [x] L3 sweep on Alice (`/dev/locate/790133709c8f`): 100% of matched EPUB
       tokens produce a working, round-tripped epubcfi (Alice is all-.xhtml, both
       parsers take the XML path — anything less than 100% is a bug, not book
