@@ -18,6 +18,10 @@ const config = defineConfig({
     preset: "bun",
     rollupConfig: { external: [/^@sentry\//] },
     handlers: [
+      {
+        route: "/api/alignment/:bookId",
+        handler: "./server/handlers/alignment.ts",
+      },
       { route: "/api/audio/:bookId", handler: "./server/handlers/audio.ts" },
       { route: "/api/cover/:bookId", handler: "./server/handlers/cover.ts" },
       { route: "/api/epub/:bookId", handler: "./server/handlers/epub.ts" },
