@@ -22,8 +22,9 @@ and
 - `bun run dev` — dev server on port 3000 (run from this directory)
 - `bun run build` then `bun run start` — production build + serve
 - Quality gates are root-level: `bun run ci` from the repo root
-- Volatile state: `data/bookplayer/{cache,evidence,align}` (gitignored);
-  `align/` caches per-book `AlignmentResult` JSON keyed by schema version +
+- Volatile state: `data/bookplayer/{cache,evidence}` (gitignored); `cache/`
+  holds the metadata index (`index.json`) and per-book alignment artifacts
+  (`<bookId>.alignment.{json,json.gz,key.json}`) keyed by schema version +
   source mtimes — delete a file to force recompute
 
 ## Setup
@@ -45,3 +46,25 @@ and
 - Canonical record: one `.m4b` + `cover.jpg|png` per directory; `.epub` and a
   basename-matched `.vtt` (from the transcriptions dir) are capabilities.
 - Progress (audio position, EPUB CFI, filters) lives in `localStorage`.
+- `GET /api/alignment/:bookId` (`server/handlers/alignment.ts`) serves the
+  versioned `AlignmentArtifact` (`@prosodio/align`) as pure bytes: `ETag`
+  (`W/"a<schemaVersion>-<vttMtimeMs>-<epubMtimeMs>"`), `If-None-Match` -> 304,
+  gzip variant when `Accept-Encoding` allows, `Cache-Control: no-cache`. First
+  call for a book computes and caches the artifact — can take minutes on large
+  private books, same UX as before. The client derives everything else
+  (`@prosodio/align/browser`: token times, epubSeq, cue aggregates, locator
+  lookup) — no server-side join.
+- Alignment cache:
+  `data/bookplayer/cache/<bookId>.alignment.{json,json.gz,key.json}`.
+  `.key.json` is the staleness sidecar (`schemaVersion`, `vttMtimeMs`,
+  `epubMtimeMs` only — no filesystem paths; the artifact is a browser-served
+  asset).
+- EPUB locate (`EpubReader.tsx`) validates whole-section parity
+  (`checkSectionParity`, `@prosodio/align/browser`) once per section href before
+  trusting any token locate in it; a parity failure warns once per section (not
+  once per token) and the section is marked unlocatable.
+- Dev-only `/dev/locate/:bookId` (`src/routes/dev.locate.$bookId.tsx`) sweeps
+  every matched EPUB token through the real epub.js: DOM path resolve -> text
+  guard -> `cfiFromRange` -> `EpubCFI` round-trip. Reports totals + per-section
+  detail in the UI and via `window.__locateSweepReport`; never runs outside
+  `import.meta.env.DEV`.
