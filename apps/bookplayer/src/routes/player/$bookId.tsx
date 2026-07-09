@@ -19,12 +19,14 @@ import {
 } from "react";
 import type { FormEvent } from "react";
 
+import { epubLocatorAt } from "@prosodio/align/browser";
+
 import { AlignmentViewer } from "#/components/AlignmentViewer";
 import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
-import { epubTokenLocator } from "#/lib/epub-locator";
 import { fetchBook } from "#/server/library";
-import type { AlignedToken, AlignmentPayload } from "#/lib/alignment-wire";
+import type { ActiveTokenInfo } from "#/components/AlignmentViewer";
+import type { PreparedAlignment } from "#/lib/alignment-client";
 import type {
   LocateResult,
   ReaderController,
@@ -64,13 +66,11 @@ function PlayerPage() {
   // on; any manual reader navigation disengages it.
   const [followReader, setFollowReader] = useState(canAlign);
   const lastFollowedSeqRef = useRef(-1);
-  // The compact EPUB locator index (plan D7/P2), lifted from the
-  // AlignmentViewer's own fetch — resolution happens entirely client-side
-  // from here on, no further server round-trips.
-  const [epubIndex, setEpubIndex] = useState<
-    Extract<AlignmentPayload, { status: "ready" }>["epub"] | null
-  >(null);
-  const latestTokenRef = useRef<AlignedToken | null>(null);
+  // The prepared artifact (plan D7/P2), lifted from the AlignmentViewer's own
+  // fetch + derive pass — resolution happens entirely client-side from here
+  // on, no further server round-trips.
+  const [prepared, setPrepared] = useState<PreparedAlignment | null>(null);
+  const latestTokenRef = useRef<ActiveTokenInfo | null>(null);
   const audio = useAudioTransport(book.id);
 
   const submitSearch = useCallback(
@@ -87,19 +87,23 @@ function PlayerPage() {
     controller?.clearSearch();
   }, [controller]);
 
-  const onPayload = useCallback((payload: AlignmentPayload) => {
-    if (payload.status === "ready") setEpubIndex(payload.epub);
+  const onPrepared = useCallback((next: PreparedAlignment) => {
+    setPrepared(next);
   }, []);
 
-  // "Show in book": decode the token's compact locator and resolve it to a
-  // Range entirely in the browser (plan D7) — no server round-trip.
+  // "Show in book": resolve the token's EPUB locator against the prepared
+  // artifact and resolve it to a Range entirely in the browser (plan D7) — no
+  // server round-trip.
   const showInBook = useCallback(
-    (token: AlignedToken) => {
-      if (!controller || !epubIndex || token.epubSeq === null) return;
-      const locator = epubTokenLocator(epubIndex, token.epubSeq);
-      if (!locator) return;
+    (token: ActiveTokenInfo) => {
+      if (!controller || !prepared || token.epubSeq === null) return;
+      const located = epubLocatorAt(prepared.artifact.epub, token.epubSeq);
+      if (!located) return;
+      // T4.3 wires section parity + segTextLen here
+      const { spineHref, segPaths, loc } = located;
+      const locator = { spineHref, segPaths, loc, expectedRaw: token.raw };
       void controller
-        .locate({ ...locator, expectedRaw: token.raw })
+        .locate(locator)
         .then((result) => {
           if (result.ok) {
             setLocateFailure(null);
@@ -111,20 +115,20 @@ function PlayerPage() {
           const result: LocateFailure = {
             ok: false,
             reason: "unexpected-error",
-            locator: { ...locator, expectedRaw: token.raw },
+            locator,
             details: { error },
           };
           console.warn("[EPUB locate failed]", result);
           setLocateFailure(result);
         });
     },
-    [controller, epubIndex],
+    [controller, prepared],
   );
 
   // Token transitions drive reader follow independently of visual styling in
   // the alignment panel.
   const onActiveToken = useCallback(
-    (token: AlignedToken | null) => {
+    (token: ActiveTokenInfo | null) => {
       latestTokenRef.current = token;
       if (!followReader || !token || token.epubSeq === null) return;
       if (lastFollowedSeqRef.current === token.epubSeq) return;
@@ -418,7 +422,7 @@ function PlayerPage() {
                   onSeek={audio.seek}
                   onShowInBook={showInBook}
                   onActiveToken={onActiveToken}
-                  onPayload={onPayload}
+                  onPrepared={onPrepared}
                   locateFailure={locateFailure}
                 />
               </div>
