@@ -48,11 +48,5 @@ export {
 } from "./src/epub-extract.ts";
 export type { EpubExtraction } from "./src/epub-extract.ts";
 export { computeGaps } from "./src/reconcile.ts";
-export {
-  ALIGNMENT_RESULT_SCHEMA_VERSION,
-  alignmentResultSchema,
-  buildAlignmentResult,
-} from "./src/result.ts";
-export type { AlignmentResult, ResultSource } from "./src/result.ts";
 export { buildVttSequence } from "./src/vtt-sequence.ts";
 export type { VttSequence, VttWord } from "./src/vtt-sequence.ts";

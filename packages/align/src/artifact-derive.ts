@@ -67,10 +67,10 @@ export function deriveTokenTimes(
 }
 
 /**
- * Per-token end time, ported verbatim from apps/bookplayer/src/lib/
- * alignment.ts joinAlignedCues: a token ends where the next token in the same
- * cue starts; the last token in a cue ends at the cue's endSec. Math.max
- * guards non-monotonic interpolation (e.g. the word-timing collapse, where
+ * Per-token end time, ported verbatim from joinAlignedCues in the deleted
+ * apps/bookplayer/src/lib/alignment.ts: a token ends where the next token in
+ * the same cue starts; the last token in a cue ends at the cue's endSec.
+ * Math.max guards non-monotonic interpolation (e.g. the word-timing collapse, where
  * every token in a cue shares one start) so every derived interval stays
  * non-empty on the low end (start <= end), even though it may be zero-width.
  */
@@ -119,9 +119,10 @@ export interface CueAggregates {
 }
 
 /**
- * Per-cue matched ratio and gap-token attribution, ported verbatim from
- * joinAlignedCues: each gap's epub token count is charged to the cue holding
- * the last VTT word before the gap (`cueIndex[gap.vttStart - 1]`); a gap at
+ * Per-cue matched ratio and gap-token attribution, ported verbatim from the
+ * deleted alignment.ts's joinAlignedCues: each gap's epub token count is
+ * charged to the cue holding the last VTT word before the gap
+ * (`cueIndex[gap.vttStart - 1]`); a gap at
  * the very start of the stream (vttStart 0, so `vttStart - 1` indexes
  * nothing) has no preceding cue and becomes the leading marker instead.
  */
@@ -200,11 +201,12 @@ export interface EpubTokenLocation {
 
 /**
  * Bounds-checked point read of one EPUB token's DOM locator plus the spine
- * section it belongs to. The spiritual successor of epubTokenLocator
- * (apps/bookplayer/src/lib/epub-locator.ts) against the columnar artifact
- * instead of a base64-encoded typed-array index: null for any non-integer,
- * negative, or out-of-range epubSeq, or a spineIndex the artifact doesn't
- * carry (defensive; the schema already guarantees in-range spineIndex).
+ * section it belongs to. The spiritual successor of epubTokenLocator from
+ * the deleted apps/bookplayer/src/lib/epub-locator.ts, against the columnar
+ * artifact instead of a base64-encoded typed-array index: null for any
+ * non-integer, negative, or out-of-range epubSeq, or a spineIndex the
+ * artifact doesn't carry (defensive; the schema already guarantees
+ * in-range spineIndex).
  */
 export function epubLocatorAt(
   epub: AlignmentArtifact["epub"],

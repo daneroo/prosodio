@@ -8,13 +8,10 @@
 // appear here — the VTT provenance block is source data read from the input
 // file, so identical inputs still serialize byte-identically.
 //
-// NOTE (bookplayer-align-refine T2.1): packages/align/src/result.ts still
-// contains a near-duplicate of this schema/builder (there named
-// alignmentResultSchema/buildAlignmentResult) because
-// apps/bookplayer/src/lib/alignment.ts still calls the v1 builder at runtime
-// until Phase 4 flips the bookplayer client onto the v2 artifact. This
-// duplication is intentional and short-lived: Phase 5 deletes result.ts once
-// bookplayer no longer needs it.
+// NOTE (bookplayer-align-refine T5.1): packages/align/src/result.ts (the v1
+// alignmentResultSchema/buildAlignmentResult, a near-duplicate of this
+// schema/builder) was deleted once bookplayer cut over to the v2 artifact.
+// This module is now the sole owner of the report shape.
 import {
   existsSync,
   mkdirSync,

@@ -621,17 +621,30 @@ Phase 5 commit: `refine-model P5 — delete v1 model + wire modules; docs`.
       console). Budget: wire ≤ old transport (Alice old baseline 1.28 MB),
       parse+prepare well under a second on the long book. A failed budget
       reopens D4 (packed columns behind the codec seam) as a NEW plan item — do
-      not improvise encoding inline.
+      not improvise encoding inline. PARTIAL 2026-07-09 (Alice): 875,372 B raw
+      json → 166,746 B gzip on the wire (old baseline 1.28 MB → ~8x smaller);
+      first compute+serve 0.9s, cached serve 3.5ms, If-None-Match → 304.
+      Crippled God: Daniel, dev-time.
 - [ ] Browser acceptance on Alice (fixtures root, preview server): panel renders
       match/partial/unmatched styling with punctuation-intact cue text; at least
       one gap marker; click seeks; active token follows playback; double-click
       show-in-book highlights in the reader; locate warning appears on a forced
       failure (dev-tools induced) with a single console report; 304 served on
-      reload (network tab).
-- [ ] L3 sweep on Alice (`/dev/locate/<aliceId>`): 100% of matched EPUB tokens
-      produce a working, round-tripped epubcfi (Alice is all-.xhtml, both
+      reload (network tab). PARTIAL 2026-07-09: verified live —
+      punctuation-intact rendering, leading + interior gap markers,
+      click-to-seek (26.94s), active token "tired" correct at 30s, reader follow
+      highlight painted via the parity gate, zero console warnings. Remaining:
+      forced locate-failure warning check + network-tab 304 (trivial; roll into
+      final acceptance).
+- [x] L3 sweep on Alice (`/dev/locate/790133709c8f`): 100% of matched EPUB
+      tokens produce a working, round-tripped epubcfi (Alice is all-.xhtml, both
       parsers take the XML path — anything less than 100% is a bug, not book
-      noise). Record totals here.
+      noise). RESULT 2026-07-09: 9,343/9,343 tokens ok across 2 sections with
+      matched spans (9,338 + 5; parity ok, 1005 + 73 segments; parseMode xhtml =
+      predicted for both). Known cosmetic issue: epub.js emits internal
+      `substitute` TypeErrors to the console during the sweep's renderless
+      section.load (absent in the real player, which has a rendition); results
+      unaffected — noted for BACKLOG.
 - [ ] Daniel, private corpus: long-book stability (scroll, follow, highlight);
       run the L3 sweep on a known-problem book and record coverage — failures
       must cluster in sections the artifact already flags (parseMode

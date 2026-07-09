@@ -1,11 +1,10 @@
 /**
  * AlignmentArtifact v2 disk cache (plan
- * thoughts/plans/bookplayer-align-refine-model.md, T3.1). Additive successor
- * to alignment.ts's AlignmentResult cache: the artifact is pure servable
- * bytes (JSON + a gzip twin) written once, keyed by schema version + source
- * mtimes, alongside a small staleness sidecar. @prosodio/align is imported
- * dynamically so jsdom never enters a client module graph (same rationale as
- * alignment.ts's loadAlignmentResult).
+ * thoughts/plans/bookplayer-align-refine-model.md, T3.1). The artifact is
+ * pure servable bytes (JSON + a gzip twin) written once, keyed by schema
+ * version + source mtimes, alongside a small staleness sidecar.
+ * @prosodio/align is imported dynamically so jsdom never enters a client
+ * module graph.
  */
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

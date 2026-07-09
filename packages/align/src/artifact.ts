@@ -132,8 +132,8 @@ export const alignmentArtifactSchema = z
     // Public, browser-served block (Codex review #1): no filesystem paths.
     // `root` is the root NAME (e.g. "fixtures" | "private"), not a directory.
     // Absolute paths (vttPath/epubPath/m4bPath) live only in the server cache
-    // sidecar and the local CLI report projection (result.ts's
-    // ResultSource); they never reach this artifact.
+    // sidecar and the local CLI report projection (apps/align/lib/report.ts's
+    // ReportSource); they never reach this artifact.
     source: z.strictObject({
       root: z.string(),
       base: z.string(),
@@ -378,9 +378,9 @@ export const alignmentArtifactSchema = z
 
 export type AlignmentArtifact = z.infer<typeof alignmentArtifactSchema>;
 
-// Deliberately narrower than result.ts's ResultSource: this is the only
-// input buildAlignmentArtifact accepts, so it cannot smuggle filesystem
-// paths into the public artifact even by accident.
+// Deliberately narrower than apps/align/lib/report.ts's ReportSource: this
+// is the only input buildAlignmentArtifact accepts, so it cannot smuggle
+// filesystem paths into the public artifact even by accident.
 export interface ArtifactSource {
   root: string;
   base: string;
@@ -454,9 +454,9 @@ export function buildAlignmentArtifact(
   return alignmentArtifactSchema.parse(artifact);
 }
 
-/** Same per-token locator mapping as buildEpubLocatorIndex
- * (apps/bookplayer/src/lib/epub-locator.ts), columnar instead of typed-array
- * base64. */
+/** Per-token DOM locator mapping, stored as columnar arrays (the v1
+ * typed-array/base64 encoding this superseded, apps/bookplayer/src/lib/
+ * epub-locator.ts, was deleted in Phase 5). */
 function buildEpubTokenColumns(
   alignment: BookAlignment,
 ): AlignmentArtifact["epub"]["tokens"] {
