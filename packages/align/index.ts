@@ -27,6 +27,8 @@ export type {
   CueAggregates,
   EpubTokenLocation,
 } from "./src/artifact-derive.ts";
+export { checkSectionParity } from "./src/section-parity.ts";
+export type { SectionParityResult } from "./src/section-parity.ts";
 export { config as alignConfig } from "./src/config.ts";
 export type {
   EpubTextAddress,

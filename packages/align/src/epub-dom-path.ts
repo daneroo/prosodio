@@ -50,8 +50,15 @@ export type DomPathRangeFailure =
 export type DomPathRangeDiagnostic =
   { ok: true; range: Range } | { ok: false; failure: DomPathRangeFailure };
 
-/** Walk root by a childNodes index path and explain why it fails. */
-function resolveNodeAtPath(root: Node, path: SegPath): DomPathNodeResult {
+/**
+ * Walk root by a childNodes index path and explain why it fails. Exported so
+ * callers that need a bare node resolution — section-parity.ts's whole-table
+ * check, not a start/end range — reuse this walk instead of duplicating it.
+ */
+export function resolveNodeAtPath(
+  root: Node,
+  path: SegPath,
+): DomPathNodeResult {
   let node: Node = root;
   for (const [failedAt, index] of path.entries()) {
     const child: ChildNode | undefined = node.childNodes[index];

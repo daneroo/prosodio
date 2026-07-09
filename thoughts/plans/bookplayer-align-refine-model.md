@@ -268,7 +268,7 @@ Files: new `packages/align/src/section-parity.ts` (+test);
     | {
         ok: false;
         reason:
-          "seg-count-mismatch" | "seg-path-failed" | "seg-length-mismatch";
+          "seg-table-mismatch" | "seg-path-failed" | "seg-length-mismatch";
         expectedSegCount: number;
         firstDivergentSeg?: number; // index into segPaths
         detail?: unknown; // DomPathNodeResult or {expected, actual} lengths

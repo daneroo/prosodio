@@ -25,6 +25,8 @@ export type {
   CueAggregates,
   EpubTokenLocation,
 } from "./src/artifact-derive.ts";
+export { checkSectionParity } from "./src/section-parity.ts";
+export type { SectionParityResult } from "./src/section-parity.ts";
 // Type-only: AlignmentArtifact is a zod-inferred type, but importing only the
 // type (not alignmentArtifactSchema) keeps zod's runtime out of the browser
 // bundle graph.
