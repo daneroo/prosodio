@@ -14,6 +14,19 @@ export {
   buildAlignmentArtifact,
 } from "./src/artifact.ts";
 export type { AlignmentArtifact, ArtifactSource } from "./src/artifact.ts";
+export {
+  activeTokenAt,
+  deriveCueAggregates,
+  deriveEpubSeq,
+  deriveTokenEndTimes,
+  deriveTokenTimes,
+  epubLocatorAt,
+  tokenRaw,
+} from "./src/artifact-derive.ts";
+export type {
+  CueAggregates,
+  EpubTokenLocation,
+} from "./src/artifact-derive.ts";
 export { config as alignConfig } from "./src/config.ts";
 export type {
   EpubTextAddress,
