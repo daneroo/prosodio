@@ -60,12 +60,12 @@ export interface AlignmentArtifact {
   schemaVersion: 2;
   features: string[]; // [] for now; reserved for e.g. packed columns
   source: {
-    // carried verbatim from v1 result.ts source block
+    // Codex review #1: the artifact is a browser-served asset — it carries
+    // NO filesystem paths. root is the root NAME (fixtures | private).
+    // Absolute paths live in the cache key sidecar (server-only) and the
+    // CLI report projection (local/private) only.
     root: string;
     base: string;
-    vttPath: string;
-    epubPath: string;
-    m4bPath: string | null;
     vttTiming: "word" | "interpolated";
     vttProvenance: Record<string, unknown> | null;
   };
@@ -136,8 +136,11 @@ export interface AlignmentArtifact {
 Zod: `strictObject` throughout (v1 house style); `superRefine` checks column
 invariants — vtt token columns equal length; cue columns equal length; epub
 token columns equal length; per spine `segPaths.length === segTextLen.length`;
-`cueIndex`/`spineIndex` non-decreasing and in range. Determinism rule carries
-from v1: no run-instant, hostname, or wall-clock value in the artifact.
+`cueIndex`/`spineIndex` non-decreasing and in range. Span invariants (Codex
+review #3 — `deriveEpubSeq` depends on them): every span non-empty, equal-width
+(`vttEnd - vttStart === epubEnd - epubStart`), in bounds for both token tables,
+and spans sorted non-overlapping on both axes; gaps in bounds. Determinism rule
+carries from v1: no run-instant, hostname, or wall-clock value in the artifact.
 
 Derived, never stored (helpers in Phase 1): per-token time, endSec, matched,
 epubSeq, per-cue matchedRatio, gap attribution, coverage labels.
@@ -191,7 +194,10 @@ Files: new `packages/align/src/artifact.ts` (+test); `packages/align/index.ts`
 - Implement the normative contract above. Move the v1 metrics/evidence
   sub-schemas from `result.ts` into `artifact.ts` (import them back into
   `result.ts` so v1 still compiles — v1 dies in Phase 5).
-- `buildAlignmentArtifact(alignment: BookAlignment, source: ResultSource): AlignmentArtifact`:
+- `buildAlignmentArtifact(alignment: BookAlignment, source: ArtifactSource): AlignmentArtifact`
+  where `ArtifactSource = { root: string; base: string }` (Codex #1: no
+  filesystem paths enter the artifact; `ResultSource` with paths stays a
+  report-only type):
   - match block from `alignment.spans/gaps/metrics` (values untouched);
   - vtt block from `alignment.vtt.cues` + per-word `cueIndex/charStart/charEnd`;
     round cue times to ms (`Math.round(x * 1000) / 1000`);
@@ -238,8 +244,12 @@ No zod, jsdom, or node imports (browser bundle). Types from `artifact.ts` via
   — bounds-checked column read (the spiritual successor of `epubTokenLocator`).
 - `tokenRaw(vtt, seq): string` —
   `cues.text[cueIndex[seq]].slice(charStart, charEnd)`.
-- Tests: synthetic artifacts covering word + interpolated timing, degenerate
-  cues, leading gap, cue-boundary end times, out-of-range locator queries.
+- Tests: include one documenting the word-timing collapse (Codex #6): a
+  word-timed cue with MULTIPLE normalized tokens gives every token the cue start
+  (zero-width intervals except the last) — existing engine policy, now pinned by
+  a test rather than assumed. Plus synthetic artifacts covering word +
+  interpolated timing, degenerate cues, leading gap, cue-boundary end times,
+  out-of-range locator queries.
 - Done: root CI green; `browser.ts` compiles with no server-only imports
   (verify: `grep -n "jsdom\|node:" packages/align/src/artifact-derive.ts`
   returns nothing).
@@ -424,9 +434,11 @@ entangled). Old server path becomes dead code (deleted in Phase 5).
 
 Files: new `apps/bookplayer/src/lib/alignment-client.ts` (+test).
 
-- `fetchArtifact(bookId, signal): Promise<AlignmentArtifact>` — plain
-  `fetch(`/api/alignment/${bookId}`)`; 404 → typed `unavailable` result; non-OK
-  → error; `res.json()`.
+- `fetchArtifact(bookId, signal): Promise<AlignmentLoadResult>` (Codex #2 — one
+  honest contract) where
+  `AlignmentLoadResult = { status: "ready"; artifact: AlignmentArtifact } | { status: "unavailable" }`;
+  plain `fetch(`/api/alignment/${bookId}`)`; 404 → `unavailable`; other
+  non-OK/network failures throw (the viewer's error state catches).
 - `prepareAlignment(artifact): PreparedAlignment` — one derive pass calling the
   Phase 1 helpers:
 

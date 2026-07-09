@@ -159,8 +159,11 @@ ever allowed to return.
   contract.
 - D6 Parity becomes checkable, per section, up front. `segTextLen` lets the
   browser validate the entire segment table against the freshly parsed section
-  DOM on first load — segment count plus per-segment text length — one
-  section-level parity report instead of token-by-token discovery.
+  DOM on first load — every known segment's path resolves and its text length
+  matches (segment PATH/LENGTH parity, Codex #4: extra browser-only text nodes
+  are caught only insofar as they shift paths; the per-token text guard remains
+  the last line) — one section-level parity report instead of token-by-token
+  discovery.
 - D7 Transport is the artifact itself, served as a cacheable HTTP asset (ETag
   from the staleness key), not re-encoded through a server function. Cache moves
   to `data/bookplayer/cache/<bookId>.alignment.json`; `data/bookplayer/align/`
@@ -168,11 +171,13 @@ ever allowed to return.
   source mtimes) lives in a small sidecar so the artifact file stays pure,
   servable bytes; optional `.md` summary sidecar for human inspection (low
   priority).
-- D8 No backward compatibility. `AlignmentResult` v1 is deleted, not deprecated;
-  v1 and v2 never cohabit. `apps/align` derives its report from the
-  artifact/live run; report format is free to change and reports/ is
-  re-baselined once. The matcher is untouched, so span/gap/metrics VALUES are
-  unchanged — only envelopes move.
+- D8 No backward compatibility. `AlignmentResult` v1 is deleted, not deprecated.
+  Precisely (Codex #5): no long-term compatibility layer, no dual-format cache;
+  v1 lives only through the additive execution phases and is deleted before the
+  feature is accepted. `apps/align` derives its report from the artifact/live
+  run; report format is free to change and reports/ is re-baselined once. The
+  matcher is untouched, so span/gap/metrics VALUES are unchanged — only
+  envelopes move.
 - D9 The viewer is self-sufficient; the transcript keeps its separate lazy path.
   Fetching the artifact triggers first-run alignment compute (minutes-scale on
   private books) — the Transcript panel must never pay that. Cue identity across
@@ -258,9 +263,10 @@ keep is Daniel's call at acceptance.
 
 EPUB location should fail loudly, specifically, and once per cause.
 
-- On first load of a section for locate, validate parity: walk the
-  browser-parsed DOM once, compare segment count and each segment's text length
-  against `segTextLen`. Cache the result per section.
+- On first load of a section for locate, validate parity: resolve every segment
+  path in the table against the browser-parsed DOM and compare each segment's
+  text length against `segTextLen` (path/length parity — see D6 for the stated
+  limitation). Cache the result per section.
 - Parity OK → token locates proceed; the existing per-token text-equality guard
   stays as a cheap final check.
 - Parity failed → the section is marked unlocatable: one structured console

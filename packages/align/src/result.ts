@@ -6,6 +6,7 @@
 // file, so identical inputs still serialize byte-identically.
 import { z } from "zod";
 import type { BookAlignment } from "./align-book.ts";
+import { gapSchema, metricsSchema, spanEvidenceSchema } from "./artifact.ts";
 import { config } from "./config.ts";
 import { resolveAddresses } from "./epub-extract.ts";
 
@@ -16,15 +17,6 @@ const epubTextAddressSchema = z.strictObject({
   spineHref: z.string(),
   start: z.number().int().nonnegative(),
   end: z.number().int().nonnegative(),
-});
-
-const spanEvidenceSchema = z.strictObject({
-  kind: z.literal("exact-unique-ngram"),
-  ngramSize: z.number().int().positive(),
-  uniquenessScope: z.enum(["global", "gap"]),
-  anchors: z.number().int().positive(),
-  extendedLeft: z.number().int().nonnegative(),
-  extendedRight: z.number().int().nonnegative(),
 });
 
 const spanSchema = z.strictObject({
@@ -40,73 +32,6 @@ const spanSchema = z.strictObject({
   // One address per spine document the span touches.
   addresses: z.array(epubTextAddressSchema).min(1),
   evidence: spanEvidenceSchema,
-});
-
-const gapSchema = z.strictObject({
-  vttStart: z.number().int().nonnegative(),
-  vttEnd: z.number().int().nonnegative(),
-  epubStart: z.number().int().nonnegative(),
-  epubEnd: z.number().int().nonnegative(),
-});
-
-const passStatsSchema = z.strictObject({
-  passId: z.string(),
-  candidates: z.number().int().nonnegative(),
-  selected: z.number().int().nonnegative(),
-  survivalRate: z.number(),
-  acceptedSpans: z.number().int().nonnegative(),
-});
-
-const distributionSchema = z.strictObject({
-  count: z.number().int().nonnegative(),
-  min: z.number(),
-  max: z.number(),
-  mean: z.number(),
-  median: z.number(),
-});
-
-const spineStatsSchema = z.strictObject({
-  spineIndex: z.number().int().nonnegative(),
-  spineHref: z.string(),
-  included: z.boolean(),
-  tokens: z.number().int().nonnegative(),
-  matchedTokens: z.number().int().nonnegative(),
-  matchRatio: z.number(),
-  anchorSpans: z.number().int().nonnegative(),
-  zeroMatch: z.boolean(),
-  lowMatch: z.boolean(),
-});
-
-const anomalySchema = z.strictObject({
-  gap: gapSchema,
-  seconds: z.number(),
-  impliedWpm: z.number().nullable(),
-  wordRatio: z.number().nullable(),
-  reasons: z.array(z.string()),
-});
-
-const densityBucketSchema = z.strictObject({
-  startSec: z.number(),
-  anchorSpans: z.number().int().nonnegative(),
-});
-
-const metricsSchema = z.strictObject({
-  passes: z.array(passStatsSchema),
-  vttTokens: z.number().int().nonnegative(),
-  epubTokens: z.number().int().nonnegative(),
-  vttMatchedTokens: z.number().int().nonnegative(),
-  epubMatchedTokens: z.number().int().nonnegative(),
-  vttCoverage: z.number(),
-  epubCoverage: z.number(),
-  spanCount: z.number().int().nonnegative(),
-  gapCount: z.number().int().nonnegative(),
-  gapVttTokens: distributionSchema,
-  gapEpubTokens: distributionSchema,
-  gapSeconds: distributionSchema,
-  spines: z.array(spineStatsSchema),
-  anchorDensity: z.array(densityBucketSchema),
-  anomalies: z.array(anomalySchema),
-  warnings: z.array(z.string()),
 });
 
 // Stratified manual-review sample: enough raw text and timing to check one

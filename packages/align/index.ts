@@ -8,6 +8,12 @@
  */
 export { alignBook } from "./src/align-book.ts";
 export type { AlignOptions, BookAlignment } from "./src/align-book.ts";
+export {
+  ALIGNMENT_ARTIFACT_SCHEMA_VERSION,
+  alignmentArtifactSchema,
+  buildAlignmentArtifact,
+} from "./src/artifact.ts";
+export type { AlignmentArtifact, ArtifactSource } from "./src/artifact.ts";
 export { config as alignConfig } from "./src/config.ts";
 export type {
   EpubTextAddress,
