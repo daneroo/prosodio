@@ -45,10 +45,13 @@ interface Progress {
   href: string;
 }
 
+type SaveStatus = "saving" | "saved" | "save-failed" | null;
+
 function LocateSweepPage() {
   const { bookId } = Route.useParams();
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +83,23 @@ function LocateSweepPage() {
         (window as unknown as Record<string, unknown>).__locateSweepReport =
           report;
         setState({ status: "done", report });
+
+        // Auto-persist the sweep report to the server.
+        setSaveStatus("saving");
+        try {
+          const response = await fetch(`/api/sweep/${bookId}`, {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(report),
+          });
+          if (!isCancelled()) {
+            setSaveStatus(response.ok ? "saved" : "save-failed");
+          }
+        } catch {
+          if (!isCancelled()) {
+            setSaveStatus("save-failed");
+          }
+        }
       })
       .catch((error: unknown) => {
         if (!isCancelled()) {
@@ -101,9 +121,17 @@ function LocateSweepPage() {
       className="min-h-screen bg-slate-900 p-4 text-white"
       data-testid="locate-sweep"
     >
-      <h1 className="mb-3 text-sm font-medium text-slate-300">
-        Locate sweep — {bookId}
-      </h1>
+      <div className="mb-3 flex items-baseline justify-between">
+        <h1 className="text-sm font-medium text-slate-300">
+          Locate sweep — {bookId}
+        </h1>
+        <a
+          href="/dev/sweep"
+          className="text-xs text-slate-400 underline hover:text-slate-300"
+        >
+          all books
+        </a>
+      </div>
       {state.status === "loading" && (
         <p className="text-xs text-slate-500">Loading alignment…</p>
       )}
@@ -125,22 +153,43 @@ function LocateSweepPage() {
             : "Sweeping…"}
         </p>
       )}
-      {state.status === "done" && <SweepResults report={state.report} />}
+      {state.status === "done" && (
+        <SweepResults report={state.report} saveStatus={saveStatus} />
+      )}
     </div>
   );
 }
 
-function SweepResults({ report }: { report: SweepReport }) {
+function SweepResults({
+  report,
+  saveStatus,
+}: {
+  report: SweepReport;
+  saveStatus: SaveStatus;
+}) {
   const { totals } = report;
   return (
     <div>
-      <p
-        className="mb-3 text-xs tabular-nums text-slate-300"
-        data-testid="locate-sweep-totals"
-      >
-        sections {totals.sections} · tokens {totals.tokens} · ok {totals.ok} ·
-        failed {totals.failed}
-      </p>
+      <div className="mb-3 flex items-baseline justify-between">
+        <p
+          className="text-xs tabular-nums text-slate-300"
+          data-testid="locate-sweep-totals"
+        >
+          sections {totals.sections} · tokens {totals.tokens} · ok {totals.ok} ·
+          failed {totals.failed}
+        </p>
+        {saveStatus && (
+          <p
+            className={`text-xs ${
+              saveStatus === "saved" ? "text-slate-400" : "text-rose-400"
+            }`}
+          >
+            {saveStatus === "saving" && "saving…"}
+            {saveStatus === "saved" && "report saved"}
+            {saveStatus === "save-failed" && "report save failed"}
+          </p>
+        )}
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-left text-xs">
           <thead>
