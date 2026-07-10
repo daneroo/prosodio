@@ -291,8 +291,53 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     outside `html-fallback` sections; (2) triage any residual failure NOT
     explained by `html-fallback` (a genuinely new class, tracked separately if
     found).
-  - revisit-when: after Daniel's full-corpus Run-all confirms clean, or a new
-    failure class surfaces outside `html-fallback`.
+  - 2026-07-10 (Daniel, full-corpus `/dev/sweep` Run-all, 93 books, 11.45M
+    matched tokens): 91 books 100% ok; ONE residual class surfaced (two
+    Calibre-converted `.html` books) — tracked as
+    `bookplayer-calibre-html-locate` below. No `html-fallback`-attributed
+    failures remain. The predicted-mode mismatch class is confirmed closed.
+  - revisit-when: `bookplayer-calibre-html-locate` is the live residual; this
+    umbrella item is otherwise closed pending that.
+
+- [ ] bookplayer-calibre-html-locate — two Calibre-converted `.html` EPUBs fail
+      the locate sweep with a NEW class (not the predicted-mode mismatch)
+  - books: Terry Pratchett — Discworld 39 Snuff (`85e54f4414d1`) and Discworld
+    38 I Shall Wear Midnight (`bd2c61260300`). Both are Calibre output (spine
+    files `chapter_001.html`, `.html_split_006`, `temp_calibre_*`).
+  - symptom A (Snuff, swept clean, 0/120,648 ok): every section is
+    `parseMode: "html"` AND extension-predicted `"html"` (both sides HTML-parse,
+    NO mode mismatch), yet `seg-path-failed` at `firstDivergentSeg: 0`. Captured
+    detail: server path `[0, …]` expects `<html>` as `document.childNodes[0]`,
+    but the browser's parsed document has a leading `#comment` (nodeType 8) at
+    index 0, shifting `<html>` to index 1 — every path is off-by-one at the
+    document root. jsdom's `text/html` prolog handling differs from the
+    browser's on these files (leading comment placement), so matching the parse
+    MODE is not enough; the document PROLOG still diverges.
+  - symptom B (Midnight, sweep CRASHED, no persisted report): `book.ready`
+    succeeds (the book opens), but a matched section's `section.document` comes
+    back structurally degenerate (`document.childNodes` not even iterable), and
+    the sweep dereferences an undefined path element
+    (`Cannot read properties of undefined (reading '0')`) uncaught, aborting the
+    whole book. Two gaps: (1) the section-document degeneracy itself; (2) the
+    sweep tool has no per-book guard around `sweepSection`'s body (the
+    `try { … } finally` at `locate-sweep.ts` has no `catch`), so one bad book
+    aborts rather than recording an error row — same for `EpubReader.locate` (an
+    uncaught throw there just drops the highlight, but should be caught
+    explicitly).
+  - candidate fix (general, schema-affecting): anchor DOM paths at
+    `document.documentElement` (the `<html>` element) instead of the raw
+    `document` node, in both capture (`epub-extract.ts projectVisibleText`) and
+    resolve (`epub-dom-path.ts`, `section-parity.ts`). This makes paths
+    prolog-invariant (leading comments/doctype/PIs can't shift the root index) —
+    would fix symptom A and likely subsumes some of the original mismatch class
+    too. It changes every path → `ALIGNMENT_ARTIFACT_SCHEMA_VERSION` bump +
+    cache regen + reports re-baseline; its own scoped change, not a hotfix.
+  - separate tool-hardening (cheap, non-schema): defensive per-book `catch` in
+    `sweepBook`/`sweepSection` so symptom-B books record an error row instead of
+    aborting a corpus run; mirror in `EpubReader.locate`.
+  - revisit-when: prioritized as a small follow-up plan (the two candidate fixes
+    are independent — tool-hardening can land first, documentElement-anchoring
+    needs corpus re-verification via the sweep).
 
 - [x] bookplayer-alignment-layout — revisit the player component structure to
       surface alignment data

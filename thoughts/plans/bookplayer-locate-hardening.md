@@ -1,10 +1,11 @@
 # bookplayer-locate-hardening — extension parse-mode fix + /dev/sweep
 
-Status: IMPLEMENTED (Phases 0-2 + docs complete, 2026-07-10) — awaiting Daniel's
-Phase 3 items: /dev/sweep "Run all" on the private root (fast now: v3 recompute
-~1-2s/book), residual triage of any non-html-fallback failures, CLI report
-re-baseline. Record final corpus numbers here, then archive this plan and the
-predecessor together.
+Status: DONE (2026-07-10) — Phases 0-3 complete. Corpus Run-all: 93 books, 91
+clean, 11,331,717/11,452,365 matched tokens ok; the mismatch class this plan
+fixed is gone. One NEW residual class (two Calibre `.html` books) diagnosed and
+split to BACKLOG `bookplayer-calibre-html-locate` per this plan's guardrail. CLI
+reports re-baselined by Daniel. Remaining: merge + archive this plan and the
+predecessor together (Daniel's sign-off).
 
 Predecessor:
 [bookplayer-align-refine-model.md](bookplayer-align-refine-model.md) (DONE,
@@ -248,29 +249,29 @@ Phase 2 commit.
 
 ## Phase 3 — corpus acceptance + docs
 
-- [ ] Daniel: `/dev/sweep` → "Run all" on the private root (expect the
-      post-upgrade recompute; then steady-state ~5 min). Target: every book 100%
-      ok except sections genuinely flagged `html-fallback` (malformed xhtml —
-      epub.js itself gets a parsererror tree there; those render poorly in the
-      reader regardless and are honestly "expected unlocatable").
-      Previously-partial books (Gardens of the Moon, Memories of Ice, House of
-      Chains, Tales From Earthsea, Four Ways to Forgiveness) must be fully
-      clean.
-- [ ] Any residual failure NOT in an `html-fallback` section: new BACKLOG entry
-      with the sweep step/detail — a genuinely new class, not this plan's scope
-      to fix inline.
-- [ ] Daniel: CLI corpus revalidation (`apps/align`, all roots) — expected:
-      fixtures byte-identical except config echo literal; `.html`-section books
-      shift (extraction input changed); re-baseline reports/ once. This retires
-      the revalidation item folded in from the predecessor plan.
-- [ ] Docs `[tier: low]` (delegate): bookplayer README gains the sweep
-      endpoints/page + cache file; BACKLOG — `align-epub-parser-decisions`
-      RESOLVED by H1 (evidence + decision recorded),
-      `bookplayer-epub-locator-hardening` updated (fix landed; sweep
-      infrastructure in-repo; Daniel's out-of-repo script obsolete),
-      `locate-sweep-epubjs-console-noise` unchanged (still open, cosmetic).
-- [ ] Record final corpus numbers in this plan; archive this plan AND the
-      predecessor together after Daniel's sign-off.
+- [x] Daniel: `/dev/sweep` → "Run all" on the private root. RESULT 2026-07-10,
+      93 books / 11.45M matched tokens: 91 books 100% ok, 11,331,717 ok. NO
+      `html-fallback` residuals. Two Calibre-converted `.html` books are the
+      only exceptions and form a NEW class (below), not the mismatch this plan
+      fixed. Previously-partial books (Gardens of the Moon, Tales From Earthsea,
+      etc.) confirmed fully clean.
+- [x] Residual triage (orchestrator, 2026-07-10): the two exceptions are Snuff
+      (`85e54f4414d1`, swept 0/120,648 — document-prolog off-by-one in html/html
+      sections) and I Shall Wear Midnight (`bd2c61260300`, sweep crashed on a
+      degenerate section document). Both diagnosed and filed as BACKLOG
+      `bookplayer-calibre-html-locate` with root cause + candidate fixes. Per
+      this plan's own guardrail, NOT fixed inline — a scoped follow-up (the
+      documentElement-anchoring fix is schema-changing).
+- [x] Daniel: CLI corpus revalidation — DONE. Daniel re-ran and checked in new
+      baselines in the gitignored nested report repos
+      (`apps/align/reports/.git`, `apps/epub-validate/reports/.git`), also
+      absorbing newly transcribed/aligned corpus additions. Retires the
+      revalidation item folded in from the predecessor plan.
+- [x] Docs: bookplayer README + BACKLOG updated (P3 docs commit);
+      `docs/LOCATE-SWEEP.md` added documenting what the sweep verifies and what
+      an `ok` means.
+- [ ] Archive this plan AND the predecessor together after Daniel's sign-off
+      (final corpus numbers recorded above).
 
 ## Non-goals
 
