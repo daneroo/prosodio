@@ -42,7 +42,10 @@ export interface SweepSectionReport {
   extensionPredictedMode: "xhtml" | "html" | "unknown";
   parity:
     | SectionParityResult
-    | { ok: false; reason: "section-not-found" | "section-load-failed" };
+    | {
+        ok: false;
+        reason: "section-not-found" | "section-load-failed" | "section-threw";
+      };
   tokens: number;
   ok: number;
   /** Capped at 20 — the sweep reports enough to triage, not every failure. */
@@ -125,7 +128,7 @@ function spineItems(book: Book): Array<SpineItemLike> {
 function unresolvedSectionReport(
   spine: AlignmentArtifact["epub"]["spines"][number],
   matched: Array<MatchedToken>,
-  reason: "section-not-found" | "section-load-failed",
+  reason: "section-not-found" | "section-load-failed" | "section-threw",
   detail: unknown,
 ): SweepSectionReport {
   return {
@@ -321,13 +324,17 @@ export async function sweepBook(
       const matched = bySpine.get(spineIndex);
       if (!spine || !matched) continue; // defensive; schema guarantees range
 
-      const report = await sweepSection(
-        book,
-        EpubCFI,
-        artifact,
-        spine,
-        matched,
-      );
+      let report: SweepSectionReport;
+      try {
+        report = await sweepSection(book, EpubCFI, artifact, spine, matched);
+      } catch (error) {
+        // Defense-in-depth: an unexpected throw inside sweepSection (e.g. a
+        // degenerate parsed document) must not abort the whole book — record
+        // this section as errored and keep sweeping the rest.
+        report = unresolvedSectionReport(spine, matched, "section-threw", {
+          error: String(error),
+        });
+      }
       sections.push(report);
       done++;
       onProgress?.(done, total, spine.href);

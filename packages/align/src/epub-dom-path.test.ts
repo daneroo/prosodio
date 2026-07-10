@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { JSDOM } from "jsdom";
-import { rangeFromDomPath } from "./epub-dom-path.ts";
+import { rangeFromDomPath, resolveNodeAtPath } from "./epub-dom-path.ts";
 import { projectVisibleText } from "./epub-extract.ts";
 import { normalizeText } from "./normalize.ts";
 
@@ -101,5 +101,29 @@ describe("rangeFromDomPath round-trip", () => {
       endOffset: 3,
     });
     expect(range).toBeNull();
+  });
+
+  test("resolveNodeAtPath returns missing-child (not a throw) when a node has no childNodes", () => {
+    // Mimics a degenerate epub.js-parsed document where some node's
+    // childNodes is undefined instead of an empty NodeList.
+    const degenerateChild = {
+      nodeType: 1,
+      nodeName: "SPAN",
+      childNodes: undefined,
+    };
+    const root = {
+      nodeType: 1,
+      nodeName: "DIV",
+      childNodes: [degenerateChild],
+    } as unknown as Node;
+
+    const result = resolveNodeAtPath(root, [0, 0]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("missing-child");
+      expect(result.failedAt).toBe(1);
+      expect(result.requestedIndex).toBe(0);
+      expect(result.childCount).toBe(0);
+    }
   });
 });
