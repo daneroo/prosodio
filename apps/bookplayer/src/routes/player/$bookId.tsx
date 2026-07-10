@@ -213,6 +213,15 @@ function PlayerPage() {
             <Columns2 className="h-4 w-4" />
           </button>
         )}
+        {canAlign && import.meta.env.DEV && (
+          <a
+            href={`/dev/locate/${book.id}`}
+            className="p-1 text-xs text-slate-400 transition-colors hover:text-slate-300"
+            title="Locate-coverage sweep (dev)"
+          >
+            sweep
+          </a>
+        )}
         {book.hasEpub && !readerError && (
           <>
             {toc.length > 0 && (
