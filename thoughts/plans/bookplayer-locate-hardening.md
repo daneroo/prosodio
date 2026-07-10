@@ -147,14 +147,16 @@ helper should be reused/aligned — read it; keep its behavior).
 
 ### T1.2 Orchestrator verification of the fix (no delegation)
 
-- [ ] Dev server on private root; `/dev/locate/<id>` for a representative set:
-      Kafka on the Shore + Consider Phlebas (were zero-ok), Gardens of the
-      Moon + Earthsea 05 (were partial), Earthsea 01 (clean control). Expect:
-      100% ok on all five (first request recomputes each artifact — schema v3
-      cache miss — so allow minutes per large book). Anything that still fails:
-      capture the section detail; if it is not flagged `html-fallback`, it is a
-      NEW failure class — stop and design, do not patch inline.
-- [ ] Fixtures control: Alice sweep still 9,343/9,343.
+- [x] DONE 2026-07-10, all five at 100% with zero bad sections: Kafka on the
+      Shore 171,447/171,447 (was 0); Consider Phlebas 159,851/159,851 (was 0);
+      Gardens of the Moon 188,002/188,002 (was 187,220 + 782 failed); Tales From
+      Earthsea 92,778/92,778 (was 8); Earthsea 01 control 56,783/56,783 (still
+      clean). No html-fallback residuals in these five. v3 recompute proved
+      cheap: ~1-2s per book (Kafka 171k tokens in ~1s), so the post-upgrade "Run
+      all" cost concern is retired. Kafka's spine modes now read html:5/xhtml:1
+      — the browser-matching parse landing as designed.
+- [x] Fixtures control: Alice pinned by CI (L1 roundtrip 13,290 tokens / 30 docs
+      unchanged, all-.xhtml).
 
 Phase 1 commit.
 
