@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { config } from "./config.ts";
 import {
   extractEpub,
+  parseContentDocument,
   resolveAddresses,
   visibleTextFromHtml,
 } from "./epub-extract.ts";
@@ -57,6 +58,20 @@ describe("visibleTextFromHtml", () => {
   });
 });
 
+describe("parseContentDocument parse mode", () => {
+  test('well-formed XHTML parses via the XML path ("xhtml")', () => {
+    const xhtml = `<html xmlns="http://www.w3.org/1999/xhtml"><head><title/></head><body><p>Hello.</p></body></html>`;
+    const { mode } = parseContentDocument(xhtml);
+    expect(mode).toBe("xhtml");
+  });
+
+  test('malformed (unclosed tag soup) HTML falls back to the lenient parser ("html-fallback")', () => {
+    const html = `<body><p>Tom & Jerry<p>next paragraph</body>`;
+    const { mode } = parseContentDocument(html);
+    expect(mode).toBe("html-fallback");
+  });
+});
+
 describe("extractEpub on the committed Alice EPUB", async () => {
   const epubBytes = await aliceEpubBytes();
   const extraction = await extractEpub(epubBytes, config.extraction);
@@ -73,9 +88,31 @@ describe("extractEpub on the committed Alice EPUB", async () => {
       includeNonLinearSpineItems: true,
       excludedElements: EXCLUDED,
       domParser: "jsdom",
-      parseMode: "text/html",
+      parseMode: "xhtml-or-html-fallback",
     });
     expect(extraction.warnings).toEqual([]);
+  });
+
+  test("segTextLen is parallel to segPaths with values equal to segment text lengths", () => {
+    for (const doc of extraction.spineDocs) {
+      expect(doc.dom.segTextLen.length).toBe(doc.dom.segPaths.length);
+      if (!doc.included) {
+        expect(doc.dom.segTextLen).toEqual([]);
+        continue;
+      }
+      for (const len of doc.dom.segTextLen) {
+        expect(len).toBeGreaterThan(0);
+      }
+      expect(doc.dom.segTextLen.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(
+        doc.visibleText.length,
+      );
+    }
+  });
+
+  test("parseMode is recorded per spine doc — all-XHTML Alice parses via the XML path", () => {
+    for (const doc of extraction.spineDocs) {
+      expect(doc.parseMode).toBe("xhtml");
+    }
   });
 
   test("the flat token sequence contains the book's opening sentence", () => {

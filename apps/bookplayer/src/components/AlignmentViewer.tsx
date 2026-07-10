@@ -1,41 +1,45 @@
 /**
  * Alignment panel: the transcript cue list annotated with word-level
  * match/mismatch from the alignment engine (plan
- * thoughts/plans/bookplayer-align.md). Matches are word-by-word — one cue can
- * mix matched and unmatched tokens. During playback the active cue and its
- * active token are highlighted. Residual-gap markers flag book content the
- * narration never reads. Click seeks; shared time-interval machinery is in
- * #/lib/cues.
+ * thoughts/plans/bookplayer-align-refine-model.md, T4.2). Matches are
+ * word-by-word — one cue can mix matched and unmatched tokens. During
+ * playback the active cue and its active token are highlighted. Residual-gap
+ * markers flag book content the narration never reads. Click seeks; a single
+ * global binary search over the derived token intervals (packages/align/src/
+ * artifact-derive.ts activeTokenAt) drives active-token selection.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 
-import { decodeAlignedCues } from "#/lib/alignment-wire";
-import { activeCueIndex, activeTokenIndex } from "#/lib/cues";
+import { activeTokenAt, tokenRaw } from "@prosodio/align/browser";
+
 import { formatDuration } from "#/lib/browse";
-import { fetchAlignment } from "#/server/library";
+import { fetchArtifact, prepareAlignment } from "#/lib/alignment-client";
+import type { PreparedAlignment } from "#/lib/alignment-client";
 import type { LocateResult } from "#/components/EpubReader";
-import type {
-  AlignedCue,
-  AlignedToken,
-  AlignmentPayload,
-} from "#/lib/alignment-wire";
 
 type LocateFailure = Extract<LocateResult, { ok: false }>;
+
+/** One active/double-clicked VTT token, resolved against the EPUB side. */
+export interface ActiveTokenInfo {
+  vttSeq: number;
+  epubSeq: number | null;
+  raw: string;
+}
 
 interface AlignmentViewerProps {
   bookId: string;
   currentTime: number;
   onSeek: (sec: number) => void;
-  /** "Show in book": the double-clicked aligned token. */
-  onShowInBook?: (token: AlignedToken) => void;
+  /** "Show in book": the double-clicked matched token. */
+  onShowInBook?: (token: ActiveTokenInfo) => void;
   /** The active token's EPUB position used for reader follow. This remains
    * token-level even though the UI highlights only the containing cue. */
-  onActiveToken?: (token: AlignedToken | null) => void;
-  /** The full payload once loaded, so the route can drive the reader without
-   * a second fetch (the compact EPUB locator index lives here too). */
-  onPayload?: (payload: AlignmentPayload) => void;
+  onActiveToken?: (token: ActiveTokenInfo | null) => void;
+  /** The prepared artifact once loaded, so the route can drive the reader
+   * without a second fetch or derive pass. */
+  onPrepared?: (prepared: PreparedAlignment) => void;
   /** Last failed EPUB follow/show-in-book attempt; rendered as a status hint. */
   locateFailure?: LocateFailure | null;
 }
@@ -44,11 +48,11 @@ type LoadState =
   | { status: "loading" }
   | { status: "error" }
   | { status: "unavailable" }
-  | Extract<AlignmentPayload, { status: "ready" }>;
+  | { status: "ready"; prepared: PreparedAlignment };
 
 type AlignmentRow =
   | { kind: "gap"; key: string; tokens: number }
-  | { kind: "cue"; key: string; cue: AlignedCue; cueIndex: number };
+  | { kind: "cue"; key: string; cueIndex: number };
 
 export function AlignmentViewer({
   bookId,
@@ -56,26 +60,29 @@ export function AlignmentViewer({
   onSeek,
   onShowInBook,
   onActiveToken,
-  onPayload,
+  onPrepared,
   locateFailure,
 }: AlignmentViewerProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const scrollerRef = useRef<HTMLDivElement>(null);
   const onActiveTokenRef = useRef(onActiveToken);
   onActiveTokenRef.current = onActiveToken;
-  const onPayloadRef = useRef(onPayload);
-  onPayloadRef.current = onPayload;
+  const onPreparedRef = useRef(onPrepared);
+  onPreparedRef.current = onPrepared;
 
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    fetchAlignment({ data: bookId })
-      .then((payload) => {
+    fetchArtifact(bookId)
+      .then((result) => {
         if (cancelled) return;
-        setState(
-          payload.status === "ready" ? payload : { status: "unavailable" },
-        );
-        if (payload.status === "ready") onPayloadRef.current?.(payload);
+        if (result.status === "unavailable") {
+          setState({ status: "unavailable" });
+          return;
+        }
+        const prepared = prepareAlignment(result.artifact);
+        setState({ status: "ready", prepared });
+        onPreparedRef.current?.(prepared);
       })
       .catch(() => {
         if (!cancelled) setState({ status: "error" });
@@ -85,68 +92,64 @@ export function AlignmentViewer({
     };
   }, [bookId]);
 
-  // Decode the compact wire columns back into the UI's AlignedCue[] shape
-  // once per payload, not once per render (Phase 7c: the server ships
-  // columnar base64 typed arrays instead of fat per-token JSON).
-  const decodedCues = useMemo(
+  // One global binary search over the derived flat token intervals — replaces
+  // the old two-step cue-then-token search.
+  const activeTokenSeq = useMemo(
     () =>
       state.status === "ready"
-        ? decodeAlignedCues(state.cues, state.tokens)
-        : [],
-    [state],
+        ? activeTokenAt(
+            state.prepared.tokenStart,
+            state.prepared.tokenEnd,
+            currentTime,
+          )
+        : -1,
+    [state, currentTime],
   );
 
-  const activeIndex = useMemo(
-    () =>
-      state.status === "ready" ? activeCueIndex(decodedCues, currentTime) : -1,
-    [state, decodedCues, currentTime],
-  );
-
-  // Keep token-level selection as both the EPUB-follow signal and the active
-  // word highlight inside the active cue.
-  const activeToken = useMemo(() => {
-    if (state.status !== "ready" || activeIndex < 0) return -1;
-    const cue = decodedCues[activeIndex];
-    if (!cue) return -1;
-    return activeTokenIndex(cue.tokens, currentTime);
-  }, [state, decodedCues, activeIndex, currentTime]);
+  const activeCueIndex = useMemo(() => {
+    if (state.status !== "ready" || activeTokenSeq < 0) return -1;
+    return state.prepared.artifact.vtt.tokens.cueIndex[activeTokenSeq] ?? -1;
+  }, [state, activeTokenSeq]);
 
   const rows = useMemo(() => {
     if (state.status !== "ready") return [];
+    const { prepared } = state;
+    const cueCount = prepared.artifact.vtt.cues.startSec.length;
     const nextRows: Array<AlignmentRow> = [];
-    if (state.summary.leadingGapEpubTokens > 0) {
+    if (prepared.leadingGapEpubTokens > 0) {
       nextRows.push({
         kind: "gap",
         key: "leading-gap",
-        tokens: state.summary.leadingGapEpubTokens,
+        tokens: prepared.leadingGapEpubTokens,
       });
     }
-    decodedCues.forEach((cue, cueIndex) => {
+    for (let cueIndex = 0; cueIndex < cueCount; cueIndex++) {
+      const startSec = prepared.artifact.vtt.cues.startSec[cueIndex]!;
       nextRows.push({
         kind: "cue",
-        key: `cue-${cue.startSec}-${cueIndex}`,
-        cue,
+        key: `cue-${startSec}-${cueIndex}`,
         cueIndex,
       });
-      if (cue.gapEpubTokens > 0) {
+      const gapTokens = prepared.gapEpubTokens[cueIndex] ?? 0;
+      if (gapTokens > 0) {
         nextRows.push({
           kind: "gap",
-          key: `gap-${cue.startSec}-${cueIndex}`,
-          tokens: cue.gapEpubTokens,
+          key: `gap-${startSec}-${cueIndex}`,
+          tokens: gapTokens,
         });
       }
-    });
+    }
     return nextRows;
-  }, [state, decodedCues]);
+  }, [state]);
 
   const activeRowIndex = useMemo(
     () =>
-      activeIndex < 0
+      activeCueIndex < 0
         ? -1
         : rows.findIndex(
-            (row) => row.kind === "cue" && row.cueIndex === activeIndex,
+            (row) => row.kind === "cue" && row.cueIndex === activeCueIndex,
           ),
-    [rows, activeIndex],
+    [rows, activeCueIndex],
   );
 
   const rowVirtualizer = useVirtualizer({
@@ -162,15 +165,22 @@ export function AlignmentViewer({
     rowVirtualizer.scrollToIndex(activeRowIndex, { align: "auto" });
   }, [activeRowIndex, rowVirtualizer]);
 
-  const activeTokenValue: AlignedToken | null =
-    state.status === "ready" && activeIndex >= 0 && activeToken >= 0
-      ? (decodedCues[activeIndex]?.tokens[activeToken] ?? null)
+  const activeTokenValue: ActiveTokenInfo | null =
+    state.status === "ready" && activeTokenSeq >= 0
+      ? {
+          vttSeq: activeTokenSeq,
+          epubSeq:
+            (state.prepared.epubSeq[activeTokenSeq] ?? -1) >= 0
+              ? state.prepared.epubSeq[activeTokenSeq]!
+              : null,
+          raw: tokenRaw(state.prepared.artifact.vtt, activeTokenSeq),
+        }
       : null;
   useEffect(() => {
     onActiveTokenRef.current?.(activeTokenValue);
-    // The indexes identify the transition; activeTokenValue is derived.
+    // The seq identifies the transition; activeTokenValue is derived.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIndex, activeToken]);
+  }, [activeTokenSeq]);
 
   if (state.status !== "ready") {
     const message =
@@ -193,7 +203,8 @@ export function AlignmentViewer({
     );
   }
 
-  const { summary } = state;
+  const { prepared } = state;
+  const { metrics } = prepared.artifact.match;
   return (
     <div
       className="flex h-full min-h-0 flex-col bg-slate-900/60"
@@ -209,11 +220,11 @@ export function AlignmentViewer({
           </span>
         )}
         <span className="tabular-nums">
-          narration {percent(summary.vttCoverage)} · book{" "}
-          {percent(summary.epubCoverage)} · {summary.spanCount} spans ·{" "}
-          {summary.gapCount} gaps
+          narration {percent(metrics.vttCoverage)} · book{" "}
+          {percent(metrics.epubCoverage)} · {metrics.spanCount} spans ·{" "}
+          {metrics.gapCount} gaps
         </span>
-        {summary.timing === "interpolated" && (
+        {prepared.artifact.source.vttTiming === "interpolated" && (
           <span className="ml-2 text-slate-600">(interpolated times)</span>
         )}
       </div>
@@ -239,9 +250,10 @@ export function AlignmentViewer({
                   <GapMarker tokens={row.tokens} />
                 ) : (
                   <CueRow
-                    cue={row.cue}
-                    isActive={row.cueIndex === activeIndex}
-                    activeToken={activeToken}
+                    prepared={prepared}
+                    cueIndex={row.cueIndex}
+                    isActive={row.cueIndex === activeCueIndex}
+                    activeTokenSeq={activeTokenSeq}
                     onSeek={onSeek}
                     onShowInBook={onShowInBook}
                   />
@@ -255,41 +267,111 @@ export function AlignmentViewer({
   );
 }
 
+/** One cue segment: either unstyled text between tokens (whitespace,
+ * punctuation) or a token slice eligible for match/unmatched/active styling.
+ * Slicing the raw cue text this way (instead of re-joining decoded tokens
+ * with inserted spaces) keeps punctuation intact in the rendered line. */
+interface CueSegment {
+  key: string;
+  text: string;
+  tokenSeq: number | null;
+}
+
+function buildCueSegments(
+  prepared: PreparedAlignment,
+  cueIndex: number,
+): Array<CueSegment> {
+  const { artifact, cueTokenStart, cueTokenCount } = prepared;
+  const { vtt } = artifact;
+  const text = vtt.cues.text[cueIndex] ?? "";
+  const tokenStart = cueTokenStart[cueIndex] ?? -1;
+  const tokenCount = cueTokenCount[cueIndex] ?? 0;
+
+  if (tokenCount <= 0 || tokenStart < 0) {
+    return [{ key: "plain-0", text, tokenSeq: null }];
+  }
+
+  const segments: Array<CueSegment> = [];
+  let cursor = 0;
+  for (let k = 0; k < tokenCount; k++) {
+    const seq = tokenStart + k;
+    const charStart = vtt.tokens.charStart[seq] ?? cursor;
+    const charEnd = vtt.tokens.charEnd[seq] ?? charStart;
+    if (charStart > cursor) {
+      segments.push({
+        key: `gap-${seq}`,
+        text: text.slice(cursor, charStart),
+        tokenSeq: null,
+      });
+    }
+    segments.push({
+      key: `tok-${seq}`,
+      text: text.slice(charStart, charEnd),
+      tokenSeq: seq,
+    });
+    cursor = charEnd;
+  }
+  if (cursor < text.length) {
+    segments.push({ key: "trail", text: text.slice(cursor), tokenSeq: null });
+  }
+  return segments;
+}
+
 function CueRow({
-  cue,
+  prepared,
+  cueIndex,
   isActive,
-  activeToken,
+  activeTokenSeq,
   onSeek,
   onShowInBook,
 }: {
-  cue: AlignedCue;
+  prepared: PreparedAlignment;
+  cueIndex: number;
   isActive: boolean;
-  activeToken: number;
+  activeTokenSeq: number;
   onSeek: (sec: number) => void;
-  onShowInBook?: (token: AlignedToken) => void;
+  onShowInBook?: (token: ActiveTokenInfo) => void;
 }) {
+  const startSec = prepared.artifact.vtt.cues.startSec[cueIndex] ?? 0;
+  const segments = useMemo(
+    () => buildCueSegments(prepared, cueIndex),
+    [prepared, cueIndex],
+  );
+  const hasTokens = (prepared.cueTokenCount[cueIndex] ?? 0) > 0;
+
   return (
     <button
       type="button"
-      onClick={() => onSeek(cue.startSec)}
+      onClick={() => onSeek(startSec)}
       className={`block w-full rounded px-2 py-0.5 text-left text-xs transition-colors ${
         isActive ? "bg-cyan-900/50" : "hover:bg-slate-800"
       }`}
     >
       <span className="mr-1.5 text-[10px] tabular-nums text-slate-600">
-        {formatDuration(cue.startSec)}
+        {formatDuration(startSec)}
       </span>
-      {cue.tokens.map((token, tokenIndex) => {
-        const isActiveToken = isActive && tokenIndex === activeToken;
-        const canShowToken =
-          onShowInBook !== undefined && token.matched && token.epubSeq !== null;
+      {segments.map((segment) => {
+        if (segment.tokenSeq === null) {
+          if (!hasTokens) {
+            return (
+              <span key={segment.key} className="text-rose-400/90">
+                {segment.text}
+              </span>
+            );
+          }
+          return <span key={segment.key}>{segment.text}</span>;
+        }
+        const seq = segment.tokenSeq;
+        const matched = (prepared.epubSeq[seq] ?? -1) >= 0;
+        const isActiveToken = isActive && seq === activeTokenSeq;
+        const canShowToken = onShowInBook !== undefined && matched;
         return (
           <span
-            key={tokenIndex}
+            key={segment.key}
             className={`${canShowToken ? "cursor-pointer" : ""} ${
               isActiveToken
                 ? "rounded-sm bg-cyan-400/30 text-white"
-                : token.matched
+                : matched
                   ? isActive
                     ? "text-cyan-300"
                     : "text-slate-300"
@@ -298,12 +380,15 @@ function CueRow({
             onDoubleClick={(event) => {
               if (!canShowToken) return;
               event.stopPropagation();
-              onShowInBook(token);
+              onShowInBook({
+                vttSeq: seq,
+                epubSeq: prepared.epubSeq[seq] ?? null,
+                raw: segment.text,
+              });
             }}
             title={canShowToken ? "Double-click to show in book" : undefined}
           >
-            {tokenIndex > 0 ? " " : ""}
-            {token.raw}
+            {segment.text}
           </span>
         );
       })}

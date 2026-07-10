@@ -3,11 +3,7 @@
 // and write private reports (see docs/PRIVACY.md).
 import process from "node:process";
 import yargs from "yargs";
-import {
-  alignBook,
-  buildAlignmentResult,
-  type AlignOptions,
-} from "@prosodio/align";
+import { alignBook, type AlignOptions } from "@prosodio/align";
 import { config } from "./lib/config.ts";
 import {
   filterBySearch,
@@ -17,6 +13,7 @@ import {
   type Triplet,
 } from "./lib/discovery.ts";
 import {
+  buildBookReport,
   cleanReports,
   ensureReportsRepo,
   summarizeBook,
@@ -134,21 +131,21 @@ async function alignTriplet(
   const vttText = await Bun.file(triplet.vtt).text();
   const epubBytes = await Bun.file(triplet.epub).arrayBuffer();
   const alignment = await alignBook(vttText, epubBytes, options);
-  const result = buildAlignmentResult(alignment, {
+  const report = buildBookReport(alignment, {
     root: triplet.root,
     base: triplet.base,
     vttPath: triplet.vtt,
     epubPath: triplet.epub,
     m4bPath: triplet.m4b,
   });
-  const path = writeBookReport(config.reportsDir, result);
-  const m = result.metrics;
+  const path = writeBookReport(config.reportsDir, report);
+  const m = report.metrics;
   console.log(
-    `  ${triplet.base}: spans=${result.spans.length} ` +
+    `  ${triplet.base}: spans=${report.spans.length} ` +
       `vtt=${(m.vttCoverage * 100).toFixed(1)}% epub=${(m.epubCoverage * 100).toFixed(1)}% ` +
       `anomalies=${m.anomalies.length} -> ${path}`,
   );
-  return summarizeBook(result);
+  return summarizeBook(report);
 }
 
 function printScan(scan: RootScan, search: string): void {

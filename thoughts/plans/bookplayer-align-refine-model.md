@@ -1,6 +1,12 @@
 # bookplayer-align-refine — AlignmentArtifact v2
 
-Status: planning
+Status: DONE (2026-07-09) — implemented, accepted, and validated by Daniel's
+full 39-book private-corpus sweep (see Phase 6). Merged to main. Not yet
+archived: the sweep evidence spawned the follow-up plan
+[bookplayer-locate-hardening.md](bookplayer-locate-hardening.md) (extension
+parse-mode fix + /dev/sweep infrastructure); archive both together when that
+lands. CLI corpus revalidation folded into the follow-up (its extraction change
+re-baselines reports anyway).
 
 Design (authoritative for WHY):
 [design/bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md)
@@ -60,12 +66,12 @@ export interface AlignmentArtifact {
   schemaVersion: 2;
   features: string[]; // [] for now; reserved for e.g. packed columns
   source: {
-    // carried verbatim from v1 result.ts source block
+    // Codex review #1: the artifact is a browser-served asset — it carries
+    // NO filesystem paths. root is the root NAME (fixtures | private).
+    // Absolute paths live in the cache key sidecar (server-only) and the
+    // CLI report projection (local/private) only.
     root: string;
     base: string;
-    vttPath: string;
-    epubPath: string;
-    m4bPath: string | null;
     vttTiming: "word" | "interpolated";
     vttProvenance: Record<string, unknown> | null;
   };
@@ -78,7 +84,7 @@ export interface AlignmentArtifact {
       includeNonLinearSpineItems: boolean;
       excludedElements: string[];
       domParser: "jsdom";
-      parseMode: "text/html";
+      parseMode: "xhtml-or-html-fallback"; // T1.1 renames the v1 echo literal
     };
   };
   match: {
@@ -136,8 +142,11 @@ export interface AlignmentArtifact {
 Zod: `strictObject` throughout (v1 house style); `superRefine` checks column
 invariants — vtt token columns equal length; cue columns equal length; epub
 token columns equal length; per spine `segPaths.length === segTextLen.length`;
-`cueIndex`/`spineIndex` non-decreasing and in range. Determinism rule carries
-from v1: no run-instant, hostname, or wall-clock value in the artifact.
+`cueIndex`/`spineIndex` non-decreasing and in range. Span invariants (Codex
+review #3 — `deriveEpubSeq` depends on them): every span non-empty, equal-width
+(`vttEnd - vttStart === epubEnd - epubStart`), in bounds for both token tables,
+and spans sorted non-overlapping on both axes; gaps in bounds. Determinism rule
+carries from v1: no run-instant, hostname, or wall-clock value in the artifact.
 
 Derived, never stored (helpers in Phase 1): per-token time, endSec, matched,
 epubSeq, per-cue matchedRatio, gap attribution, coverage labels.
@@ -191,7 +200,10 @@ Files: new `packages/align/src/artifact.ts` (+test); `packages/align/index.ts`
 - Implement the normative contract above. Move the v1 metrics/evidence
   sub-schemas from `result.ts` into `artifact.ts` (import them back into
   `result.ts` so v1 still compiles — v1 dies in Phase 5).
-- `buildAlignmentArtifact(alignment: BookAlignment, source: ResultSource): AlignmentArtifact`:
+- `buildAlignmentArtifact(alignment: BookAlignment, source: ArtifactSource): AlignmentArtifact`
+  where `ArtifactSource = { root: string; base: string }` (Codex #1: no
+  filesystem paths enter the artifact; `ResultSource` with paths stays a
+  report-only type):
   - match block from `alignment.spans/gaps/metrics` (values untouched);
   - vtt block from `alignment.vtt.cues` + per-word `cueIndex/charStart/charEnd`;
     round cue times to ms (`Math.round(x * 1000) / 1000`);
@@ -238,8 +250,12 @@ No zod, jsdom, or node imports (browser bundle). Types from `artifact.ts` via
   — bounds-checked column read (the spiritual successor of `epubTokenLocator`).
 - `tokenRaw(vtt, seq): string` —
   `cues.text[cueIndex[seq]].slice(charStart, charEnd)`.
-- Tests: synthetic artifacts covering word + interpolated timing, degenerate
-  cues, leading gap, cue-boundary end times, out-of-range locator queries.
+- Tests: include one documenting the word-timing collapse (Codex #6): a
+  word-timed cue with MULTIPLE normalized tokens gives every token the cue start
+  (zero-width intervals except the last) — existing engine policy, now pinned by
+  a test rather than assumed. Plus synthetic artifacts covering word +
+  interpolated timing, degenerate cues, leading gap, cue-boundary end times,
+  out-of-range locator queries.
 - Done: root CI green; `browser.ts` compiles with no server-only imports
   (verify: `grep -n "jsdom\|node:" packages/align/src/artifact-derive.ts`
   returns nothing).
@@ -258,7 +274,7 @@ Files: new `packages/align/src/section-parity.ts` (+test);
     | {
         ok: false;
         reason:
-          "seg-count-mismatch" | "seg-path-failed" | "seg-length-mismatch";
+          "seg-table-mismatch" | "seg-path-failed" | "seg-length-mismatch";
         expectedSegCount: number;
         firstDivergentSeg?: number; // index into segPaths
         detail?: unknown; // DomPathNodeResult or {expected, actual} lengths
@@ -424,9 +440,11 @@ entangled). Old server path becomes dead code (deleted in Phase 5).
 
 Files: new `apps/bookplayer/src/lib/alignment-client.ts` (+test).
 
-- `fetchArtifact(bookId, signal): Promise<AlignmentArtifact>` — plain
-  `fetch(`/api/alignment/${bookId}`)`; 404 → typed `unavailable` result; non-OK
-  → error; `res.json()`.
+- `fetchArtifact(bookId, signal): Promise<AlignmentLoadResult>` (Codex #2 — one
+  honest contract) where
+  `AlignmentLoadResult = { status: "ready"; artifact: AlignmentArtifact } | { status: "unavailable" }`;
+  plain `fetch(`/api/alignment/${bookId}`)`; 404 → `unavailable`; other
+  non-OK/network failures throw (the viewer's error state catches).
 - `prepareAlignment(artifact): PreparedAlignment` — one derive pass calling the
   Phase 1 helpers:
 
@@ -531,7 +549,9 @@ the real browser through the real epub.js". Dev tool, never CI.
 - Route is dev-gated: render "not available" unless `import.meta.env.DEV`.
 - `locate-sweep.ts` (browser-only module, dynamic `import("epubjs")` like
   EpubReader):
-  - `sweepBook(artifact: AlignmentArtifact, prepared: PreparedAlignment, epubUrl: string, onProgress): Promise<SweepReport>`;
+  - `sweepBook(artifact: AlignmentArtifact, epubUrl: string, onProgress?): Promise<SweepReport>`
+    (as built: the sweep derives its vttSeq/expected-text lookup from spans
+    directly; no PreparedAlignment parameter);
   - matched EPUB token set = union of `[epubStart, epubEnd)` over
     `artifact.match.spans`, grouped by `spineIndex`;
   - per section with matched tokens: find the epub.js section by href suffix
@@ -607,30 +627,56 @@ Phase 5 commit: `refine-model P5 — delete v1 model + wire modules; docs`.
       console). Budget: wire ≤ old transport (Alice old baseline 1.28 MB),
       parse+prepare well under a second on the long book. A failed budget
       reopens D4 (packed columns behind the codec seam) as a NEW plan item — do
-      not improvise encoding inline.
+      not improvise encoding inline. PARTIAL 2026-07-09 (Alice): 875,372 B raw
+      json → 166,746 B gzip on the wire (old baseline 1.28 MB → ~8x smaller);
+      first compute+serve 0.9s, cached serve 3.5ms, If-None-Match → 304.
+      Crippled God: Daniel, dev-time.
 - [ ] Browser acceptance on Alice (fixtures root, preview server): panel renders
       match/partial/unmatched styling with punctuation-intact cue text; at least
       one gap marker; click seeks; active token follows playback; double-click
       show-in-book highlights in the reader; locate warning appears on a forced
       failure (dev-tools induced) with a single console report; 304 served on
-      reload (network tab).
-- [ ] L3 sweep on Alice (`/dev/locate/<aliceId>`): 100% of matched EPUB tokens
-      produce a working, round-tripped epubcfi (Alice is all-.xhtml, both
+      reload (network tab). DONE 2026-07-09: verified live — punctuation-intact
+      rendering, leading + interior gap markers, click-to-seek (26.94s), active
+      token "tired" correct at 30s, reader follow highlight painted via the
+      parity gate, zero console warnings. 304: browser reload revalidated
+      (transferSize 300 B vs 166,746 B encoded body — headers only). Forced
+      failure: corrupted a cached artifact's segTextLen (served from a second
+      origin to defeat the browser's HTTP cache, which otherwise correctly kept
+      serving the intact cached body — two layers of caching resisted the
+      sabotage before the corrupt bytes got through) → UI hint "EPUB location
+      failed: section-parity-failed", and two further locates in the bad section
+      produced ZERO additional console warnings (measured with a console.warn
+      wrapper). Known dev nuance: React StrictMode double-mount computes parity
+      ~2x per PAGE LOAD (bounded, dev-only); the per-token spam the design
+      targeted is confirmed suppressed. Cache restored (regenerates on next
+      request).
+- [x] L3 sweep on Alice (`/dev/locate/790133709c8f`): 100% of matched EPUB
+      tokens produce a working, round-tripped epubcfi (Alice is all-.xhtml, both
       parsers take the XML path — anything less than 100% is a bug, not book
-      noise). Record totals here.
-- [ ] Daniel, private corpus: long-book stability (scroll, follow, highlight);
-      run the L3 sweep on a known-problem book and record coverage — failures
-      must cluster in sections the artifact already flags (parseMode
-      html-fallback or extension-mode mismatch); anything failing OUTSIDE
-      flagged sections feeds BACKLOG `bookplayer-epub-locator-hardening` with
-      the sweep's step/detail. Sweep evidence also feeds the deferred BACKLOG
-      `align-epub-parser-decisions` (design D10). Keep or delete the sweep page:
-      Daniel's call, recorded here.
-- [ ] Daniel, CLI revalidation: `cd apps/align && bun run align.ts`, then
-      `(cd reports; git status)` — expected diff: exactly one field per report
-      (`config.extraction.parseMode` → "xhtml-or-html-fallback", T2.1);
-      spans/gaps/metrics values must be otherwise identical. Re-baseline once
-      and note it here.
+      noise). RESULT 2026-07-09: 9,343/9,343 tokens ok across 2 sections with
+      matched spans (9,338 + 5; parity ok, 1005 + 73 segments; parseMode xhtml =
+      predicted for both). Known cosmetic issue: epub.js emits internal
+      `substitute` TypeErrors to the console during the sweep's renderless
+      section.load (absent in the real player, which has a rendition); results
+      unaffected — noted for BACKLOG.
+- [x] Daniel, private corpus — DONE 2026-07-09, and beyond the ask: Daniel built
+      an out-of-repo bun+playwright driver over `/dev/locate/:bookId` and swept
+      the ENTIRE 39-book private corpus (~5 min). Results: 12 books fully clean,
+      5 partial, 22 zero-ok. Analysis of the full per-section detail (8 MB
+      results JSON): every failing section — 638 of 849 — is `seg-path-failed`
+      at segment 0 with `parseMode: "xhtml"` vs
+      `extensionPredictedMode: "html"`; zero length/text/cfi/roundtrip failures
+      anywhere. Exactly the D10 mode-mismatch class (.html spine files: epub.js
+      parses HTML by extension, server parsed XML by content); partial books are
+      mixed-extension. Artifact load/parse at 350k+ token scale (Crippled God)
+      worked in-browser during the sweep. Sweep page ruling: KEEP — "exactly
+      what we need going forth." Fix + sweep infrastructure: plan
+      [bookplayer-locate-hardening.md](bookplayer-locate-hardening.md).
+- [ ] Daniel, CLI revalidation: FOLDED into bookplayer-locate-hardening — the
+      extension-driven parse-mode fix changes extraction input on .html books,
+      so reports re-baseline there once; a standalone revalidation of this
+      refactor alone would be immediately superseded.
 - [ ] Roll design doc status to "implemented"; this plan → archive after
       Daniel's validation.
 

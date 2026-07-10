@@ -5,6 +5,7 @@ import {
   type ProvenanceTranscription,
   type VttCue,
 } from "@prosodio/vtt";
+import { interpolateWordTimes } from "./cue-times.ts";
 import { normalizeText } from "./normalize.ts";
 
 /**
@@ -28,6 +29,9 @@ export interface VttWord {
   wordIndex: number;
   /** Monotonic time estimate (seconds). */
   timeSec: number;
+  /** Half-open UTF-16 range into `cues[cueIndex].text` — the word's raw slice. */
+  charStart: number;
+  charEnd: number;
 }
 
 export type VttTimingSource = "word" | "interpolated";
@@ -38,6 +42,8 @@ export interface VttSequence {
   /** Header provenance; absent for raw (provenance-less) VTT files. */
   provenance?: ProvenanceTranscription | ProvenanceComposition;
   warnings: string[];
+  /** Flattened cue table, parallel by cueIndex — the same list `words` walks. */
+  cues: Array<{ startSec: number; endSec: number; text: string }>;
 }
 
 export function buildVttSequence(vttText: string): VttSequence {
@@ -62,10 +68,16 @@ export function buildVttSequence(vttText: string): VttSequence {
     ? "word"
     : "interpolated";
   const words: VttWord[] = [];
+  const flatCues: VttSequence["cues"] = [];
   cues.forEach((cue, cueIndex) => {
     const start = vttTimeToSeconds(cue.startTime);
     const end = vttTimeToSeconds(cue.endTime);
+    flatCues.push({ startSec: start, endSec: end, text: cue.text });
     const tokens = normalizeText(cue.text).tokens;
+    const wordTimes =
+      timing === "word"
+        ? tokens.map(() => start)
+        : interpolateWordTimes(start, end, tokens.length);
     tokens.forEach((token, wordIndex) => {
       words.push({
         norm: token.norm,
@@ -73,15 +85,14 @@ export function buildVttSequence(vttText: string): VttSequence {
         seq: words.length,
         cueIndex,
         wordIndex,
-        timeSec:
-          timing === "word"
-            ? start
-            : start + ((end - start) * wordIndex) / tokens.length,
+        timeSec: wordTimes[wordIndex]!,
+        charStart: token.rawStart,
+        charEnd: token.rawEnd,
       });
     });
   });
 
   return provenance
-    ? { words, timing, provenance, warnings }
-    : { words, timing, warnings };
+    ? { words, timing, provenance, warnings, cues: flatCues }
+    : { words, timing, warnings, cues: flatCues };
 }

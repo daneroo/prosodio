@@ -13,10 +13,15 @@
 import { useEffect, useRef } from "react";
 
 import {
+  checkSectionParity,
   diagnoseRangeFromDomPath,
   normalizeText,
 } from "@prosodio/align/browser";
-import type { DomTokenLocator, SegPath } from "@prosodio/align/browser";
+import type {
+  DomTokenLocator,
+  SectionParityResult,
+  SegPath,
+} from "@prosodio/align/browser";
 import type { Book, NavItem, Rendition } from "epubjs";
 
 export interface TocItem {
@@ -41,6 +46,7 @@ export interface SearchState {
 export interface EpubTokenLocate {
   spineHref: string;
   segPaths: Array<SegPath>;
+  segTextLen: Array<number>;
   loc: DomTokenLocator;
   /** The token's raw source text, for the parity guard (see `locate`). */
   expectedRaw: string;
@@ -55,6 +61,7 @@ export type LocateResult =
         | "section-not-found"
         | "section-load-failed"
         | "section-document-missing"
+        | "section-parity-failed"
         | "range-path-failed"
         | "text-mismatch"
         | "cfi-generation-failed"
@@ -139,12 +146,19 @@ export function EpubReader({
     // (parse + traverse) per token would be wasteful.
     const SECTION_CACHE_SIZE = 2;
     const sectionCache = new Map<string, Document>();
+    // Section-level parity result (design D6), cached alongside the section
+    // document itself: computed once per href, evicted together with its
+    // sectionCache entry so a re-loaded section always gets a fresh check.
+    const parityCache = new Map<string, SectionParityResult>();
     const cacheSection = (href: string, document: Document) => {
       sectionCache.delete(href);
       sectionCache.set(href, document);
       if (sectionCache.size > SECTION_CACHE_SIZE) {
         const oldest = sectionCache.keys().next().value;
-        if (oldest !== undefined) sectionCache.delete(oldest);
+        if (oldest !== undefined) {
+          sectionCache.delete(oldest);
+          parityCache.delete(oldest);
+        }
       }
     };
 
@@ -274,6 +288,7 @@ export function EpubReader({
             const fail = (
               reason: Extract<LocateResult, { ok: false }>["reason"],
               details?: unknown,
+              options?: { warn?: boolean },
             ): LocateResult => {
               const result: LocateResult = {
                 ok: false,
@@ -281,7 +296,9 @@ export function EpubReader({
                 locator,
                 details,
               };
-              console.warn("[EPUB locate failed]", result);
+              if (options?.warn ?? true) {
+                console.warn("[EPUB locate failed]", result);
+              }
               return result;
             };
 
@@ -318,6 +335,30 @@ export function EpubReader({
                 });
               }
               cacheSection(section.href, document);
+            }
+
+            // Section parity gate (design D6): validate the whole segment
+            // table once per section href before trusting any token locate in
+            // it. Cached alongside the section document — a cache hit here
+            // (including a cached failure) means this section was already
+            // checked, so a failure warns only the first time it's computed.
+            let parity = parityCache.get(section.href);
+            let parityJustComputed = false;
+            if (!parity) {
+              parity = checkSectionParity(
+                document,
+                locator.segPaths,
+                locator.segTextLen,
+              );
+              parityCache.set(section.href, parity);
+              parityJustComputed = true;
+            }
+            if (!parity.ok) {
+              return fail(
+                "section-parity-failed",
+                { sectionHref: section.href, parity },
+                { warn: parityJustComputed },
+              );
             }
 
             const rangeResult = diagnoseRangeFromDomPath(

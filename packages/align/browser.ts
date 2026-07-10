@@ -12,3 +12,22 @@ export {
 export type { DomTokenLocator, SegPath } from "./src/epub-dom-path.ts";
 export { normalizeText } from "./src/normalize.ts";
 export type { NormalizedText, Token } from "./src/normalize.ts";
+export {
+  activeTokenAt,
+  deriveCueAggregates,
+  deriveEpubSeq,
+  deriveTokenEndTimes,
+  deriveTokenTimes,
+  epubLocatorAt,
+  tokenRaw,
+} from "./src/artifact-derive.ts";
+export type {
+  CueAggregates,
+  EpubTokenLocation,
+} from "./src/artifact-derive.ts";
+export { checkSectionParity } from "./src/section-parity.ts";
+export type { SectionParityResult } from "./src/section-parity.ts";
+// Type-only: AlignmentArtifact is a zod-inferred type, but importing only the
+// type (not alignmentArtifactSchema) keeps zod's runtime out of the browser
+// bundle graph.
+export type { AlignmentArtifact } from "./src/artifact.ts";

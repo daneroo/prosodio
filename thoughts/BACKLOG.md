@@ -27,6 +27,14 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     behaviour, and whether epub-validate's proven approach should be reused
     rather than a fresh one. Decide the real policy; current code is a
     placeholder.
+  - decision input now recorded: design D10
+    (`thoughts/design/bookplayer-align-refine-model.md`) has the artifact
+    capture per-spine `parseMode` (`xhtml` | `html-fallback`) and the L3 locate
+    sweep (`/dev/locate/:bookId`) compare it against the extension-predicted
+    epub.js mode per section — mode-mismatch sections are visible before any
+    browser runs. Corpus-wide sweep evidence (extension-predicted vs actual
+    mode, and whether mismatches correlate with locator/coverage failures) is
+    the input this item still needs before deciding the real extraction policy.
   - revisit-when: hardening extraction beyond epoch 4 (before the alignment
     viewer or a trusted production run relies on it).
 
@@ -275,8 +283,23 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     display should eventually become latest-wins and avoid repagination when the
     target is already visible. Keep EPUB script execution sandboxed—the
     `about:srcdoc` blocked-script warning is expected for scripted EPUB content.
+  - diagnosis tools now exist (`bookplayer-align-refine-model` plan, done
+    2026-07-09): whole-section parity (L2, `checkSectionParity`, warns once per
+    section) closes the "highlight the wrong repeated word" trap named above;
+    the dev-only L3 locate sweep (`/dev/locate/:bookId`) walks every matched
+    EPUB token through the real epub.js and reports per section (`href`,
+    `parseMode`, extension-predicted mode, parity, ok/failed tokens, first
+    failures). Alice: 9,343/9,343 (100%, all-`xhtml`). This item is now about
+    triaging PRIVATE-corpus failures with those tools, not building them.
+  - 2026-07-09 (Daniel, private corpus): the sweep surfaced remaining locator
+    failures beyond the predicted `parseMode` mismatch cases. Next step is
+    integrating Daniel's out-of-repo sweep script + full private-corpus sweep
+    report (not yet in this repo) so failures can be classified by section
+    `parseMode`/predicted-mode and fed back into this item's `investigate` list.
   - revisit-when: after the alignment UI is made usable and before claiming
-    corpus-wide token-follow compatibility.
+    corpus-wide token-follow compatibility. Next action: integrate Daniel's
+    private sweep report and triage failures outside predicted mode-mismatch
+    sections.
 
 - [x] bookplayer-alignment-layout — revisit the player component structure to
       surface alignment data
@@ -289,6 +312,26 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     AlignmentViewer's active cue, so it only operates while the alignment panel
     is open (open by default). Decouple if a "follow with panel closed" flow is
     wanted.
+
+- [ ] bookplayer-serve-vtt-track — serve the VTT directly to the media element
+      (`<track>`) instead of only through the alignment/transcript panels
+  - why: kept open by design D9
+    (`thoughts/design/bookplayer-align-refine-model.md`) — the AlignmentArtifact
+    v2 endpoint and derive-in-client model deliberately do not preclude native
+    `<track>` captions; not started in that refactor.
+  - revisit-when: native captions/subtitles become a real want.
+
+- [ ] locate-sweep-epubjs-console-noise — epub.js emits internal `substitute`
+      TypeErrors during the L3 locate sweep's renderless `section.load`
+  - why: `/dev/locate/:bookId`
+    (`apps/bookplayer/src/routes/dev.locate.$bookId.tsx`,
+    `src/lib/locate-sweep.ts`) loads epub.js sections without a rendition to
+    check every matched token; epub.js's internal `substitute` path throws
+    TypeErrors under that renderless load. Absent in the real player (always has
+    a rendition). Cosmetic — sweep results (parity/path/text/CFI round-trip) are
+    unaffected — but noisy in the console during a sweep. Recorded at plan Phase
+    6 acceptance, 2026-07-09.
+  - revisit-when: someone wants a clean sweep console; low priority.
 
 - [ ] bookplayer-public-acceptance — commit a public-fixture browser acceptance
       for the search -> navigate -> highlight flow

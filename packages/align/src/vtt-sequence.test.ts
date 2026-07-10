@@ -42,6 +42,23 @@ describe("buildVttSequence on the Alice fixture (interpolation path)", () => {
     expect(cue0[0]!.timeSec).toBe(0);
     expect(cue0.at(-1)!.timeSec).toBeGreaterThan(0);
   });
+
+  test("cues array is parallel to the flattened cue list, times via vttTimeToSeconds", () => {
+    expect(sequence.cues.length).toBeGreaterThan(2_000);
+    const maxCueIndex = Math.max(...sequence.words.map((w) => w.cueIndex));
+    expect(sequence.cues.length).toBeGreaterThan(maxCueIndex);
+    for (const cue of sequence.cues) {
+      expect(cue.endSec).toBeGreaterThanOrEqual(cue.startSec);
+      expect(typeof cue.text).toBe("string");
+    }
+  });
+
+  test("each word's charStart/charEnd slices its cue's raw text back to the word's raw", () => {
+    for (const word of sequence.words.slice(0, 50)) {
+      const cue = sequence.cues[word.cueIndex]!;
+      expect(cue.text.slice(word.charStart, word.charEnd)).toBe(word.raw);
+    }
+  });
 });
 
 describe("buildVttSequence timing selection", () => {
