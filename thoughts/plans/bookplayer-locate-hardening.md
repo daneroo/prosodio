@@ -2,14 +2,14 @@
 
 Status: DONE (2026-07-10) — merged to main. Final clean-slate corpus Run-all
 (single server, cache wiped first): 93/93 swept, 91 clean, 2 zero-ok,
-11,331,717/11,555,867 matched tokens ok (224,150 failed = the two Calibre
-books, Snuff 120,648 + Midnight 103,502). The mismatch class this plan fixed
-is gone; the crash guard holds — Midnight now sweeps to completion instead
-of crashing. The two zero-ok books are the one NEW residual class, split to
-BACKLOG `bookplayer-calibre-html-locate` (replace-the-books OR
-documentElement-anchoring, Daniel's call). CLI reports re-baselined by
-Daniel. Optional follow-up: move this plan + the predecessor to
-`plans/archive/` together.
+11,331,717/11,555,867 matched tokens ok (224,150 failed = the two Calibre books,
+Snuff 120,648 + Midnight 103,502). The mismatch class this plan fixed is gone;
+the crash guard holds — Midnight now sweeps to completion instead of crashing.
+The two zero-ok books are the one NEW residual class, split to BACKLOG
+`bookplayer-calibre-html-locate` (replace-the-books OR
+documentElement-anchoring, Daniel's call). CLI reports re-baselined by Daniel.
+Optional follow-up: move this plan + the predecessor to `plans/archive/`
+together.
 
 Predecessor:
 [bookplayer-align-refine-model.md](bookplayer-align-refine-model.md) (DONE,

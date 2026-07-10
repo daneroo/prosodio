@@ -333,17 +333,17 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     too. It changes every path → `ALIGNMENT_ARTIFACT_SCHEMA_VERSION` bump +
     cache regen + reports re-baseline; its own scoped change, not a hotfix.
   - tool-hardening DONE (2026-07-10): root cause was `resolveNodeAtPath`
-    (`epub-dom-path.ts`) dereferencing `node.childNodes[index]` when a degenerate
-    epub.js document node had `childNodes === undefined` — now returns the
-    existing `missing-child` failure instead of throwing (shared code, so the
-    player's `locate` is hardened too). Plus a per-section `catch` in `sweepBook`
-    (new `"section-threw"` report) so any other unexpected throw records an
-    errored section rather than aborting the whole book. Verified: Midnight now
-    sweeps to completion (18 sections, 103,502 tokens, all `seg-path-failed`)
-    instead of crashing — no section actually threw, the childNodes guard
-    sufficed. Symptom B is now the SAME class as symptom A (both books swept,
-    0 ok, `seg-path-failed`); only the parity/prolog fix or a book replace
-    remains.
+    (`epub-dom-path.ts`) dereferencing `node.childNodes[index]` when a
+    degenerate epub.js document node had `childNodes === undefined` — now
+    returns the existing `missing-child` failure instead of throwing (shared
+    code, so the player's `locate` is hardened too). Plus a per-section `catch`
+    in `sweepBook` (new `"section-threw"` report) so any other unexpected throw
+    records an errored section rather than aborting the whole book. Verified:
+    Midnight now sweeps to completion (18 sections, 103,502 tokens, all
+    `seg-path-failed`) instead of crashing — no section actually threw, the
+    childNodes guard sufficed. Symptom B is now the SAME class as symptom A
+    (both books swept, 0 ok, `seg-path-failed`); only the parity/prolog fix or a
+    book replace remains.
   - resolution option — just REPLACE these books (Daniel, 2026-07-10): we always
     expected a few EPUBs too badly-formed to accommodate. Re-sourcing or
     re-converting Snuff + Midnight to clean `.xhtml` (or non-prolog-polluted
