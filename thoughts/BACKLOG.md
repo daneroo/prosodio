@@ -332,11 +332,18 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     would fix symptom A and likely subsumes some of the original mismatch class
     too. It changes every path → `ALIGNMENT_ARTIFACT_SCHEMA_VERSION` bump +
     cache regen + reports re-baseline; its own scoped change, not a hotfix.
-  - separate tool-hardening (cheap, non-schema): defensive per-book `catch` in
-    `sweepBook`/`sweepSection` so symptom-B books record an error row instead of
-    aborting a corpus run; mirror in `EpubReader.locate`. WORTH DOING REGARDLESS
-    of the two books below — a locate sweep that hard-crashes on a malformed
-    book undermines its own premise as a sanity tool.
+  - tool-hardening DONE (2026-07-10): root cause was `resolveNodeAtPath`
+    (`epub-dom-path.ts`) dereferencing `node.childNodes[index]` when a degenerate
+    epub.js document node had `childNodes === undefined` — now returns the
+    existing `missing-child` failure instead of throwing (shared code, so the
+    player's `locate` is hardened too). Plus a per-section `catch` in `sweepBook`
+    (new `"section-threw"` report) so any other unexpected throw records an
+    errored section rather than aborting the whole book. Verified: Midnight now
+    sweeps to completion (18 sections, 103,502 tokens, all `seg-path-failed`)
+    instead of crashing — no section actually threw, the childNodes guard
+    sufficed. Symptom B is now the SAME class as symptom A (both books swept,
+    0 ok, `seg-path-failed`); only the parity/prolog fix or a book replace
+    remains.
   - resolution option — just REPLACE these books (Daniel, 2026-07-10): we always
     expected a few EPUBs too badly-formed to accommodate. Re-sourcing or
     re-converting Snuff + Midnight to clean `.xhtml` (or non-prolog-polluted
@@ -348,10 +355,10 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     NEXT such book without a manual replace, but is no longer blocking).
   - relates to `epub-calibre-pollution-audit` (Calibre already flagged as a
     corpus-quality hazard) and `align-better-fixture-pair`.
-  - revisit-when: decide replace-vs-fix. Suggested split: land the
-    tool-hardening crash-guard soon (cheap, always-right); replace the two books
-    to clear the corpus; treat `documentElement`-anchoring as an optional
-    robustness follow-up that needs a full corpus re-sweep to verify.
+  - revisit-when: decide replace-vs-fix for the remaining 0-ok. The
+    tool-hardening crash-guard is DONE; what's left is EITHER replace the two
+    books (cheap, clears the corpus) OR the `documentElement`-anchoring fix
+    (optional general robustness, needs a full corpus re-sweep to verify).
 
 - [ ] docs-taxonomy — restructure `docs/` to separate distinct kinds of docs
   - why (Daniel, 2026-07-10): `docs/` began as repo-structure + workflow
