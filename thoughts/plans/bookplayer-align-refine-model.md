@@ -1,10 +1,12 @@
 # bookplayer-align-refine — AlignmentArtifact v2
 
-Status: IMPLEMENTED (Phases 0-5 complete, all orchestrator acceptance recorded
-in Phase 6) — awaiting Daniel's dev-time items: Crippled God sizes/stability,
-private-corpus sweep triage (Daniel's out-of-repo sweep report to integrate —
-see BACKLOG bookplayer-epub-locator-hardening), and CLI corpus revalidation.
-Then plan → archive.
+Status: DONE (2026-07-09) — implemented, accepted, and validated by Daniel's
+full 39-book private-corpus sweep (see Phase 6). Merged to main. Not yet
+archived: the sweep evidence spawned the follow-up plan
+[bookplayer-locate-hardening.md](bookplayer-locate-hardening.md) (extension
+parse-mode fix + /dev/sweep infrastructure); archive both together when that
+lands. CLI corpus revalidation folded into the follow-up (its extraction change
+re-baselines reports anyway).
 
 Design (authoritative for WHY):
 [design/bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md)
@@ -658,19 +660,23 @@ Phase 5 commit: `refine-model P5 — delete v1 model + wire modules; docs`.
       `substitute` TypeErrors to the console during the sweep's renderless
       section.load (absent in the real player, which has a rendition); results
       unaffected — noted for BACKLOG.
-- [ ] Daniel, private corpus: long-book stability (scroll, follow, highlight);
-      run the L3 sweep on a known-problem book and record coverage — failures
-      must cluster in sections the artifact already flags (parseMode
-      html-fallback or extension-mode mismatch); anything failing OUTSIDE
-      flagged sections feeds BACKLOG `bookplayer-epub-locator-hardening` with
-      the sweep's step/detail. Sweep evidence also feeds the deferred BACKLOG
-      `align-epub-parser-decisions` (design D10). Keep or delete the sweep page:
-      Daniel's call, recorded here.
-- [ ] Daniel, CLI revalidation: `cd apps/align && bun run align.ts`, then
-      `(cd reports; git status)` — expected diff: exactly one field per report
-      (`config.extraction.parseMode` → "xhtml-or-html-fallback", T2.1);
-      spans/gaps/metrics values must be otherwise identical. Re-baseline once
-      and note it here.
+- [x] Daniel, private corpus — DONE 2026-07-09, and beyond the ask: Daniel built
+      an out-of-repo bun+playwright driver over `/dev/locate/:bookId` and swept
+      the ENTIRE 39-book private corpus (~5 min). Results: 12 books fully clean,
+      5 partial, 22 zero-ok. Analysis of the full per-section detail (8 MB
+      results JSON): every failing section — 638 of 849 — is `seg-path-failed`
+      at segment 0 with `parseMode: "xhtml"` vs
+      `extensionPredictedMode: "html"`; zero length/text/cfi/roundtrip failures
+      anywhere. Exactly the D10 mode-mismatch class (.html spine files: epub.js
+      parses HTML by extension, server parsed XML by content); partial books are
+      mixed-extension. Artifact load/parse at 350k+ token scale (Crippled God)
+      worked in-browser during the sweep. Sweep page ruling: KEEP — "exactly
+      what we need going forth." Fix + sweep infrastructure: plan
+      [bookplayer-locate-hardening.md](bookplayer-locate-hardening.md).
+- [ ] Daniel, CLI revalidation: FOLDED into bookplayer-locate-hardening — the
+      extension-driven parse-mode fix changes extraction input on .html books,
+      so reports re-baseline there once; a standalone revalidation of this
+      refactor alone would be immediately superseded.
 - [ ] Roll design doc status to "implemented"; this plan → archive after
       Daniel's validation.
 
