@@ -177,7 +177,7 @@ Files: new `apps/bookplayer/src/lib/sweep-store.ts` (+test), new
   - `validateSweepBody(bookId, body)` → structural sanity, not zod-heavy:
     body.report.bookId === bookId, totals present with numeric
     sections/tokens/ok/failed, sections is an array; reject > 32 MB;
-  - `sweepIndex(config, bookIds)` → for each id with a stored file:
+  - `sweepIndex(config)` → for each id with a stored file:
     `{ bookId, generatedAt, totals }` (totals only — never ship every section
     detail in the index).
 - `handlers/sweep.ts` (thin adapters, vtt.ts/alignment.ts pattern):
