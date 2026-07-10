@@ -3,40 +3,23 @@
 Unscheduled work. Format: see [docs/WORKFLOW.md](../docs/WORKFLOW.md). Ported
 as-is from the consolidation plan's "Issues to address later"; triage pending.
 
-- [ ] align-epub-parser-decisions — evaluate align's two EPUB DOM-parser
+- [x] align-epub-parser-decisions — evaluate align's two EPUB DOM-parser
       compromises (accepted deferred at epoch4 close; see
       `plans/archive/epoch4-alignment.md` §8 Acceptance)
-  - why: both change how EVERY book's text is extracted in
-    `apps/align/lib/epub-extract.ts`; both were expedient, neither reviewed
-    against the corpus, and they may interact.
-  - compromise 1 — jsdom forced, always, in-process: bypasses the
+  - compromise 2 (parse mode) RESOLVED (H1, 2026-07-10): extension-driven,
+    mirroring epub.js — `.xhtml`/`.xht` XML-first, `.html`/`.htm` straight HTML
+    parse regardless of content well-formedness. Decided on the 39-book private
+    sweep: 638/849 failing sections were ALL `parseMode: "xhtml"` vs
+    extension-predicted `"html"` (a parser mismatch, not an alignment or locator
+    bug); five representative books re-swept at 100% after the fix (Kafka on the
+    Shore, Consider Phlebas, Gardens of the Moon, Tales From Earthsea, Earthsea
+    01 control). See `thoughts/plans/bookplayer-locate-hardening.md` (evidence,
+    H1/H2, `parserPreferenceForHref` in `packages/align/src/epub-extract.ts`).
+  - compromise 1 (jsdom forced, always, in-process) remains OPEN — bypasses the
     LinkeDOM-first + jsdom-fallback hybrid proven over 756 books in
     `apps/epub-validate/src/epubts-node.ts`; no subprocess hang guard. Relates
-    to `epubts-node-jsdom-always`.
-  - compromise 2 — parse content as `application/xhtml+xml` first, fall back to
-    `text/html` for non-well-formed docs (commit `27be8e5`). Added to recover
-    two Earthsea epubs whose self-closing `<title/>` made the HTML parser
-    swallow the whole body (0 tokens). Caused indexing differences for these
-    specific books, but not actual alignment coverage:
-    - `Ursula K. Le Guin - Earthsea Cycle 01 - A Wizard of Earthsea.alignment.json`
-    - `Ursula K. Le Guin - Earthsea Cycle 02 - The Tombs of Atuan.alignment.json`
-    - `Ursula K. Le Guin - Earthsea Cycle 03 - The Farthest Shore.alignment.json`
-    - `Ursula K. Le Guin - Earthsea Cycle 04 - Tehanu.alignment.json`
-    - `Ursula K. Le Guin - Hainish Cycle 08 - The Telling.alignment.json`
-  - evaluate: correctness + coverage delta across the full private corpus, hang
-    behaviour, and whether epub-validate's proven approach should be reused
-    rather than a fresh one. Decide the real policy; current code is a
-    placeholder.
-  - decision input now recorded: design D10
-    (`thoughts/design/bookplayer-align-refine-model.md`) has the artifact
-    capture per-spine `parseMode` (`xhtml` | `html-fallback`) and the L3 locate
-    sweep (`/dev/locate/:bookId`) compare it against the extension-predicted
-    epub.js mode per section — mode-mismatch sections are visible before any
-    browser runs. Corpus-wide sweep evidence (extension-predicted vs actual
-    mode, and whether mismatches correlate with locator/coverage failures) is
-    the input this item still needs before deciding the real extraction policy.
-  - revisit-when: hardening extraction beyond epoch 4 (before the alignment
-    viewer or a trusted production run relies on it).
+    to `epubts-node-jsdom-always`. Split into its own future item if it needs
+    separate evaluation; not addressed by this resolution.
 
 - [ ] align-cli-rename — rename the `apps/align/` directory to match its
       CLI-only role (npm name is already `@prosodio/align-cli`)
@@ -292,14 +275,24 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     failures). Alice: 9,343/9,343 (100%, all-`xhtml`). This item is now about
     triaging PRIVATE-corpus failures with those tools, not building them.
   - 2026-07-09 (Daniel, private corpus): the sweep surfaced remaining locator
-    failures beyond the predicted `parseMode` mismatch cases. Next step is
-    integrating Daniel's out-of-repo sweep script + full private-corpus sweep
-    report (not yet in this repo) so failures can be classified by section
-    `parseMode`/predicted-mode and fed back into this item's `investigate` list.
-  - revisit-when: after the alignment UI is made usable and before claiming
-    corpus-wide token-follow compatibility. Next action: integrate Daniel's
-    private sweep report and triage failures outside predicted mode-mismatch
-    sections.
+    failures beyond the predicted `parseMode` mismatch cases — EVERY one turned
+    out to be that same mismatch class (see `align-epub-parser-decisions`
+    resolution below).
+  - 2026-07-10 (plan `bookplayer-locate-hardening`): the predicted-mode-mismatch
+    class is FIXED — extraction's parse mode is now extension-driven
+    (`ALIGNMENT_ARTIFACT_SCHEMA_VERSION` bumped to 3, invalidating cached
+    artifacts). L2/L3 tooling grew a persistence layer: sweep reports now
+    survive as `data/bookplayer/cache/<bookId>.sweep.json`
+    (`GET/PUT /api/sweep/:bookId`, index at `GET /api/sweep`), and `/dev/sweep`
+    (`src/routes/dev.sweep.tsx`) sweeps the whole corpus in-page, sequentially,
+    with per-book persistence — Daniel's out-of-repo sweep driver script is now
+    obsolete, superseded by this page. Remaining scope: (1) Daniel's full-corpus
+    `/dev/sweep` "Run all" confirmation on the private root — every book 100% ok
+    outside `html-fallback` sections; (2) triage any residual failure NOT
+    explained by `html-fallback` (a genuinely new class, tracked separately if
+    found).
+  - revisit-when: after Daniel's full-corpus Run-all confirms clean, or a new
+    failure class surfaces outside `html-fallback`.
 
 - [x] bookplayer-alignment-layout — revisit the player component structure to
       surface alignment data

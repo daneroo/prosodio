@@ -63,8 +63,25 @@ and
   (`checkSectionParity`, `@prosodio/align/browser`) once per section href before
   trusting any token locate in it; a parity failure warns once per section (not
   once per token) and the section is marked unlocatable.
+- Extraction parse mode is extension-driven, mirroring epub.js
+  (`parserPreferenceForHref`, `packages/align/src/epub-extract.ts`; design
+  D10/H1): `.xhtml`/`.xht` -> XML-first; `.html`/`.htm` -> straight HTML parse,
+  even when the content is well-formed XHTML (matching the browser matters more
+  than parser purity). `ParseMode` = `xhtml | html | html-fallback` —
+  `html-fallback` is malformed content forced through the lenient HTML parser:
+  predicted-unlocatable, since epub.js hits the same malformed markup and gets a
+  parsererror tree.
 - Dev-only `/dev/locate/:bookId` (`src/routes/dev.locate.$bookId.tsx`) sweeps
   every matched EPUB token through the real epub.js: DOM path resolve -> text
   guard -> `cfiFromRange` -> `EpubCFI` round-trip. Reports totals + per-section
-  detail in the UI and via `window.__locateSweepReport`; never runs outside
-  `import.meta.env.DEV`.
+  detail (incl. `parseMode` vs extension-predicted mode) in the UI and via
+  `window.__locateSweepReport`; auto-persists its report on completion; never
+  runs outside `import.meta.env.DEV`. Player top bar carries a dev-only "sweep"
+  link to it.
+- `/dev/sweep` (`src/routes/dev.sweep.tsx`) runs the same sweep across every
+  book with both EPUB and transcript, sequentially one book at a time; "Run
+  all"/"Run missing" plus a per-row "Run", live per-book progress, and a totals
+  footer (clean/partial/zero-ok, token sums). Sweep reports persist server-side
+  via `GET/PUT /api/sweep/:bookId` (`server/handlers/sweep.ts`,
+  `src/lib/sweep-store.ts`) as `data/bookplayer/cache/<bookId>.sweep.json`;
+  `GET /api/sweep` returns the totals-only index for the corpus table.
