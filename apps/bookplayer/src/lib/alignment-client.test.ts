@@ -18,7 +18,7 @@ import type { AlignmentArtifact } from "@prosodio/align/browser";
  */
 function syntheticArtifact(): AlignmentArtifact {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     features: [],
     source: {
       root: "fixtures",
@@ -34,7 +34,7 @@ function syntheticArtifact(): AlignmentArtifact {
         includeNonLinearSpineItems: true,
         excludedElements: ["head", "script", "style"],
         domParser: "jsdom",
-        parseMode: "xhtml-or-html-fallback",
+        parseMode: "by-extension",
       },
     },
     match: {

@@ -9,15 +9,15 @@ import { normalizeText, type NormalizedText } from "./normalize.ts";
  * normalized text + offset map via the shared normalizer, and the flat
  * whole-book token sequence the matcher consumes.
  *
- * UNRESOLVED PARSER DECISIONS — placeholder, not decided policy. Both change
+ * UNRESOLVED PARSER DECISION — placeholder, not decided policy. Changes
  * extraction for EVERY book and must be evaluated before epoch4 close (BACKLOG
  * align-epub-parser-decisions; design "Open implementation decisions"):
  *   1. DOM engine: jsdom, always, in-process — bypasses epub-validate's proven
  *      LinkeDOM-first + jsdom-fallback hybrid (apps/epub-validate/src/
  *      epubts-node.ts); no subprocess hang guard.
- *   2. Parse mode: application/xhtml+xml first, text/html fallback (see
- *      parseContentDocument) — added to recover strict-XHTML books whose
- *      self-closing <title/> the HTML parser mishandles.
+ * Parse mode is RESOLVED (plan bookplayer-locate-hardening, decision H1):
+ * extension-driven, mirroring epub.js — see parserPreferenceForHref and
+ * parseContentDocument below.
  * epub.ts parses through the global DOMParser, so jsdom's is installed before
  * the node build is imported.
  */
@@ -32,14 +32,29 @@ export interface ExtractionConfig {
   includeNonLinearSpineItems: boolean;
   excludedElements: readonly string[];
   domParser: "jsdom";
-  parseMode: "xhtml-or-html-fallback";
+  parseMode: "by-extension";
 }
 
-/** Which parser actually produced a spine document's tree (design D10): XML
- * first, lenient HTML fallback on malformed XML. epub.js picks its parser by
- * file extension, so this recorded mode — not the config's static policy
- * name — is what predicts cross-parser parity risk for a given section. */
-export type ParseMode = "xhtml" | "html-fallback";
+/**
+ * Which parser actually produced a spine document's tree (design D10,
+ * resolved by corpus evidence — plan bookplayer-locate-hardening, decision
+ * H1/H2; BACKLOG align-epub-parser-decisions). The parser is chosen BY
+ * EXTENSION (parserPreferenceForHref), mirroring epub.js's own per-extension
+ * choice (archive.js), so the server-captured tree matches what the browser
+ * will build:
+ *  - "xhtml": XML parse succeeded for a `.xhtml`/`.xht` (or other non-`.html`
+ *    extension) section — matches what epub.js will do (parity-clean,
+ *    expected).
+ *  - "html": extension-selected HTML parse for a `.html`/`.htm` section —
+ *    ALSO matches what epub.js will do, even when the content is well-formed
+ *    XHTML (parity-clean, expected) — matching the browser matters more than
+ *    parser purity.
+ *  - "html-fallback": the extension preferred XML-first but the content was
+ *    not well-formed XML, so the lenient HTML parser recovered it —
+ *    predicted parity RISK: epub.js's own DOMParser will hit the same
+ *    malformed content and get an XML parsererror tree for that section.
+ */
+export type ParseMode = "xhtml" | "html" | "html-fallback";
 
 export interface SpineDocExtraction {
   spineIndex: number;
@@ -126,18 +141,50 @@ const BLOCK_ELEMENTS = new Set([
 ]);
 
 /**
- * Parse an EPUB content document. EPUB content is XHTML by spec, so parse as
- * XML first: the HTML parser mishandles XHTML self-closing tags on raw-text
- * elements — `<title/>` opens a never-closed RCDATA element that swallows the
- * entire body, yielding zero visible text (real books do this). Fall back to
- * the lenient HTML parser for any document that is not well-formed XML.
+ * Which parser epub.js itself will use for a spine href, purely by file
+ * extension (mirrors epub.js's archive.js): `.xhtml`/`.xht` (case-
+ * insensitive) prefer XML-first; `.html`/`.htm` go straight to the HTML
+ * parser; any other extension (rare) stays content-driven (XML-first). One
+ * definition, exported, so extraction and the dev locate-sweep agree on the
+ * policy.
+ */
+export function parserPreferenceForHref(href: string): "xml-first" | "html" {
+  const match = /\.([a-z0-9]+)(?:[?#].*)?$/i.exec(href);
+  const ext = match?.[1]?.toLowerCase();
+  return ext === "html" || ext === "htm" ? "html" : "xml-first";
+}
+
+/**
+ * Parse an EPUB content document per the extension-driven policy (design
+ * D10, resolved — plan bookplayer-locate-hardening, decision H1): `prefer`
+ * is normally `parserPreferenceForHref(spineHref)`, so the tree captured
+ * here matches what epub.js's own per-extension parser choice will build in
+ * the browser.
+ *  - prefer "html" (a `.html`/`.htm` spine href): parse straight as
+ *    text/html, mode "html" — even when the content is well-formed XHTML;
+ *    matching the browser matters more than parser purity.
+ *  - prefer "xml-first" (`.xhtml`/`.xht` or any other extension): parse as
+ *    XML first — EPUB content is XHTML by spec, and the HTML parser
+ *    mishandles XHTML self-closing tags on raw-text elements (`<title/>`
+ *    opens a never-closed RCDATA element that swallows the entire body).
+ *    Fall back to the lenient HTML parser (mode "html-fallback") for any
+ *    document that is not well-formed XML.
  * Exported (T1.5) so the L1 capture self-check can re-parse the same section
  * HTML the same way, outside this module's own extraction pass.
  */
-export function parseContentDocument(html: string): {
+export function parseContentDocument(
+  html: string,
+  prefer: "xml-first" | "html",
+): {
   document: Document;
   mode: ParseMode;
 } {
+  if (prefer === "html") {
+    return {
+      document: new JSDOM(html, { contentType: "text/html" }).window.document,
+      mode: "html",
+    };
+  }
   try {
     const doc = new JSDOM(html, { contentType: "application/xhtml+xml" }).window
       .document;
@@ -164,6 +211,7 @@ export function parseContentDocument(html: string): {
 export function projectVisibleText(
   html: string,
   excludedElements: readonly string[],
+  prefer: "xml-first" | "html" = "xml-first",
 ): {
   text: string;
   segPaths: Array<SegPath>;
@@ -171,7 +219,7 @@ export function projectVisibleText(
   parseMode: ParseMode;
 } {
   const excluded = new Set(excludedElements.map((e) => e.toLowerCase()));
-  const { document, mode: parseMode } = parseContentDocument(html);
+  const { document, mode: parseMode } = parseContentDocument(html, prefer);
   const parts: string[] = [];
   const segPaths: Array<SegPath> = [];
   const segRanges: Array<{ start: number; end: number }> = [];
@@ -280,7 +328,7 @@ export async function extractEpub(
     includeNonLinearSpineItems: options.includeNonLinearSpineItems,
     excludedElements: options.excludedElements,
     domParser: "jsdom",
-    parseMode: "xhtml-or-html-fallback",
+    parseMode: "by-extension",
   };
   const warnings: string[] = [];
 
@@ -323,6 +371,7 @@ export async function extractEpub(
         const projection = projectVisibleText(
           content,
           options.excludedElements,
+          parserPreferenceForHref(spineHref),
         );
         visibleText = projection.text;
         parseMode = projection.parseMode;

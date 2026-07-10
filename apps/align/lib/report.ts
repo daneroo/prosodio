@@ -87,7 +87,7 @@ export const bookReportSchema = z.strictObject({
       includeNonLinearSpineItems: z.boolean(),
       excludedElements: z.array(z.string()),
       domParser: z.literal("jsdom"),
-      parseMode: z.literal("xhtml-or-html-fallback"),
+      parseMode: z.literal("by-extension"),
     }),
   }),
   spans: z.array(spanSchema),

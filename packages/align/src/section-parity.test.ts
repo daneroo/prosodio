@@ -19,7 +19,7 @@ function captureTable(html: string): {
 /** A fresh parse of the same HTML, standing in for the browser's independent
  * DOMParser pass over the same section bytes. */
 function freshParse(html: string): Document {
-  return parseContentDocument(html).document;
+  return parseContentDocument(html, "xml-first").document;
 }
 
 describe("checkSectionParity", () => {

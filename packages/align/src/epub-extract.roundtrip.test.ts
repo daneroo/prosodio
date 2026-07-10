@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { config } from "./config.ts";
 import { diagnoseRangeFromDomPath } from "./epub-dom-path.ts";
-import { extractEpub, parseContentDocument } from "./epub-extract.ts";
+import {
+  extractEpub,
+  parseContentDocument,
+  parserPreferenceForHref,
+} from "./epub-extract.ts";
 import { aliceEpubBytes } from "./fixture-paths.ts";
 import { normalizeText } from "./normalize.ts";
 
@@ -54,7 +58,10 @@ describe("L1 capture self-check (Alice fixture)", async () => {
     .map((doc) => {
       const html = htmlByHref.get(doc.spineHref);
       if (html == null) return null; // unreadable spine item; nothing to re-check
-      return { doc, ...parseContentDocument(html) };
+      return {
+        doc,
+        ...parseContentDocument(html, parserPreferenceForHref(doc.spineHref)),
+      };
     })
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 

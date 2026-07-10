@@ -37,7 +37,8 @@ interface EpubCFIConstructor {
 
 export interface SweepSectionReport {
   href: string;
-  parseMode: "xhtml" | "html-fallback";
+  // Derived from the artifact so the union can't drift from the schema.
+  parseMode: AlignmentArtifact["epub"]["spines"][number]["parseMode"];
   extensionPredictedMode: "xhtml" | "html" | "unknown";
   parity:
     | SectionParityResult

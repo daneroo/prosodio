@@ -193,7 +193,9 @@ export function activeTokenAt(
 
 export interface EpubTokenLocation {
   spineHref: string;
-  parseMode: "xhtml" | "html-fallback";
+  // Derived from the artifact's own spine row type (not hand-duplicated) so
+  // this never drifts from artifact.ts's parseMode enum (design D10 / H1/H2).
+  parseMode: AlignmentArtifact["epub"]["spines"][number]["parseMode"];
   segPaths: number[][];
   segTextLen: number[];
   loc: DomTokenLocator;

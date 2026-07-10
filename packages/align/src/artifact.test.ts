@@ -188,7 +188,7 @@ describe("alignmentArtifactSchema invariant violations", () => {
         includeNonLinearSpineItems: true,
         excludedElements: ["head", "script", "style"],
         domParser: "jsdom" as const,
-        parseMode: "xhtml-or-html-fallback" as const,
+        parseMode: "by-extension" as const,
       },
     },
     match: {
@@ -224,7 +224,7 @@ describe("alignmentArtifactSchema invariant violations", () => {
   function validArtifact(): AlignmentArtifact {
     return {
       ...baseSource,
-      schemaVersion: ALIGNMENT_ARTIFACT_SCHEMA_VERSION as 2,
+      schemaVersion: ALIGNMENT_ARTIFACT_SCHEMA_VERSION as 3,
       vtt: {
         cues: { startSec: [0, 1], endSec: [1, 2], text: ["one two", "three"] },
         tokens: {
@@ -255,6 +255,21 @@ describe("alignmentArtifactSchema invariant violations", () => {
 
   test("a valid synthetic artifact parses", () => {
     expect(() => alignmentArtifactSchema.parse(validArtifact())).not.toThrow();
+  });
+
+  test("schemaVersion 3 round-trips through JSON", () => {
+    const artifact = validArtifact();
+    expect(artifact.schemaVersion).toBe(3);
+    const reparsed = alignmentArtifactSchema.parse(
+      JSON.parse(JSON.stringify(artifact)),
+    );
+    expect(reparsed).toEqual(artifact);
+  });
+
+  test('a spine row with parseMode "html" (extension-driven HTML parse, design H1/H2) parses', () => {
+    const artifact = validArtifact();
+    artifact.epub.spines[0]!.parseMode = "html";
+    expect(() => alignmentArtifactSchema.parse(artifact)).not.toThrow();
   });
 
   test("dropped vtt.tokens.charEnd entry is rejected", () => {

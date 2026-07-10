@@ -89,6 +89,6 @@ describe("buildBookReport", async () => {
       alignConfig.normalizationPolicy,
     );
     expect(report.config.extraction.domParser).toBe("jsdom");
-    expect(report.config.extraction.parseMode).toBe("xhtml-or-html-fallback");
+    expect(report.config.extraction.parseMode).toBe("by-extension");
   });
 });
