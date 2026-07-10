@@ -334,10 +334,43 @@ as-is from the consolidation plan's "Issues to address later"; triage pending.
     cache regen + reports re-baseline; its own scoped change, not a hotfix.
   - separate tool-hardening (cheap, non-schema): defensive per-book `catch` in
     `sweepBook`/`sweepSection` so symptom-B books record an error row instead of
-    aborting a corpus run; mirror in `EpubReader.locate`.
-  - revisit-when: prioritized as a small follow-up plan (the two candidate fixes
-    are independent — tool-hardening can land first, documentElement-anchoring
-    needs corpus re-verification via the sweep).
+    aborting a corpus run; mirror in `EpubReader.locate`. WORTH DOING REGARDLESS
+    of the two books below — a locate sweep that hard-crashes on a malformed
+    book undermines its own premise as a sanity tool.
+  - resolution option — just REPLACE these books (Daniel, 2026-07-10): we always
+    expected a few EPUBs too badly-formed to accommodate. Re-sourcing or
+    re-converting Snuff + Midnight to clean `.xhtml` (or non-prolog-polluted
+    `.html`) editions makes them sweep clean with no code change — the rest of
+    the Discworld set already passes, so these two are outliers, not the norm.
+    Cheap, corpus-specific. If we take this path, the
+    `documentElement`-anchoring fix drops from "needed for corpus cleanliness"
+    to "optional general robustness" (still nice: it would harden against the
+    NEXT such book without a manual replace, but is no longer blocking).
+  - relates to `epub-calibre-pollution-audit` (Calibre already flagged as a
+    corpus-quality hazard) and `align-better-fixture-pair`.
+  - revisit-when: decide replace-vs-fix. Suggested split: land the
+    tool-hardening crash-guard soon (cheap, always-right); replace the two books
+    to clear the corpus; treat `documentElement`-anchoring as an optional
+    robustness follow-up that needs a full corpus re-sweep to verify.
+
+- [ ] docs-taxonomy — restructure `docs/` to separate distinct kinds of docs
+  - why (Daniel, 2026-07-10): `docs/` began as repo-structure + workflow
+    (FILE-LAYOUT, WORKSPACE, WORKFLOW, FORMATTING, DEPENDENCY, CODING-STYLE,
+    STYLING, MARKDOWN, FRAMEWORK-\*, PRIVACY). It now also holds
+    behavioral/algorithmic docs (LOCATE-SWEEP), and content-invariant knowledge
+    is scattered across code comments + plans + design docs. The folder no
+    longer reads as one kind of thing.
+  - direction: a clear taxonomy — roughly (a) repo/workflow (how to work here),
+    (b) content invariants (what must hold about the data), (c)
+    algorithmic/behavioral (how the pipeline works). Decide subfolders vs a
+    naming prefix + an index doc; don't over-engineer.
+  - candidates to (re)home into (b)/(c): LOCATE-SWEEP; the DOM-path validation
+    ladder (L1/L2/L3) and artifact determinism rules (today only in
+    `thoughts/design/bookplayer-align-refine-model.md` + code comments); the
+    EPUB extraction/parse-mode policy (design D10, now also in
+    `epub-extract.ts`); the matcher-pass contracts.
+  - revisit-when: docs friction shows up, or the next durable concept needs a
+    home (the sweep doc is the first that didn't fit the old structure).
 
 - [x] bookplayer-alignment-layout — revisit the player component structure to
       surface alignment data
