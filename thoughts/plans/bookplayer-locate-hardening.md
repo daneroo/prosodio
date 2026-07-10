@@ -1,6 +1,10 @@
 # bookplayer-locate-hardening — extension parse-mode fix + /dev/sweep
 
-Status: planning
+Status: IMPLEMENTED (Phases 0-2 + docs complete, 2026-07-10) — awaiting Daniel's
+Phase 3 items: /dev/sweep "Run all" on the private root (fast now: v3 recompute
+~1-2s/book), residual triage of any non-html-fallback failures, CLI report
+re-baseline. Record final corpus numbers here, then archive this plan and the
+predecessor together.
 
 Predecessor:
 [bookplayer-align-refine-model.md](bookplayer-align-refine-model.md) (DONE,
