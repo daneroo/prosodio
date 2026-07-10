@@ -25,6 +25,8 @@ const config = defineConfig({
       { route: "/api/audio/:bookId", handler: "./server/handlers/audio.ts" },
       { route: "/api/cover/:bookId", handler: "./server/handlers/cover.ts" },
       { route: "/api/epub/:bookId", handler: "./server/handlers/epub.ts" },
+      { route: "/api/sweep", handler: "./server/handlers/sweep-index.ts" },
+      { route: "/api/sweep/:bookId", handler: "./server/handlers/sweep.ts" },
       { route: "/api/vtt/:bookId", handler: "./server/handlers/vtt.ts" },
     ],
   },

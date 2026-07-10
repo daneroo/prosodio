@@ -54,6 +54,11 @@ export type DomPathRangeDiagnostic =
  * Walk root by a childNodes index path and explain why it fails. Exported so
  * callers that need a bare node resolution — section-parity.ts's whole-table
  * check, not a start/end range — reuse this walk instead of duplicating it.
+ *
+ * Guards against degenerate nodes: epub.js can hand back a content document
+ * where some node's `childNodes` is undefined (observed on at least one
+ * Calibre-converted `.html` EPUB). Treated as "0 children present" rather
+ * than throwing.
  */
 export function resolveNodeAtPath(
   root: Node,
@@ -61,7 +66,8 @@ export function resolveNodeAtPath(
 ): DomPathNodeResult {
   let node: Node = root;
   for (const [failedAt, index] of path.entries()) {
-    const child: ChildNode | undefined = node.childNodes[index];
+    const children = node.childNodes;
+    const child: ChildNode | undefined = children ? children[index] : undefined;
     if (child === undefined) {
       return {
         ok: false,
@@ -69,7 +75,7 @@ export function resolveNodeAtPath(
         reason: "missing-child",
         failedAt,
         requestedIndex: index,
-        childCount: node.childNodes.length,
+        childCount: children?.length ?? 0,
         nodeType: node.nodeType,
         nodeName: node.nodeName,
       };

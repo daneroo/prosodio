@@ -3,6 +3,8 @@ import { config } from "./config.ts";
 import {
   extractEpub,
   parseContentDocument,
+  parserPreferenceForHref,
+  projectVisibleText,
   resolveAddresses,
   visibleTextFromHtml,
 } from "./epub-extract.ts";
@@ -58,17 +60,55 @@ describe("visibleTextFromHtml", () => {
   });
 });
 
+describe("parserPreferenceForHref", () => {
+  test.each([
+    ["chapter1.xhtml", "xml-first"],
+    ["chapter1.xht", "xml-first"],
+    ["CHAPTER1.XHTML", "xml-first"],
+    ["chapter1.html", "html"],
+    ["chapter1.htm", "html"],
+    ["CHAPTER1.HTM", "html"],
+    ["chapter1.txt", "xml-first"],
+    ["chapter1", "xml-first"],
+  ] as const)("%s -> %s", (href, expected) => {
+    expect(parserPreferenceForHref(href)).toBe(expected);
+  });
+});
+
 describe("parseContentDocument parse mode", () => {
-  test('well-formed XHTML parses via the XML path ("xhtml")', () => {
+  test('well-formed XHTML, prefer "xml-first", parses via the XML path ("xhtml")', () => {
     const xhtml = `<html xmlns="http://www.w3.org/1999/xhtml"><head><title/></head><body><p>Hello.</p></body></html>`;
-    const { mode } = parseContentDocument(xhtml);
+    const { mode } = parseContentDocument(xhtml, "xml-first");
     expect(mode).toBe("xhtml");
   });
 
-  test('malformed (unclosed tag soup) HTML falls back to the lenient parser ("html-fallback")', () => {
+  test('malformed (unclosed tag soup) HTML, prefer "xml-first", falls back to the lenient parser ("html-fallback")', () => {
     const html = `<body><p>Tom & Jerry<p>next paragraph</body>`;
-    const { mode } = parseContentDocument(html);
+    const { mode } = parseContentDocument(html, "xml-first");
     expect(mode).toBe("html-fallback");
+  });
+
+  test('well-formed XHTML, prefer "html" (a .html/.htm spine href): parses straight as text/html, mode "html"', () => {
+    // <title/> is well-formed XML but, parsed as HTML, opens a never-closed
+    // RCDATA <title> that eats the rest of the document — the discriminating
+    // marker between the two parsers for the exact same bytes: the XML path
+    // (prefer "xml-first") extracts the body text; the HTML path (prefer
+    // "html") does not, because "html" is what epub.js will ALSO do for a
+    // `.html`/`.htm` extension, however well-formed the XHTML content is.
+    const xhtml = `<html xmlns="http://www.w3.org/1999/xhtml"><head><title/><meta charset="utf-8"/></head><body><h1>Chapter 1</h1><p>The island of Gont.</p></body></html>`;
+    const html = parseContentDocument(xhtml, "html");
+    expect(html.mode).toBe("html");
+    const xml = parseContentDocument(xhtml, "xml-first");
+    expect(xml.mode).toBe("xhtml");
+    // Same bytes, opposite outcome: the HTML parser's <title/> mishandling
+    // swallows the body (matching visibleTextFromHtml's documented
+    // regression case), while the XML parser recovers it cleanly.
+    expect(
+      normalizeText(projectVisibleText(xhtml, EXCLUDED, "html").text).text,
+    ).toBe("");
+    expect(
+      normalizeText(projectVisibleText(xhtml, EXCLUDED, "xml-first").text).text,
+    ).toBe("chapter 1 the island of gont");
   });
 });
 
@@ -88,7 +128,7 @@ describe("extractEpub on the committed Alice EPUB", async () => {
       includeNonLinearSpineItems: true,
       excludedElements: EXCLUDED,
       domParser: "jsdom",
-      parseMode: "xhtml-or-html-fallback",
+      parseMode: "by-extension",
     });
     expect(extraction.warnings).toEqual([]);
   });

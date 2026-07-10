@@ -43,10 +43,11 @@ export { rangeFromDomPath } from "./src/epub-dom-path.ts";
 export type { DomTokenLocator, SegPath } from "./src/epub-dom-path.ts";
 export {
   extractEpub,
+  parserPreferenceForHref,
   projectVisibleText,
   resolveAddresses,
 } from "./src/epub-extract.ts";
-export type { EpubExtraction } from "./src/epub-extract.ts";
+export type { EpubExtraction, ParseMode } from "./src/epub-extract.ts";
 export { computeGaps } from "./src/reconcile.ts";
 export { buildVttSequence } from "./src/vtt-sequence.ts";
 export type { VttSequence, VttWord } from "./src/vtt-sequence.ts";

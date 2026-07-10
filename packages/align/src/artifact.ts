@@ -13,7 +13,7 @@ import { z } from "zod";
 import type { BookAlignment } from "./align-book.ts";
 import { config } from "./config.ts";
 
-export const ALIGNMENT_ARTIFACT_SCHEMA_VERSION = 2;
+export const ALIGNMENT_ARTIFACT_SCHEMA_VERSION = 3;
 
 export const spanEvidenceSchema = z.strictObject({
   kind: z.literal("exact-unique-ngram"),
@@ -103,9 +103,11 @@ const spanSchema = z.strictObject({
 
 const spineSchema = z.strictObject({
   href: z.string(),
-  // Which parser produced this section's tree server-side (design D10).
-  // epub.js picks by extension; a mismatch predicts parity failure.
-  parseMode: z.enum(["xhtml", "html-fallback"]),
+  // Which parser produced this section's tree server-side (design D10,
+  // resolved — plan bookplayer-locate-hardening H1/H2): chosen by extension,
+  // mirroring epub.js, so "xhtml"/"html" are expected parity-clean and only
+  // "html-fallback" (malformed content) predicts parity risk.
+  parseMode: z.enum(["xhtml", "html", "html-fallback"]),
   segPaths: z.array(z.array(z.number().int().nonnegative())),
   segTextLen: z.array(z.number().int().nonnegative()),
 });
@@ -149,7 +151,7 @@ export const alignmentArtifactSchema = z
         includeNonLinearSpineItems: z.boolean(),
         excludedElements: z.array(z.string()),
         domParser: z.literal("jsdom"),
-        parseMode: z.literal("xhtml-or-html-fallback"),
+        parseMode: z.literal("by-extension"),
       }),
     }),
     match: z.strictObject({

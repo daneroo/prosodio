@@ -1,6 +1,15 @@
 # bookplayer-locate-hardening — extension parse-mode fix + /dev/sweep
 
-Status: planning
+Status: DONE (2026-07-10) — merged to main. Final clean-slate corpus Run-all
+(single server, cache wiped first): 93/93 swept, 91 clean, 2 zero-ok,
+11,331,717/11,555,867 matched tokens ok (224,150 failed = the two Calibre
+books, Snuff 120,648 + Midnight 103,502). The mismatch class this plan fixed
+is gone; the crash guard holds — Midnight now sweeps to completion instead
+of crashing. The two zero-ok books are the one NEW residual class, split to
+BACKLOG `bookplayer-calibre-html-locate` (replace-the-books OR
+documentElement-anchoring, Daniel's call). CLI reports re-baselined by
+Daniel. Optional follow-up: move this plan + the predecessor to
+`plans/archive/` together.
 
 Predecessor:
 [bookplayer-align-refine-model.md](bookplayer-align-refine-model.md) (DONE,
@@ -147,14 +156,16 @@ helper should be reused/aligned — read it; keep its behavior).
 
 ### T1.2 Orchestrator verification of the fix (no delegation)
 
-- [ ] Dev server on private root; `/dev/locate/<id>` for a representative set:
-      Kafka on the Shore + Consider Phlebas (were zero-ok), Gardens of the
-      Moon + Earthsea 05 (were partial), Earthsea 01 (clean control). Expect:
-      100% ok on all five (first request recomputes each artifact — schema v3
-      cache miss — so allow minutes per large book). Anything that still fails:
-      capture the section detail; if it is not flagged `html-fallback`, it is a
-      NEW failure class — stop and design, do not patch inline.
-- [ ] Fixtures control: Alice sweep still 9,343/9,343.
+- [x] DONE 2026-07-10, all five at 100% with zero bad sections: Kafka on the
+      Shore 171,447/171,447 (was 0); Consider Phlebas 159,851/159,851 (was 0);
+      Gardens of the Moon 188,002/188,002 (was 187,220 + 782 failed); Tales From
+      Earthsea 92,778/92,778 (was 8); Earthsea 01 control 56,783/56,783 (still
+      clean). No html-fallback residuals in these five. v3 recompute proved
+      cheap: ~1-2s per book (Kafka 171k tokens in ~1s), so the post-upgrade "Run
+      all" cost concern is retired. Kafka's spine modes now read html:5/xhtml:1
+      — the browser-matching parse landing as designed.
+- [x] Fixtures control: Alice pinned by CI (L1 roundtrip 13,290 tokens / 30 docs
+      unchanged, all-.xhtml).
 
 Phase 1 commit.
 
@@ -175,7 +186,7 @@ Files: new `apps/bookplayer/src/lib/sweep-store.ts` (+test), new
   - `validateSweepBody(bookId, body)` → structural sanity, not zod-heavy:
     body.report.bookId === bookId, totals present with numeric
     sections/tokens/ok/failed, sections is an array; reject > 32 MB;
-  - `sweepIndex(config, bookIds)` → for each id with a stored file:
+  - `sweepIndex(config)` → for each id with a stored file:
     `{ bookId, generatedAt, totals }` (totals only — never ship every section
     detail in the index).
 - `handlers/sweep.ts` (thin adapters, vtt.ts/alignment.ts pattern):
@@ -242,29 +253,29 @@ Phase 2 commit.
 
 ## Phase 3 — corpus acceptance + docs
 
-- [ ] Daniel: `/dev/sweep` → "Run all" on the private root (expect the
-      post-upgrade recompute; then steady-state ~5 min). Target: every book 100%
-      ok except sections genuinely flagged `html-fallback` (malformed xhtml —
-      epub.js itself gets a parsererror tree there; those render poorly in the
-      reader regardless and are honestly "expected unlocatable").
-      Previously-partial books (Gardens of the Moon, Memories of Ice, House of
-      Chains, Tales From Earthsea, Four Ways to Forgiveness) must be fully
-      clean.
-- [ ] Any residual failure NOT in an `html-fallback` section: new BACKLOG entry
-      with the sweep step/detail — a genuinely new class, not this plan's scope
-      to fix inline.
-- [ ] Daniel: CLI corpus revalidation (`apps/align`, all roots) — expected:
-      fixtures byte-identical except config echo literal; `.html`-section books
-      shift (extraction input changed); re-baseline reports/ once. This retires
-      the revalidation item folded in from the predecessor plan.
-- [ ] Docs `[tier: low]` (delegate): bookplayer README gains the sweep
-      endpoints/page + cache file; BACKLOG — `align-epub-parser-decisions`
-      RESOLVED by H1 (evidence + decision recorded),
-      `bookplayer-epub-locator-hardening` updated (fix landed; sweep
-      infrastructure in-repo; Daniel's out-of-repo script obsolete),
-      `locate-sweep-epubjs-console-noise` unchanged (still open, cosmetic).
-- [ ] Record final corpus numbers in this plan; archive this plan AND the
-      predecessor together after Daniel's sign-off.
+- [x] Daniel: `/dev/sweep` → "Run all" on the private root. RESULT 2026-07-10,
+      93 books / 11.45M matched tokens: 91 books 100% ok, 11,331,717 ok. NO
+      `html-fallback` residuals. Two Calibre-converted `.html` books are the
+      only exceptions and form a NEW class (below), not the mismatch this plan
+      fixed. Previously-partial books (Gardens of the Moon, Tales From Earthsea,
+      etc.) confirmed fully clean.
+- [x] Residual triage (orchestrator, 2026-07-10): the two exceptions are Snuff
+      (`85e54f4414d1`, swept 0/120,648 — document-prolog off-by-one in html/html
+      sections) and I Shall Wear Midnight (`bd2c61260300`, sweep crashed on a
+      degenerate section document). Both diagnosed and filed as BACKLOG
+      `bookplayer-calibre-html-locate` with root cause + candidate fixes. Per
+      this plan's own guardrail, NOT fixed inline — a scoped follow-up (the
+      documentElement-anchoring fix is schema-changing).
+- [x] Daniel: CLI corpus revalidation — DONE. Daniel re-ran and checked in new
+      baselines in the gitignored nested report repos
+      (`apps/align/reports/.git`, `apps/epub-validate/reports/.git`), also
+      absorbing newly transcribed/aligned corpus additions. Retires the
+      revalidation item folded in from the predecessor plan.
+- [x] Docs: bookplayer README + BACKLOG updated (P3 docs commit);
+      `docs/LOCATE-SWEEP.md` added documenting what the sweep verifies and what
+      an `ok` means.
+- [ ] Archive this plan AND the predecessor together after Daniel's sign-off
+      (final corpus numbers recorded above).
 
 ## Non-goals
 
