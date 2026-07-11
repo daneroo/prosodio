@@ -1,14 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  BookOpenText,
-  ChevronLeft,
-  ChevronRight,
-  Columns2,
-  LocateFixed,
-  Search,
-  X,
-} from "lucide-react";
+import { ArrowLeft, BookOpenText, Columns2, LocateFixed } from "lucide-react";
 import {
   Suspense,
   lazy,
@@ -24,6 +15,8 @@ import { epubLocatorAt } from "@prosodio/align/browser";
 import { AlignmentViewer } from "#/components/AlignmentViewer";
 import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
+import { ReaderToolbar } from "#/components/ReaderToolbar";
+import { SearchPanel } from "#/components/SearchPanel";
 import { seekTargetForBookPoint, usePlayerSync } from "#/lib/player-sync";
 import { fetchBook } from "#/server/library";
 import type { ActiveTokenInfo } from "#/lib/player-sync";
@@ -103,6 +96,22 @@ function PlayerPage() {
     setQueryInput("");
     controller?.clearSearch();
   }, [controller]);
+
+  // Jumping to a specific result index is shared by the full result list
+  // (a fresh pick disengages follow, matching Chapters/pager) and the
+  // collapsed mini-pager (prev/next within an already-chosen result leaves
+  // follow as-is — it's just paging the same match, not a new navigation).
+  const gotoResult = useCallback(
+    (index: number, opts?: { disengageFollow?: boolean }) => {
+      if (opts?.disengageFollow) setFollowReader(false);
+      controller?.gotoResult(index);
+    },
+    [controller],
+  );
+
+  const showResults = useCallback(() => {
+    setSearchState((s) => ({ ...s, activeIndex: null }));
+  }, []);
 
   // "Show in book": resolve the token's EPUB locator against the prepared
   // artifact and resolve it to a Range entirely in the browser (plan D7) — no
@@ -198,14 +207,11 @@ function PlayerPage() {
     }
   }, [followReader, sync.activeToken, showInBook]);
 
-  const { results, activeIndex, searching, query } = searchState;
-  // After a result is chosen the panel collapses to a mini-pager, so the
-  // results stay actionable without an overlay eating the reader.
-  const showResultList = panelOpen && activeIndex === null;
-
   return (
     <div className="flex h-screen flex-col bg-slate-900 text-white">
-      {/* Top bar: navigation + book identity + reader controls, one row. */}
+      {/* Top bar: navigation + book identity + follow/alignment/lab toggles.
+          Reader controls (Chapters/pager/search) live with the reader pane
+          below (plan player-sync-core T2.4). */}
       <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-slate-700 bg-slate-900 px-3 py-2">
         <Link
           to="/"
@@ -265,168 +271,7 @@ function PlayerPage() {
             lab
           </a>
         )}
-        {book.hasEpub && !readerError && (
-          <>
-            {toc.length > 0 && (
-              <select
-                aria-label="Chapters"
-                className="max-w-36 truncate rounded bg-slate-700 px-2 py-1 text-xs text-slate-300 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 sm:max-w-52"
-                defaultValue=""
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setFollowReader(false);
-                    controller?.goTo(e.target.value);
-                  }
-                  e.target.value = "";
-                }}
-              >
-                <option value="" disabled>
-                  Chapters…
-                </option>
-                {toc.map((item) => (
-                  <option key={item.href} value={item.href}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setFollowReader(false);
-                controller?.prev();
-              }}
-              className="p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFollowReader(false);
-                controller?.next();
-              }}
-              className="p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"
-              aria-label="Next page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => (panelOpen ? closeSearch() : setPanelOpen(true))}
-              className="p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"
-              aria-label={panelOpen ? "Close search" : "Search book"}
-            >
-              {panelOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </button>
-          </>
-        )}
       </header>
-
-      {/* Search: bounded panel under the top bar (full-width sheet on
-          mobile, right-aligned panel on desktop); collapses to a mini-pager
-          once a result is active. */}
-      {showResultList && (
-        <div className="absolute inset-x-0 top-10 z-20 max-h-[45vh] overflow-y-auto border-b border-slate-700 bg-slate-900/95 p-2 shadow-xl backdrop-blur-sm sm:left-auto sm:right-2 sm:w-96 sm:rounded-b-lg sm:border-x">
-          <form onSubmit={submitSearch} className="flex items-center gap-1.5">
-            <input
-              type="text"
-              value={queryInput}
-              onChange={(e) => setQueryInput(e.target.value)}
-              placeholder="Search this book…"
-              className="min-w-0 flex-1 rounded bg-slate-700 px-2 py-1.5 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-cyan-500"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={searching}
-              className="rounded bg-cyan-700 px-2.5 py-1.5 text-sm text-white transition-colors hover:bg-cyan-600 disabled:opacity-50"
-            >
-              {searching ? "…" : "Go"}
-            </button>
-            <button
-              type="button"
-              onClick={closeSearch}
-              className="p-1.5 text-slate-400 hover:text-white"
-              aria-label="Close search"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </form>
-          {query && !searching && (
-            <p className="px-1 pt-2 text-[11px] text-slate-500">
-              {results.length === 0
-                ? `No results for "${query}"`
-                : `${results.length}${results.length >= 100 ? "+" : ""} results`}
-            </p>
-          )}
-          {results.length > 0 && (
-            <ul className="mt-1 space-y-0.5">
-              {results.map((result, index) => (
-                <li key={result.cfi}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFollowReader(false);
-                      controller?.gotoResult(index);
-                    }}
-                    className="block w-full truncate rounded px-2 py-1 text-left text-xs text-slate-300 transition-colors hover:bg-slate-700"
-                  >
-                    {result.excerpt}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-      {panelOpen && activeIndex !== null && (
-        <div className="absolute right-2 top-10 z-20 flex items-center gap-1 rounded-b-lg border border-t-0 border-slate-700 bg-slate-900/95 px-2 py-1 shadow-xl backdrop-blur-sm">
-          <span className="text-xs tabular-nums text-slate-400">
-            {activeIndex + 1}/{results.length}
-          </span>
-          <button
-            type="button"
-            onClick={() => controller?.gotoResult(Math.max(activeIndex - 1, 0))}
-            className="p-1 text-slate-400 hover:text-white"
-            aria-label="Previous result"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              controller?.gotoResult(
-                Math.min(activeIndex + 1, results.length - 1),
-              )
-            }
-            className="p-1 text-slate-400 hover:text-white"
-            aria-label="Next result"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearchState((s) => ({ ...s, activeIndex: null }))}
-            className="px-1 text-xs text-slate-400 hover:text-white"
-          >
-            results
-          </button>
-          <button
-            type="button"
-            onClick={closeSearch}
-            className="p-1 text-slate-400 hover:text-white"
-            aria-label="Clear search"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
 
       {/* Reverse-sync refusal notice (plan S4/S5): transient, centered under
           the top bar; auto-dismisses via reverseSyncTimerRef above. */}
@@ -459,28 +304,52 @@ function PlayerPage() {
         ) : (
           // Alignment split (plan D3): desktop side-by-side 50/50, mobile
           // stacks vertically; closed = full-band reader (EpubReader's
-          // ResizeObserver re-paginates on toggle).
+          // ResizeObserver re-paginates on toggle). The reader pane is a
+          // flex column: ReaderToolbar on top, then the reader fills the
+          // rest; SearchPanel is anchored to the content area below the
+          // toolbar (plan player-sync-core T2.4) so it belongs visually to
+          // the reader instead of the whole page.
           <div className="flex h-full min-h-0 flex-col sm:flex-row">
-            <div className="min-h-0 min-w-0 flex-1">
-              <Suspense
-                fallback={
-                  <div className="flex h-full items-center justify-center">
-                    <p className="animate-pulse text-sm text-slate-400">
-                      Loading EPUB…
-                    </p>
-                  </div>
-                }
-              >
-                <EpubReader
-                  bookId={book.id}
-                  epubUrl={`/api/epub/${book.id}`}
-                  onController={setController}
-                  onToc={setToc}
-                  onSearchState={setSearchState}
-                  onError={setReaderError}
-                  onWordActivate={canAlign ? onWordActivate : undefined}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <ReaderToolbar
+                toc={toc}
+                controller={controller}
+                panelOpen={panelOpen}
+                onOpenSearch={() => setPanelOpen(true)}
+                onCloseSearch={closeSearch}
+                onDisengageFollow={() => setFollowReader(false)}
+              />
+              <div className="relative min-h-0 flex-1">
+                <Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center">
+                      <p className="animate-pulse text-sm text-slate-400">
+                        Loading EPUB…
+                      </p>
+                    </div>
+                  }
+                >
+                  <EpubReader
+                    bookId={book.id}
+                    epubUrl={`/api/epub/${book.id}`}
+                    onController={setController}
+                    onToc={setToc}
+                    onSearchState={setSearchState}
+                    onError={setReaderError}
+                    onWordActivate={canAlign ? onWordActivate : undefined}
+                  />
+                </Suspense>
+                <SearchPanel
+                  panelOpen={panelOpen}
+                  searchState={searchState}
+                  queryInput={queryInput}
+                  onQueryInput={setQueryInput}
+                  onSubmit={submitSearch}
+                  onClose={closeSearch}
+                  onGotoResult={gotoResult}
+                  onShowResults={showResults}
                 />
-              </Suspense>
+              </div>
             </div>
             {canAlign && alignOpen && (
               <div className="min-h-0 min-w-0 flex-1 border-t border-slate-700 sm:border-l sm:border-t-0">
