@@ -22,7 +22,7 @@ import type {
   SectionParityResult,
   SegPath,
 } from "@prosodio/align/browser";
-import type { Book, NavItem, Rendition } from "epubjs";
+import type { Book, Contents, NavItem, Rendition } from "epubjs";
 
 export interface TocItem {
   label: string;
@@ -95,6 +95,18 @@ export const EMPTY_SEARCH: SearchState = {
   activeIndex: null,
 };
 
+/** A raw DOM point reported by a double-click in the reader (plan
+ * player-sync-core S4): the section's epub.js href plus the resolved
+ * text-node/offset. Deliberately artifact-agnostic — EpubReader knows
+ * nothing about spines/tokens; the route maps this to a seek target via
+ * `seekTargetForBookPoint` (player-sync.ts), same division of labor as
+ * `locate`. */
+export interface WordActivatePoint {
+  sectionHref: string;
+  node: Node;
+  offset: number;
+}
+
 interface EpubReaderProps {
   bookId: string;
   epubUrl: string;
@@ -102,6 +114,41 @@ interface EpubReaderProps {
   onToc: (items: Array<TocItem>) => void;
   onSearchState: (state: SearchState) => void;
   onError: (message: string) => void;
+  /** Reverse-sync gesture (plan S4): dblclick in the reader reports the
+   * clicked word's DOM point. Optional — omit to disable the listener
+   * entirely (e.g. when the book has no alignment to map against). */
+  onWordActivate?: (point: WordActivatePoint) => void;
+}
+
+/**
+ * Resolve the DOM point a dblclick landed on, inside one section's content
+ * window (plan S4): dblclick natively selects the clicked word, so prefer
+ * the selection's start point; fall back to `caretRangeFromPoint` for
+ * browsers/cases where the selection didn't land on a text node (e.g. the
+ * click missed text). Null means there's nothing resolvable to report.
+ */
+function resolveDblClickPoint(
+  win: Window,
+  event: MouseEvent,
+): { node: Node; offset: number } | null {
+  const selection = win.getSelection();
+  if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0);
+    if (range.startContainer.nodeType === range.startContainer.TEXT_NODE) {
+      return { node: range.startContainer, offset: range.startOffset };
+    }
+  }
+  const doc = win.document;
+  if (typeof doc.caretRangeFromPoint === "function") {
+    const range = doc.caretRangeFromPoint(event.clientX, event.clientY);
+    if (
+      range &&
+      range.startContainer.nodeType === range.startContainer.TEXT_NODE
+    ) {
+      return { node: range.startContainer, offset: range.startOffset };
+    }
+  }
+  return null;
 }
 
 const MAX_RESULTS = 100;
@@ -117,10 +164,23 @@ export function EpubReader({
   onToc,
   onSearchState,
   onError,
+  onWordActivate,
 }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const callbacksRef = useRef({ onController, onToc, onSearchState, onError });
-  callbacksRef.current = { onController, onToc, onSearchState, onError };
+  const callbacksRef = useRef({
+    onController,
+    onToc,
+    onSearchState,
+    onError,
+    onWordActivate,
+  });
+  callbacksRef.current = {
+    onController,
+    onToc,
+    onSearchState,
+    onError,
+    onWordActivate,
+  };
   const bookIdRef = useRef(bookId);
   bookIdRef.current = bookId;
 
@@ -150,6 +210,12 @@ export function EpubReader({
     // document itself: computed once per href, evicted together with its
     // sectionCache entry so a re-loaded section always gets a fresh check.
     const parityCache = new Map<string, SectionParityResult>();
+    // dblclick listeners are per-content-document (plan S4): registered via
+    // rendition.hooks.content on every section load, torn down via
+    // rendition.hooks.unloaded on that same view's removal, keyed by
+    // document so a section can be loaded/unloaded/reloaded repeatedly
+    // without leaking listeners.
+    const dblClickCleanup = new Map<Document, () => void>();
     const cacheSection = (href: string, document: Document) => {
       sectionCache.delete(href);
       sectionCache.set(href, document);
@@ -224,6 +290,43 @@ export function EpubReader({
             localStorage.setItem(cfiKey(bookIdRef.current), location.start.cfi);
           } catch {
             /* storage full/blocked — resume just won't work */
+          }
+        });
+
+        // Reverse-sync gesture (plan S4): dblclick natively selects the
+        // clicked word in the iframe content document. `hooks.content` fires
+        // once per section content load with the Contents instance for that
+        // section; `hooks.unloaded` fires once per view removal — used here
+        // only to remove the listener this content hook added, keyed by
+        // document so repeated load/unload of the same section never leaks.
+        rendition.hooks.content.register((contents: Contents) => {
+          const handleDblClick = (event: MouseEvent) => {
+            const activateWord = callbacksRef.current.onWordActivate;
+            if (!activateWord || !book) return;
+            const point = resolveDblClickPoint(contents.window, event);
+            if (!point) return;
+            // spineItems (below), not book.spine.get: its type honestly
+            // reflects that an out-of-range sectionIndex has no entry.
+            const sectionHref = spineItems(book)[contents.sectionIndex]?.href;
+            if (!sectionHref) return;
+            activateWord({
+              sectionHref,
+              node: point.node,
+              offset: point.offset,
+            });
+          };
+          contents.document.addEventListener("dblclick", handleDblClick);
+          dblClickCleanup.set(contents.document, () => {
+            contents.document.removeEventListener("dblclick", handleDblClick);
+          });
+        });
+        rendition.hooks.unloaded.register((view: { contents?: Contents }) => {
+          const doc = view.contents?.document;
+          if (!doc) return;
+          const cleanup = dblClickCleanup.get(doc);
+          if (cleanup) {
+            cleanup();
+            dblClickCleanup.delete(doc);
           }
         });
 

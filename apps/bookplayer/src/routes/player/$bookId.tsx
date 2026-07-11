@@ -24,7 +24,7 @@ import { epubLocatorAt } from "@prosodio/align/browser";
 import { AlignmentViewer } from "#/components/AlignmentViewer";
 import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
-import { usePlayerSync } from "#/lib/player-sync";
+import { seekTargetForBookPoint, usePlayerSync } from "#/lib/player-sync";
 import { fetchBook } from "#/server/library";
 import type { ActiveTokenInfo } from "#/lib/player-sync";
 import type {
@@ -32,6 +32,7 @@ import type {
   ReaderController,
   SearchState,
   TocItem,
+  WordActivatePoint,
 } from "#/components/EpubReader";
 
 type LocateFailure = Extract<LocateResult, { ok: false }>;
@@ -58,6 +59,22 @@ function PlayerPage() {
   const [readerError, setReaderError] = useState<string | null>(null);
   const [locateFailure, setLocateFailure] = useState<LocateFailure | null>(
     null,
+  );
+  // Reverse-sync refusal notice (plan S4/S5): transient, auto-dismissing —
+  // lighter-weight than locateFailure since it's shown regardless of whether
+  // the alignment panel is open.
+  const [reverseSyncNotice, setReverseSyncNotice] = useState<string | null>(
+    null,
+  );
+  const reverseSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  useEffect(
+    () => () => {
+      if (reverseSyncTimerRef.current)
+        clearTimeout(reverseSyncTimerRef.current);
+    },
+    [],
   );
   // Alignment split: default on (plan D3) whenever both sides exist.
   const canAlign = book.hasEpub && book.hasVtt;
@@ -124,6 +141,37 @@ function PlayerPage() {
         });
     },
     [controller, sync.prepared],
+  );
+
+  // Reverse-sync gesture (plan S4): double-click a word in the reader ->
+  // seek the audio there. Play/pause state is untouched — only position
+  // moves. Follow is NOT disengaged: a deliberate seek re-syncs playback,
+  // and resetting lastFollowedSeqRef makes the follow effect (below)
+  // re-locate from the new position on the very next token transition
+  // instead of treating it as already-followed.
+  const onWordActivate = useCallback(
+    (point: WordActivatePoint) => {
+      if (!sync.prepared) return;
+      const target = seekTargetForBookPoint(sync.prepared, point);
+      if ("error" in target) {
+        const message =
+          target.error === "no-match-forward"
+            ? "word not in the alignment (no match ahead)"
+            : "couldn't resolve the clicked word";
+        if (reverseSyncTimerRef.current) {
+          clearTimeout(reverseSyncTimerRef.current);
+        }
+        setReverseSyncNotice(message);
+        reverseSyncTimerRef.current = setTimeout(
+          () => setReverseSyncNotice(null),
+          2500,
+        );
+        return;
+      }
+      audio.seek(target.timeSec);
+      lastFollowedSeqRef.current = -1;
+    },
+    [sync.prepared, audio],
   );
 
   // Token transitions drive reader follow independently of whether the
@@ -380,6 +428,16 @@ function PlayerPage() {
         </div>
       )}
 
+      {/* Reverse-sync refusal notice (plan S4/S5): transient, centered under
+          the top bar; auto-dismisses via reverseSyncTimerRef above. */}
+      {reverseSyncNotice && (
+        <div className="pointer-events-none absolute inset-x-0 top-12 z-20 flex justify-center">
+          <div className="rounded-full border border-slate-700 bg-slate-900/95 px-3 py-1 text-xs text-rose-300 shadow-xl backdrop-blur-sm">
+            {reverseSyncNotice}
+          </div>
+        </div>
+      )}
+
       {/* Reader band — the dominant surface. */}
       <main className="min-h-0 flex-1">
         {!book.hasEpub ? (
@@ -420,6 +478,7 @@ function PlayerPage() {
                   onToc={setToc}
                   onSearchState={setSearchState}
                   onError={setReaderError}
+                  onWordActivate={canAlign ? onWordActivate : undefined}
                 />
               </Suspense>
             </div>
