@@ -324,10 +324,10 @@ function SweepCorpusPage() {
       <div className="mb-3 flex items-baseline justify-between">
         <h1 className="text-sm font-medium text-slate-300">Sweep — corpus</h1>
         <a
-          href="/"
+          href="/lab"
           className="text-xs text-slate-400 underline hover:text-slate-300"
         >
-          library
+          lab
         </a>
       </div>
 
