@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayerBookIdRouteImport } from './routes/player/$bookId'
-import { Route as DevSweepRouteImport } from './routes/dev.sweep'
-import { Route as DevLocateBookIdRouteImport } from './routes/dev.locate.$bookId'
+import { Route as LabLocateIndexRouteImport } from './routes/lab.locate.index'
+import { Route as LabLocateBookIdRouteImport } from './routes/lab.locate.$bookId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,50 +24,54 @@ const PlayerBookIdRoute = PlayerBookIdRouteImport.update({
   path: '/player/$bookId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DevSweepRoute = DevSweepRouteImport.update({
-  id: '/dev/sweep',
-  path: '/dev/sweep',
+const LabLocateIndexRoute = LabLocateIndexRouteImport.update({
+  id: '/lab/locate/',
+  path: '/lab/locate/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DevLocateBookIdRoute = DevLocateBookIdRouteImport.update({
-  id: '/dev/locate/$bookId',
-  path: '/dev/locate/$bookId',
+const LabLocateBookIdRoute = LabLocateBookIdRouteImport.update({
+  id: '/lab/locate/$bookId',
+  path: '/lab/locate/$bookId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dev/sweep': typeof DevSweepRoute
   '/player/$bookId': typeof PlayerBookIdRoute
-  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
+  '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/locate/': typeof LabLocateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dev/sweep': typeof DevSweepRoute
   '/player/$bookId': typeof PlayerBookIdRoute
-  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
+  '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/locate': typeof LabLocateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dev/sweep': typeof DevSweepRoute
   '/player/$bookId': typeof PlayerBookIdRoute
-  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
+  '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/locate/': typeof LabLocateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dev/sweep' | '/player/$bookId' | '/dev/locate/$bookId'
+  fullPaths: '/' | '/player/$bookId' | '/lab/locate/$bookId' | '/lab/locate/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dev/sweep' | '/player/$bookId' | '/dev/locate/$bookId'
+  to: '/' | '/player/$bookId' | '/lab/locate/$bookId' | '/lab/locate'
   id:
-    '__root__' | '/' | '/dev/sweep' | '/player/$bookId' | '/dev/locate/$bookId'
+    | '__root__'
+    | '/'
+    | '/player/$bookId'
+    | '/lab/locate/$bookId'
+    | '/lab/locate/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DevSweepRoute: typeof DevSweepRoute
   PlayerBookIdRoute: typeof PlayerBookIdRoute
-  DevLocateBookIdRoute: typeof DevLocateBookIdRoute
+  LabLocateBookIdRoute: typeof LabLocateBookIdRoute
+  LabLocateIndexRoute: typeof LabLocateIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -86,18 +90,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayerBookIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dev/sweep': {
-      id: '/dev/sweep'
-      path: '/dev/sweep'
-      fullPath: '/dev/sweep'
-      preLoaderRoute: typeof DevSweepRouteImport
+    '/lab/locate/': {
+      id: '/lab/locate/'
+      path: '/lab/locate'
+      fullPath: '/lab/locate/'
+      preLoaderRoute: typeof LabLocateIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dev/locate/$bookId': {
-      id: '/dev/locate/$bookId'
-      path: '/dev/locate/$bookId'
-      fullPath: '/dev/locate/$bookId'
-      preLoaderRoute: typeof DevLocateBookIdRouteImport
+    '/lab/locate/$bookId': {
+      id: '/lab/locate/$bookId'
+      path: '/lab/locate/$bookId'
+      fullPath: '/lab/locate/$bookId'
+      preLoaderRoute: typeof LabLocateBookIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -105,19 +109,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DevSweepRoute: DevSweepRoute,
   PlayerBookIdRoute: PlayerBookIdRoute,
-  DevLocateBookIdRoute: DevLocateBookIdRoute,
+  LabLocateBookIdRoute: LabLocateBookIdRoute,
+  LabLocateIndexRoute: LabLocateIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

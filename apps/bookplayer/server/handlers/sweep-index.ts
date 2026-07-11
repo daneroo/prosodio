@@ -1,7 +1,7 @@
 /**
  * Nitro-native GET /api/sweep handler (plan
  * thoughts/plans/bookplayer-locate-hardening.md, T2.1): a totals-only
- * index of every stored sweep report, for the /dev/sweep corpus page.
+ * index of every stored sweep report, for the /lab/locate corpus page.
  * Registered as its own route (not folded into sweep.ts's :bookId route) so
  * "the whole corpus" and "one book" stay two separate, obviously-scoped
  * handlers.

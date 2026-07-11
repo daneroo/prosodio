@@ -215,11 +215,11 @@ function PlayerPage() {
         )}
         {canAlign && import.meta.env.DEV && (
           <a
-            href={`/dev/locate/${book.id}`}
+            href={`/lab/locate/${book.id}`}
             className="p-1 text-xs text-slate-400 transition-colors hover:text-slate-300"
-            title="Locate-coverage sweep (dev)"
+            title="Locate-coverage sweep (lab)"
           >
-            sweep
+            lab
           </a>
         )}
         {book.hasEpub && !readerError && (
