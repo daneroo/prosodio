@@ -42,6 +42,13 @@ export type {
 export { rangeFromDomPath } from "./src/epub-dom-path.ts";
 export type { DomTokenLocator, SegPath } from "./src/epub-dom-path.ts";
 export {
+  buildSegPathIndex,
+  epubSeqAtDomPoint,
+  segIndexForTextNode,
+  vttSeqForEpubSeq,
+} from "./src/epub-dom-point.ts";
+export type { SegPathIndex } from "./src/epub-dom-point.ts";
+export {
   extractEpub,
   parserPreferenceForHref,
   projectVisibleText,

@@ -10,6 +10,13 @@ export {
   rangeFromDomPath,
 } from "./src/epub-dom-path.ts";
 export type { DomTokenLocator, SegPath } from "./src/epub-dom-path.ts";
+export {
+  buildSegPathIndex,
+  epubSeqAtDomPoint,
+  segIndexForTextNode,
+  vttSeqForEpubSeq,
+} from "./src/epub-dom-point.ts";
+export type { SegPathIndex } from "./src/epub-dom-point.ts";
 export { normalizeText } from "./src/normalize.ts";
 export type { NormalizedText, Token } from "./src/normalize.ts";
 export {
