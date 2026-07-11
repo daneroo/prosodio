@@ -24,6 +24,8 @@ import type {
 } from "@prosodio/align/browser";
 import type { Book, Contents, NavItem, Rendition } from "epubjs";
 
+import { createLatestWins } from "#/lib/latest-wins";
+
 export interface TocItem {
   label: string;
   href: string;
@@ -84,6 +86,13 @@ export interface ReaderController {
    * resolve or the resolved text doesn't match `expectedRaw` (parser-parity
    * guard: the browser's parsed section DOM must structurally match the
    * server's extraction-time jsdom parse).
+   *
+   * Display discipline: displays go through a latest-wins scheduler (at most
+   * one in flight; rapid follow collapses to the newest target), and a
+   * target already on-screen skips display entirely (highlight only). A
+   * locate whose display was superseded by a newer one still resolves
+   * `ok: true` — the newer locate owns the screen; that is follow working,
+   * not a failure.
    */
   locate: (locator: EpubTokenLocate) => Promise<LocateResult>;
 }
@@ -216,6 +225,16 @@ export function EpubReader({
     // document so a section can be loaded/unloaded/reloaded repeatedly
     // without leaking listeners.
     const dblClickCleanup = new Map<Document, () => void>();
+    // All follow/locate-driven displays go through ONE latest-wins scheduler:
+    // overlapping rendition.display() calls wedge epub.js's internal queue
+    // (observed: locate promises that never settle while follow fires 2-3
+    // locates/sec, reader frozen). At most one display in flight; queued
+    // displays collapse to the newest; a wedged display self-heals on
+    // timeout. User-paced navigation (prev/next/goTo/gotoResult/search) is
+    // rare and stays direct.
+    const displayScheduler = createLatestWins<string>((cfi) =>
+      rendition ? rendition.display(cfi) : Promise.resolve(),
+    );
     const cacheSection = (href: string, document: Document) => {
       sectionCache.delete(href);
       sectionCache.set(href, document);
@@ -268,8 +287,33 @@ export function EpubReader({
 
     const init = async () => {
       try {
-        const { default: ePub } = await import("epubjs");
+        const { default: ePub, EpubCFI } = await import("epubjs");
         if (!alive()) return;
+
+        // Visible fast path for locate: is `cfi` already within the
+        // displayed [start, end] range? EpubCFI.compare treats a range CFI
+        // as its start point, which is exactly the containment we want (a
+        // token whose start is on-screen is on-screen). Defensive: early in
+        // the lifecycle currentLocation() can be undefined/empty or a
+        // pending promise — every unknown answers "not visible" so the
+        // caller just displays normally.
+        const isCfiDisplayed = (cfi: string): boolean => {
+          if (!rendition) return false;
+          try {
+            const location = rendition.currentLocation() as unknown as
+              { start?: { cfi?: string }; end?: { cfi?: string } } | undefined;
+            const startCfi = location?.start?.cfi;
+            const endCfi = location?.end?.cfi;
+            if (!startCfi || !endCfi) return false;
+            const comparator = new EpubCFI();
+            return (
+              comparator.compare(cfi, startCfi) >= 0 &&
+              comparator.compare(cfi, endCfi) <= 0
+            );
+          } catch {
+            return false;
+          }
+        };
 
         book = ePub(epubUrl, { openAs: "epub" });
         rendition = book.renderTo(container, {
@@ -331,25 +375,21 @@ export function EpubReader({
         });
 
         // Spine items exist only after the book is fully opened.
+        console.debug("[reader] awaiting book.ready");
         await book.ready;
         if (!alive()) return;
+        console.debug("[reader] book ready");
 
-        // First open: saved location, else the first readable (non-cover)
-        // spine item so text, not cover art, is the default surface.
-        const savedCfi = localStorage.getItem(cfiKey(bookIdRef.current));
-        if (savedCfi) {
-          await rendition.display(savedCfi);
-        } else {
-          await rendition.display(firstReadableHref(book) ?? undefined);
-          // Cover pages hide behind generic hrefs too: if the first view has
-          // almost no text (image-only page), advance once so first open
-          // shows readable content.
-          if (alive() && visibleTextLength(rendition) < 200) {
-            await rendition.next();
-          }
-        }
-
+        // Nothing user-critical may await a display from here on: an epub.js
+        // display() can wedge (never settle — the same failure class the
+        // latest-wins scheduler exists for), and the initial display used to
+        // sit between book.ready and onToc/onController/ResizeObserver,
+        // leaving the controller null forever when it wedged. Deliver all of
+        // those first; the initial position is scheduled non-blocking below.
+        // NB: book.ready's Promise.all already includes loaded.navigation,
+        // so this await is an already-settled promise, not a real wait.
         const nav = await book.loaded.navigation;
+        console.debug("[reader] nav loaded");
         callbacksRef.current.onToc(
           nav.toc.map((item: NavItem) => ({
             label: item.label.trim(),
@@ -358,12 +398,16 @@ export function EpubReader({
         );
 
         // Re-display the search target after container resizes settle, so a
-        // reflow cannot lose the match the user just navigated to.
+        // reflow cannot lose the match the user just navigated to. Routed
+        // through the same latest-wins scheduler as locate's display, so a
+        // resize re-display can never overlap (and wedge) a follow display.
         resizeObserver = new ResizeObserver(() => {
           if (resizeTimer) clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
             if (!alive() || !rendition || !resumeTarget.cfi) return;
-            void rendition.display(resumeTarget.cfi);
+            void displayScheduler(resumeTarget.cfi).catch(() => {
+              /* display is best-effort here; a locate owns error reporting */
+            });
           }, 150);
         });
         resizeObserver.observe(container);
@@ -422,8 +466,18 @@ export function EpubReader({
 
             let document = sectionCache.get(section.href);
             if (!document) {
+              // DETACHED load — locate must never mutate shared Section
+              // state. section.load() sets section.document/contents and
+              // fires content hooks on the SAME Section instance that
+              // rendition.display() loads internally; that contention
+              // wedges epub.js's display queue (observed: locate loads a
+              // section, a follow display of that section tears down the
+              // old view and hangs forever, poisoning every later
+              // display). book.load(section.url) goes straight to the
+              // archive/request layer and leaves the Section untouched.
+              let response: unknown;
               try {
-                await section.load(book.load.bind(book));
+                response = await book.load(section.url);
               } catch (error) {
                 return fail("section-load-failed", {
                   sectionHref: section.href,
@@ -431,7 +485,9 @@ export function EpubReader({
                 });
               }
               if (!alive()) return fail("reader-not-ready");
-              document = section.document;
+              document =
+                documentFromSectionResponse(response, section.href) ??
+                undefined;
               if (!document) {
                 return fail("section-document-missing", {
                   sectionHref: section.href,
@@ -493,6 +549,11 @@ export function EpubReader({
 
             let cfi: string;
             try {
+              // Pure and detached-safe: section.cfiFromRange is
+              // `new EpubCFI(range, this.cfiBase).toString()` (section.js) —
+              // it reads only the constant cfiBase and walks the range's
+              // OWN document, so a range from our detached document is
+              // fine; the locate sweep generates CFIs the same way.
               cfi = section.cfiFromRange(range);
             } catch (error) {
               return fail("cfi-generation-failed", {
@@ -503,7 +564,20 @@ export function EpubReader({
             if (!alive()) return fail("reader-not-ready");
             removeHighlight();
             resumeTarget.cfi = cfi;
-            await rendition.display(cfi);
+            // Visible fast path: word-to-word follow usually stays on the
+            // page already displayed — skip display entirely and just move
+            // the highlight, avoiding repagination churn. Otherwise route
+            // the display through the latest-wins scheduler (never two
+            // displays in flight — overlapping calls wedge epub.js).
+            if (!isCfiDisplayed(cfi)) {
+              const outcome = await displayScheduler(cfi);
+              if (outcome === "superseded") {
+                // A newer locate replaced this one before it displayed: the
+                // newer locate owns the screen AND the highlight. Not a
+                // failure — this token was simply overtaken by follow.
+                return { ok: true, cfi };
+              }
+            }
 
             if (!alive()) return fail("reader-not-ready");
             try {
@@ -539,6 +613,49 @@ export function EpubReader({
             });
           },
         });
+        console.debug("[reader] controller delivered");
+
+        // Initial position, NON-BLOCKING, through the same latest-wins
+        // scheduler as locate/resize displays (display() accepts hrefs as
+        // well as CFIs), so an init display can never overlap an early
+        // follow locate — and a wedged one costs its timeout, not a
+        // deadlock. First open: saved location, else the first readable
+        // (non-cover) spine item so text, not cover art, is the default
+        // surface.
+        const savedCfi = localStorage.getItem(cfiKey(bookIdRef.current));
+        const initialTarget = savedCfi ?? firstReadableHref(book);
+        if (initialTarget) {
+          void displayScheduler(initialTarget)
+            .then((outcome) => {
+              console.debug(`[reader] initial display ${outcome}`);
+              // "superseded": an early follow locate already took the
+              // screen — it owns the position; no cover-advance either.
+              if (outcome === "superseded") return;
+              // Cover pages hide behind generic hrefs too: if the first
+              // view has almost no text (image-only page), advance once so
+              // first open shows readable content. Direct call is fine —
+              // single and rare, and only when nothing superseded us.
+              // visibleTextLength is null when NO view rendered at all —
+              // e.g. this "done" was a timeout self-heal, where next()
+              // would throw synchronously on the unstarted manager — so
+              // only a genuinely rendered near-empty page advances.
+              if (!savedCfi && alive() && rendition) {
+                const textLength = visibleTextLength(rendition);
+                if (textLength !== null && textLength < 200) {
+                  void rendition.next();
+                  console.debug("[reader] advanced past cover");
+                }
+              }
+            })
+            .catch((error: unknown) => {
+              console.warn("[reader] initial display failed", error);
+            });
+        } else {
+          // No saved position and no readable spine href to aim at: let
+          // epub.js pick its default start (still non-blocking).
+          void rendition.display();
+          console.debug("[reader] initial display defaulted");
+        }
       } catch (error) {
         if (alive()) {
           callbacksRef.current.onError(
@@ -580,6 +697,9 @@ export function EpubReader({
 // objects with load/find/unload.
 interface SpineItemLike {
   href: string;
+  /** Resolved asset URL (section.js sets it from the spine item) — what
+   * book.load() takes for a detached content fetch. */
+  url: string;
   linear: boolean;
   load: (loader: unknown) => Promise<unknown>;
   unload: () => void;
@@ -594,6 +714,44 @@ function spineItems(book: Book): Array<SpineItemLike> {
     .spineItems;
 }
 
+/**
+ * Coerce a book.load() response into a Document, for locate's detached
+ * section loads. For archived (zip) books — this app always opens
+ * `openAs: "epub"` — epub.js 0.3.93 parses content by FILE EXTENSION before
+ * returning (archive.js handleResponse: "xhtml" -> application/xhtml+xml,
+ * "html"/"htm" -> text/html, xml/opf/ncx -> text/xml; the HTTP request
+ * path in utils/request.js applies the same rule), so a content document
+ * normally arrives already parsed. Only an unrecognized extension falls
+ * through as a raw string — parsed here with the same extension rule
+ * (defaulting to XHTML, the EPUB content-document type). Null when the
+ * response is neither.
+ */
+function documentFromSectionResponse(
+  response: unknown,
+  href: string,
+): Document | null {
+  if (
+    typeof response === "object" &&
+    response !== null &&
+    (response as Node).nodeType === 9 /* Node.DOCUMENT_NODE */
+  ) {
+    return response as Document;
+  }
+  if (typeof response === "string") {
+    const extension = href.split(".").pop()?.toLowerCase();
+    const mimeType =
+      extension === "html" || extension === "htm"
+        ? "text/html"
+        : "application/xhtml+xml";
+    try {
+      return new DOMParser().parseFromString(response, mimeType);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 function firstReadableHref(book: Book): string | null {
   for (const item of spineItems(book)) {
     if (item.linear && !/cover/i.test(item.href)) return item.href;
@@ -601,23 +759,34 @@ function firstReadableHref(book: Book): string | null {
   return null;
 }
 
-function visibleTextLength(rendition: Rendition): number {
+/** Text length across the rendered views; null when nothing is rendered (or
+ * the manager isn't inspectable) — callers must not treat that as "empty
+ * page": an unrendered rendition (e.g. a display that wedged and was
+ * self-healed by the scheduler) has no page to advance past, and epub.js
+ * next() throws synchronously on its unstarted manager. */
+function visibleTextLength(rendition: Rendition): number | null {
   try {
     const contents = (
       rendition as unknown as {
         getContents: () => Array<{ document?: Document }>;
       }
     ).getContents();
+    if (contents.length === 0) return null;
     return contents.reduce((sum, c) => {
       const text = c.document?.body.textContent ?? "";
       return sum + text.trim().length;
     }, 0);
   } catch {
-    return Number.MAX_SAFE_INTEGER; // unknown: don't skip anything
+    return null; // unknown: don't skip anything
   }
 }
 
-/** Spine-wide search: load/find/unload per section, capped and deduped. */
+/** Spine-wide search: load/find/unload per section, capped and deduped.
+ * NB: item.load/unload MUTATE shared Section state — the same contention
+ * class that wedged rendition.display when locate did it (locate now loads
+ * detached via book.load). Tolerated here because search is user-paced and
+ * rare; if search ever runs concurrently with displays, give it the same
+ * detached treatment. */
 async function searchSpine(
   book: Book,
   query: string,

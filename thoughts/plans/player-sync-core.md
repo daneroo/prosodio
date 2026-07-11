@@ -74,7 +74,10 @@ route's follow logic (`showInBook`) hangs off that callback. Consequences:
   avoiding bidirectional distance semantics. Refusal + transient notice only
   when nothing is resolvable (no spine match, path failure, or no matched span
   forward — executor picks snap-backward vs refuse for trailing content and
-  records the choice here).
+  records the choice here). EXECUTED (T2.3): trailing content REFUSES (no
+  snap-backward); forward snap does not cross into the next spine; refusals
+  surface as a transient `reverseSyncNotice` banner (visible with the panel
+  closed), distinct from the panel-only locateFailure surface.
 - S6 — Routes AND data-plane names rename together — naming consistency wins
   (Daniel 2026-07-10; the cache is disposable, orphaned reports are a
   non-concern). `lab.tsx` layout route renders the tab bar (Locate | Align |
@@ -210,6 +213,46 @@ Files: `src/lib/audio-transport.ts` — move `useAudioTransport` + `audioPosKey`
   snaps forward or notices per S5; reader controls render with the reader pane
   and work; search/TOC/prev/next still disengage follow as today.
 
+RESULT (orchestrator half, 2026-07-11, in-app browser on Alice): acceptance
+surfaced THREE cold-start defects in EpubReader — all the same class, epub.js
+`display()` promises that can wedge forever — fixed as T2.6 below. Verified
+after the fixes: follow effect + dedup + locate all resolve `ok` per token with
+the panel CLOSED; dblclick reverse-sync seeks correctly (matched word -> exact
+time; all views converge); panel token-level follow, transcript, and transport
+stay live under any wedge. RESIDUAL (env-uncertain): in the orchestrator's
+embedded browser, a `rendition.display()` to a NEW section can still wedge
+inside epub.js when it lands near a container resize (panel toggle) or a
+saved-position locate storm at mount; once wedged, that rendition never paints
+again (even `next()` — manager dead), though the app degrades gracefully (5s
+`[latest-wins]` warns, everything else functional). NOT yet reproduced in a
+normal browser — Daniel's half of P2.6 decides whether this is real-user-facing
+(then: new ticket, candidate approaches — rendition re-create on repeated
+timeout, or `bookplayer-ebook-renderer` acceleration) or an embedded-browser
+artifact. One-shot `[reader]` mount breadcrumbs are left in EpubReader to make
+that check easy.
+
+### T2.6 EpubReader display-wedge hardening (added during P2.6) `[tier: med]`
+
+Root-caused live with console breadcrumbs; three layered fixes, all CI-covered:
+
+1. `src/lib/latest-wins.ts` (+6 tests): latest-wins async scheduler — one run in
+   flight, queue depth 1 with supersession, 5s timeout self-heal. ALL
+   follow/resize-driven `rendition.display()` calls flow through it; a locate
+   whose display is superseded still resolves ok (newer locate owns the screen).
+   Fast path: a target cfi already within `rendition.currentLocation()` (EpubCFI
+   compare) skips display entirely — word-to-word follow on the same page costs
+   no repagination.
+2. Init reorder: `onToc`/ResizeObserver/`onController` deliver immediately after
+   `book.ready`; the initial position display runs non-blocking through the
+   scheduler (cover-advance chained, skipped when superseded, hardened against
+   unrendered self-heals). A wedged display can no longer block controller
+   delivery — the pre-fix symptom was a permanently null controller and a
+   silently dead follow.
+3. Detached section loads in `locate`: `book.load(section.url)` + own-document
+   parse instead of `section.load(...)` on the SHARED Section object epub.js's
+   renderer also mutates (`section.cfiFromRange` is pure — safe on a detached
+   range). Removes locate<->display Section contention.
+
 ## Phase 3 — matching-quality design doc
 
 ### T3.1 Draft `thoughts/design/matching-quality-design.md` `[tier: med]`
@@ -250,14 +293,14 @@ Branch: `player-sync-core`. Closing: move the three ids to BACKLOG Closed,
 delete tickets `player-sync-core` + `lab-routes`, archive this plan;
 LOCATE-SWEEP.md route references already updated by T1.1/T1.3.
 
-- [ ] T1.1 route rename + link sweep
-- [ ] T1.2 lab layout + landing
-- [ ] T1.3 locate-sweep data-plane rename
-- [ ] T2.1 reverse-locator helpers + tests
-- [ ] T2.2 usePlayerSync + subscriber AlignmentViewer
-- [ ] T2.3 double-click reverse sync
-- [ ] T2.4 reader chrome colocation + search panel
-- [ ] T2.5 audio transport extraction
+- [x] T1.1 route rename + link sweep
+- [x] T1.2 lab layout + landing
+- [x] T1.3 locate-sweep data-plane rename
+- [x] T2.1 reverse-locator helpers + tests
+- [x] T2.2 usePlayerSync + subscriber AlignmentViewer
+- [x] T2.3 double-click reverse sync
+- [x] T2.4 reader chrome colocation + search panel
+- [x] T2.5 audio transport extraction
 - [ ] P2.6 acceptance (orchestrator + Daniel)
-- [ ] T3.1 matching-quality design doc
+- [x] T3.1 matching-quality design doc
 - [ ] P3.2 design review gate (Daniel)
