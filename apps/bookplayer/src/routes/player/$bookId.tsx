@@ -24,9 +24,9 @@ import { epubLocatorAt } from "@prosodio/align/browser";
 import { AlignmentViewer } from "#/components/AlignmentViewer";
 import { EMPTY_SEARCH } from "#/components/EpubReader";
 import { PlayerDock, SPEED_STEPS } from "#/components/PlayerDock";
+import { usePlayerSync } from "#/lib/player-sync";
 import { fetchBook } from "#/server/library";
-import type { ActiveTokenInfo } from "#/components/AlignmentViewer";
-import type { PreparedAlignment } from "#/lib/alignment-client";
+import type { ActiveTokenInfo } from "#/lib/player-sync";
 import type {
   LocateResult,
   ReaderController,
@@ -66,12 +66,12 @@ function PlayerPage() {
   // on; any manual reader navigation disengages it.
   const [followReader, setFollowReader] = useState(canAlign);
   const lastFollowedSeqRef = useRef(-1);
-  // The prepared artifact (plan D7/P2), lifted from the AlignmentViewer's own
-  // fetch + derive pass — resolution happens entirely client-side from here
-  // on, no further server round-trips.
-  const [prepared, setPrepared] = useState<PreparedAlignment | null>(null);
-  const latestTokenRef = useRef<ActiveTokenInfo | null>(null);
   const audio = useAudioTransport(book.id);
+  // Sync core (plan player-sync-core, S1): owns the artifact fetch/prepare
+  // pass and derives the active token/cue from the playhead — independent of
+  // whether the alignment panel is mounted (S2), so follow works with it
+  // closed.
+  const sync = usePlayerSync(book.id, audio.currentTime, canAlign);
 
   const submitSearch = useCallback(
     (event: FormEvent) => {
@@ -87,17 +87,13 @@ function PlayerPage() {
     controller?.clearSearch();
   }, [controller]);
 
-  const onPrepared = useCallback((next: PreparedAlignment) => {
-    setPrepared(next);
-  }, []);
-
   // "Show in book": resolve the token's EPUB locator against the prepared
   // artifact and resolve it to a Range entirely in the browser (plan D7) — no
   // server round-trip.
   const showInBook = useCallback(
     (token: ActiveTokenInfo) => {
-      if (!controller || !prepared || token.epubSeq === null) return;
-      const located = epubLocatorAt(prepared.artifact.epub, token.epubSeq);
+      if (!controller || !sync.prepared || token.epubSeq === null) return;
+      const located = epubLocatorAt(sync.prepared.artifact.epub, token.epubSeq);
       if (!located) return;
       const { spineHref, segPaths, segTextLen, loc } = located;
       const locator = {
@@ -127,33 +123,32 @@ function PlayerPage() {
           setLocateFailure(result);
         });
     },
-    [controller, prepared],
+    [controller, sync.prepared],
   );
 
-  // Token transitions drive reader follow independently of visual styling in
-  // the alignment panel.
-  const onActiveToken = useCallback(
-    (token: ActiveTokenInfo | null) => {
-      latestTokenRef.current = token;
-      if (!followReader || !token || token.epubSeq === null) return;
-      if (lastFollowedSeqRef.current === token.epubSeq) return;
-      lastFollowedSeqRef.current = token.epubSeq;
-      showInBook(token);
-    },
-    [followReader, showInBook],
-  );
+  // Token transitions drive reader follow independently of whether the
+  // alignment panel is mounted — `sync.activeToken` is derived at the route
+  // regardless of AlignmentViewer (plan player-sync-core, S2). `alignOpen`
+  // must NOT gate this effect.
+  useEffect(() => {
+    const token = sync.activeToken;
+    if (!followReader || !token || token.epubSeq === null) return;
+    if (lastFollowedSeqRef.current === token.epubSeq) return;
+    lastFollowedSeqRef.current = token.epubSeq;
+    showInBook(token);
+  }, [sync.activeToken, followReader, showInBook]);
 
   // Re-enabling follow locates the current token immediately rather than
   // waiting for the next transition.
   const toggleFollow = useCallback(() => {
     const enabling = !followReader;
     setFollowReader(enabling);
-    const latest = latestTokenRef.current;
+    const latest = sync.activeToken;
     if (enabling && latest && latest.epubSeq !== null) {
       lastFollowedSeqRef.current = latest.epubSeq;
       showInBook(latest);
     }
-  }, [followReader, showInBook]);
+  }, [followReader, sync.activeToken, showInBook]);
 
   const { results, activeIndex, searching, query } = searchState;
   // After a result is chosen the panel collapses to a mini-pager, so the
@@ -431,12 +426,12 @@ function PlayerPage() {
             {canAlign && alignOpen && (
               <div className="min-h-0 min-w-0 flex-1 border-t border-slate-700 sm:border-l sm:border-t-0">
                 <AlignmentViewer
-                  bookId={book.id}
-                  currentTime={audio.currentTime}
+                  prepared={sync.prepared}
+                  status={sync.status}
+                  activeTokenSeq={sync.activeTokenSeq}
+                  activeCueIndex={sync.activeCueIndex}
                   onSeek={audio.seek}
                   onShowInBook={showInBook}
-                  onActiveToken={onActiveToken}
-                  onPrepared={onPrepared}
                   locateFailure={locateFailure}
                 />
               </div>

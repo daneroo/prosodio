@@ -4,116 +4,52 @@
  * thoughts/plans/bookplayer-align-refine-model.md, T4.2). Matches are
  * word-by-word — one cue can mix matched and unmatched tokens. During
  * playback the active cue and its active token are highlighted. Residual-gap
- * markers flag book content the narration never reads. Click seeks; a single
- * global binary search over the derived token intervals (packages/align/src/
- * artifact-derive.ts activeTokenAt) drives active-token selection.
+ * markers flag book content the narration never reads. Click seeks. A pure
+ * subscriber (plan thoughts/plans/player-sync-core.md, S2): the route's
+ * usePlayerSync hook (lib/player-sync.ts) owns the artifact fetch/prepare and
+ * the active-token/cue derivation, so reader follow works with this panel
+ * closed; this component only builds rows and renders.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 
-import { activeTokenAt, tokenRaw } from "@prosodio/align/browser";
-
 import { formatDuration } from "#/lib/browse";
-import { fetchArtifact, prepareAlignment } from "#/lib/alignment-client";
 import type { PreparedAlignment } from "#/lib/alignment-client";
+import type { ActiveTokenInfo, PlayerSync } from "#/lib/player-sync";
 import type { LocateResult } from "#/components/EpubReader";
 
 type LocateFailure = Extract<LocateResult, { ok: false }>;
 
-/** One active/double-clicked VTT token, resolved against the EPUB side. */
-export interface ActiveTokenInfo {
-  vttSeq: number;
-  epubSeq: number | null;
-  raw: string;
-}
-
 interface AlignmentViewerProps {
-  bookId: string;
-  currentTime: number;
+  prepared: PreparedAlignment | null;
+  status: PlayerSync["status"];
+  activeTokenSeq: number;
+  activeCueIndex: number;
   onSeek: (sec: number) => void;
   /** "Show in book": the double-clicked matched token. */
   onShowInBook?: (token: ActiveTokenInfo) => void;
-  /** The active token's EPUB position used for reader follow. This remains
-   * token-level even though the UI highlights only the containing cue. */
-  onActiveToken?: (token: ActiveTokenInfo | null) => void;
-  /** The prepared artifact once loaded, so the route can drive the reader
-   * without a second fetch or derive pass. */
-  onPrepared?: (prepared: PreparedAlignment) => void;
   /** Last failed EPUB follow/show-in-book attempt; rendered as a status hint. */
   locateFailure?: LocateFailure | null;
 }
-
-type LoadState =
-  | { status: "loading" }
-  | { status: "error" }
-  | { status: "unavailable" }
-  | { status: "ready"; prepared: PreparedAlignment };
 
 type AlignmentRow =
   | { kind: "gap"; key: string; tokens: number }
   | { kind: "cue"; key: string; cueIndex: number };
 
 export function AlignmentViewer({
-  bookId,
-  currentTime,
+  prepared,
+  status,
+  activeTokenSeq,
+  activeCueIndex,
   onSeek,
   onShowInBook,
-  onActiveToken,
-  onPrepared,
   locateFailure,
 }: AlignmentViewerProps) {
-  const [state, setState] = useState<LoadState>({ status: "loading" });
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const onActiveTokenRef = useRef(onActiveToken);
-  onActiveTokenRef.current = onActiveToken;
-  const onPreparedRef = useRef(onPrepared);
-  onPreparedRef.current = onPrepared;
-
-  useEffect(() => {
-    let cancelled = false;
-    setState({ status: "loading" });
-    fetchArtifact(bookId)
-      .then((result) => {
-        if (cancelled) return;
-        if (result.status === "unavailable") {
-          setState({ status: "unavailable" });
-          return;
-        }
-        const prepared = prepareAlignment(result.artifact);
-        setState({ status: "ready", prepared });
-        onPreparedRef.current?.(prepared);
-      })
-      .catch(() => {
-        if (!cancelled) setState({ status: "error" });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [bookId]);
-
-  // One global binary search over the derived flat token intervals — replaces
-  // the old two-step cue-then-token search.
-  const activeTokenSeq = useMemo(
-    () =>
-      state.status === "ready"
-        ? activeTokenAt(
-            state.prepared.tokenStart,
-            state.prepared.tokenEnd,
-            currentTime,
-          )
-        : -1,
-    [state, currentTime],
-  );
-
-  const activeCueIndex = useMemo(() => {
-    if (state.status !== "ready" || activeTokenSeq < 0) return -1;
-    return state.prepared.artifact.vtt.tokens.cueIndex[activeTokenSeq] ?? -1;
-  }, [state, activeTokenSeq]);
 
   const rows = useMemo(() => {
-    if (state.status !== "ready") return [];
-    const { prepared } = state;
+    if (status !== "ready" || !prepared) return [];
     const cueCount = prepared.artifact.vtt.cues.startSec.length;
     const nextRows: Array<AlignmentRow> = [];
     if (prepared.leadingGapEpubTokens > 0) {
@@ -140,7 +76,7 @@ export function AlignmentViewer({
       }
     }
     return nextRows;
-  }, [state]);
+  }, [status, prepared]);
 
   const activeRowIndex = useMemo(
     () =>
@@ -165,28 +101,11 @@ export function AlignmentViewer({
     rowVirtualizer.scrollToIndex(activeRowIndex, { align: "auto" });
   }, [activeRowIndex, rowVirtualizer]);
 
-  const activeTokenValue: ActiveTokenInfo | null =
-    state.status === "ready" && activeTokenSeq >= 0
-      ? {
-          vttSeq: activeTokenSeq,
-          epubSeq:
-            (state.prepared.epubSeq[activeTokenSeq] ?? -1) >= 0
-              ? state.prepared.epubSeq[activeTokenSeq]!
-              : null,
-          raw: tokenRaw(state.prepared.artifact.vtt, activeTokenSeq),
-        }
-      : null;
-  useEffect(() => {
-    onActiveTokenRef.current?.(activeTokenValue);
-    // The seq identifies the transition; activeTokenValue is derived.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTokenSeq]);
-
-  if (state.status !== "ready") {
+  if (status !== "ready" || !prepared) {
     const message =
-      state.status === "loading"
+      status === "loading"
         ? "Computing alignment… (first run can take a while)"
-        : state.status === "error"
+        : status === "error"
           ? "Alignment failed to load"
           : "No alignment for this book (needs both EPUB and transcript)";
     return (
@@ -195,7 +114,7 @@ export function AlignmentViewer({
         data-testid="alignment-viewer"
       >
         <p
-          className={`text-center text-xs text-slate-500 ${state.status === "loading" ? "animate-pulse" : ""}`}
+          className={`text-center text-xs text-slate-500 ${status === "loading" ? "animate-pulse" : ""}`}
         >
           {message}
         </p>
@@ -203,7 +122,6 @@ export function AlignmentViewer({
     );
   }
 
-  const { prepared } = state;
   const { metrics } = prepared.artifact.match;
   return (
     <div
