@@ -301,6 +301,9 @@ LOCATE-SWEEP.md route references already updated by T1.1/T1.3.
 - [x] T2.3 double-click reverse sync
 - [x] T2.4 reader chrome colocation + search panel
 - [x] T2.5 audio transport extraction
-- [ ] P2.6 acceptance (orchestrator + Daniel)
+- [x] T2.6 EpubReader display-wedge hardening (added during P2.6)
+- [ ] P2.6 acceptance — orchestrator half DONE (see RESULT); Daniel:
+      real-browser check of follow-with-panel-closed + dblclick, and whether the
+      residual display wedge reproduces outside the embedded browser
 - [x] T3.1 matching-quality design doc
 - [ ] P3.2 design review gate (Daniel)
