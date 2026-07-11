@@ -87,7 +87,7 @@ function LocateSweepPage() {
         // Auto-persist the sweep report to the server.
         setSaveStatus("saving");
         try {
-          const response = await fetch(`/api/sweep/${bookId}`, {
+          const response = await fetch(`/api/locate-sweep/${bookId}`, {
             method: "PUT",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(report),

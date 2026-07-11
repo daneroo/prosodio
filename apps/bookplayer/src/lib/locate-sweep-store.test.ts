@@ -9,7 +9,7 @@ import {
   sweepPath,
   validateSweepBody,
   writeSweep,
-} from "./sweep-store.ts";
+} from "./locate-sweep-store.ts";
 import type { BookplayerConfig } from "./config.ts";
 import type { SweepReport } from "./locate-sweep.ts";
 
@@ -66,10 +66,10 @@ function fakeReport(
 }
 
 describe("sweepPath", () => {
-  test("joins dataDir/cache/<bookId>.sweep.json", () => {
+  test("joins dataDir/cache/<bookId>.locate-sweep.json", () => {
     const config = fakeConfig();
     expect(sweepPath(config, "abc123def456")).toBe(
-      join(config.dataDir, "cache", "abc123def456.sweep.json"),
+      join(config.dataDir, "cache", "abc123def456.locate-sweep.json"),
     );
   });
 });
@@ -179,7 +179,7 @@ describe("sweepIndex", () => {
     writeSweep(sweepPath(config, "abc123def456"), fakeReport("abc123def456"));
     // Remove the just-created cache dir's file, leaving the dir but no
     // sweeps, to isolate the "empty" case from the "missing dir" case below.
-    rmSync(join(config.dataDir, "cache", "abc123def456.sweep.json"));
+    rmSync(join(config.dataDir, "cache", "abc123def456.locate-sweep.json"));
     expect(sweepIndex(config)).toEqual([]);
   });
 
@@ -195,7 +195,10 @@ describe("sweepIndex", () => {
     writeSweep(sweepPath(config, "b00000000000"), fakeReport("b00000000000"));
     writeSweep(sweepPath(config, "a00000000000"), fakeReport("a00000000000"));
     writeSweep(sweepPath(config, "c00000000000"), fakeReport("c00000000000"));
-    writeFileSync(join(cacheDir, "corrupt00000.sweep.json"), "{not json");
+    writeFileSync(
+      join(cacheDir, "corrupt00000.locate-sweep.json"),
+      "{not json",
+    );
     // A non-sweep file in the same dir must be ignored, not just corrupt ones.
     writeFileSync(join(cacheDir, "index.json"), "{}");
 

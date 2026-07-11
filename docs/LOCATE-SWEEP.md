@@ -48,8 +48,9 @@ short-circuit.
 `{ bookId, totals { sections, tokens, ok, failed }, sections[] }`. Each section
 carries `parseMode`, `extensionPredictedMode` (a mismatch predicts parity risk —
 see design D10), parity result, and capped `failures`. Persisted as
-`data/bookplayer/cache/<bookId>.sweep.json` via `PUT /api/sweep/:bookId`;
-`/lab/locate` reads the index (`GET /api/sweep`) and re-runs on demand.
+`data/bookplayer/cache/<bookId>.locate-sweep.json` via
+`PUT /api/locate-sweep/:bookId`; `/lab/locate` reads the index
+(`GET /api/locate-sweep`) and re-runs on demand.
 
 ## Interpreting results
 

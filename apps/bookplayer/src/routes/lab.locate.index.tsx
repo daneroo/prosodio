@@ -147,7 +147,7 @@ function SweepCorpusPage() {
       try {
         const [library, sweepRes] = await Promise.all([
           fetchLibrary(),
-          fetch("/api/sweep", { signal: controller.signal }),
+          fetch("/api/locate-sweep", { signal: controller.signal }),
         ]);
         if (!aliveRef.current) return;
         const index: Array<SweepIndexEntry> = sweepRes.ok
@@ -242,7 +242,7 @@ function SweepCorpusPage() {
     }));
 
     try {
-      const response = await fetch(`/api/sweep/${id}`, {
+      const response = await fetch(`/api/locate-sweep/${id}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(report),

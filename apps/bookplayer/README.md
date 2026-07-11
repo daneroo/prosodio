@@ -82,6 +82,7 @@ and
   every book with both EPUB and transcript, sequentially one book at a time;
   "Run all"/"Run missing" plus a per-row "Run", live per-book progress, and a
   totals footer (clean/partial/zero-ok, token sums). Sweep reports persist
-  server-side via `GET/PUT /api/sweep/:bookId` (`server/handlers/sweep.ts`,
-  `src/lib/sweep-store.ts`) as `data/bookplayer/cache/<bookId>.sweep.json`;
-  `GET /api/sweep` returns the totals-only index for the corpus table.
+  server-side via `GET/PUT /api/locate-sweep/:bookId`
+  (`server/handlers/locate-sweep.ts`, `src/lib/locate-sweep-store.ts`) as
+  `data/bookplayer/cache/<bookId>.locate-sweep.json`; `GET /api/locate-sweep`
+  returns the totals-only index for the corpus table.
