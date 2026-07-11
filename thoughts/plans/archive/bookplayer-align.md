@@ -5,14 +5,14 @@ a compact wire (Alice payload 1.28 MB). The pre-merge corrective hardening is
 complete: full range-CFI navigation, locator diagnostics, and virtualized
 long-list rendering. The full data-model rework remains a separate post-merge
 task; see
-[bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md).
+[bookplayer-align-refine-model.md](../../design/bookplayer-align-refine-model.md).
 
 Goal: Visualize the epub/vtt alignment in the bookplayer UI
 
 Addresses BACKLOG `bookplayer-alignment-layout`; builds on the bookplayer
-decision record ([plans/archive/bookplayer.md](archive/bookplayer.md)) and the
-epoch 4 alignment design
-([design/epoch4-alignment-design.md](../design/epoch4-alignment-design.md)).
+decision record ([plans/archive/bookplayer.md](bookplayer.md)) and the epoch 4
+alignment design
+([design/epoch4-alignment-design.md](../../design/epoch4-alignment-design.md)).
 
 ## Feasibility
 
@@ -492,7 +492,7 @@ it is the design we will keep.
 ## Global review (deferred — decided WITH Daniel after the POC proves out)
 
 Moved to the post-merge design note
-[bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md).
+[bookplayer-align-refine-model.md](../../design/bookplayer-align-refine-model.md).
 
 The POC keeps the imperfect address; the real fix (scope, not yet scheduled):
 

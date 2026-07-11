@@ -8,19 +8,33 @@ Filenames in `thoughts/` are lowercase kebab; only `BACKLOG.md` is capitalized.
 
 ## Backlog — `thoughts/BACKLOG.md`
 
-Unscheduled work. One issue per top-level item; the templates here are the
-schema (a validator can enforce them later).
+Unscheduled work, grouped by theme (`## player-ux`, `## corpus quality`, …). The
+backlog is an INDEX — readable at planning altitude in one pass. Themes are the
+label system; an item's theme is the section it sits in. A `## Now` section at
+the top lists the next scheduled ids, in order.
 
 ```md
-- [ ] <id> — <imperative title>
-  - why: <one line>
-  - <nested detail / sub-point / ref>
+- [ ] <id> — <imperative title>; <a few lines max> ticket:
+      [<id>](tickets/<id>.md) <- only when detail outgrew the entry
 ```
 
-- `<id>`: stable lowercase kebab slug, unique; doubles as the plan filename
-  (e.g. `catalog-workflow-doc`, `mdx-linting`, `epoch1-transcribe`).
-- Nest freely for detail; no prose paragraphs.
-- `[x]` when the issue's plan is done and merged. The backlog keeps the record.
+- `<id>`: stable lowercase kebab slug, unique; doubles as the ticket/plan
+  filename (e.g. `catalog-workflow-doc`, `player-sync-core`).
+- An index entry stays a few lines. When detail outgrows it, move the detail to
+  `tickets/<id>.md` and leave a one-line summary + `ticket:` link.
+- Closing: move the item's line to `## Closed (newest first)` with a date and a
+  one-line outcome (+ archive link if a plan ran); delete its ticket. The Closed
+  section doubles as the `plans/archive/` index; prune old lines freely — git
+  keeps everything.
+
+## Ticket — `thoughts/tickets/<id>.md`
+
+Working detail for ONE backlog item: evidence, options, constraints, decisions
+pending. `# <id> — <title>` then a terse freeform body; no schema.
+
+- Created only when an item's detail outgrows its index entry.
+- Deleted on close — tickets are never archived. Harvest durable facts into
+  `docs/` (or the executing plan) first; git history keeps the forensics.
 
 ## Plan — `thoughts/plans/<id>.md`
 
@@ -41,12 +55,12 @@ Goal: <one line>.
 - Steps are checkboxes — the agent's live progress tracker; tick as you go.
 - Optional notes beside it: `<id>-research.md`, `<id>-review.md`, only if
   warranted.
-- Closing: tick `[x]` in BACKLOG and commit that; the backlog keeps the record.
-  A `done` plan may then be either deleted or moved to `plans/archive/<id>.md`
-  and kept while it's still useful — as a worked exemplar, or because live
-  backlog items still reference it. Archived plans are not permanent: prune them
-  once nothing depends on them. The backlog, not the archive, is the durable
-  record.
+- Closing: move the item to BACKLOG's Closed section and commit that; the
+  backlog keeps the record. A `done` plan may then be either deleted or moved to
+  `plans/archive/<id>.md` and kept while it's still useful — as a worked
+  exemplar, or because live backlog items still reference it. Archived plans are
+  not permanent: prune them once nothing depends on them, and don't index them
+  by directory listing — the Closed section (newest first) is the index.
 
 ## Design — `thoughts/design/<id>-design.md`
 

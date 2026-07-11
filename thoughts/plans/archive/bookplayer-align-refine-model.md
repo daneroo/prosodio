@@ -9,7 +9,7 @@ lands. CLI corpus revalidation folded into the follow-up (its extraction change
 re-baselines reports anyway).
 
 Design (authoritative for WHY):
-[design/bookplayer-align-refine-model.md](../design/bookplayer-align-refine-model.md)
+[design/bookplayer-align-refine-model.md](../../design/bookplayer-align-refine-model.md)
 rev 2 — decisions D1-D9 and Daniel's rulings. This plan is the HOW: phased, with
 coding tasks scoped for delegation to lower-power subagent models.
 

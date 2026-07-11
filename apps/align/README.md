@@ -11,7 +11,7 @@ This app is the CLI (`@prosodio/align-cli`): discovery, report writing, and the
 manual-review workflow. The engine lives in
 [`packages/align`](../../packages/align) (`@prosodio/align`), shared with
 `apps/bookplayer` (extraction decision record:
-[`thoughts/plans/bookplayer-align.md`](../../thoughts/plans/bookplayer-align.md);
+[`thoughts/plans/archive/bookplayer-align.md`](../../thoughts/plans/archive/bookplayer-align.md);
 the app-dir rename is deferred debt, BACKLOG `align-cli-rename`).
 
 ## TODO

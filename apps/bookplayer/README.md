@@ -7,7 +7,7 @@ playback). Design and decision records (worked exemplars, kept while backlog
 items reference them):
 [thoughts/plans/archive/bookplayer.md](../../thoughts/plans/archive/bookplayer.md)
 and
-[thoughts/plans/bookplayer-align.md](../../thoughts/plans/bookplayer-align.md).
+[thoughts/plans/bookplayer-align.md](../../thoughts/plans/archive/bookplayer-align.md).
 
 ## TODO
 
