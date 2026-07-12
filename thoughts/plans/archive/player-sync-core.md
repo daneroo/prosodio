@@ -1,12 +1,17 @@
 # player-sync-core — sync model cleanup + /lab routes + matching design doc
 
-Status: planned
+Status: DONE (2026-07-12) — all three ids delivered and accepted on branch
+`player-sync-core`. Final corpus state during acceptance (Daniel, after
+replacing the two Calibre books): 93/93 swept, 93 clean, 11,554,769/11,554,769
+tokens ok, 0 failed. Acceptance additionally hardened EpubReader against epub.js
+display wedges (T2.6) and fixed the never-working EPUB dblclick via the srcdoc
+CFI bridge (T2.7).
 
 One iteration executing three backlog ids (BACKLOG "Now", 2026-07-10):
-`player-sync-core` (primary), `lab-routes`, `matching-quality-design`. Tickets:
-[player-sync-core](../tickets/player-sync-core.md),
-[lab-routes](../tickets/lab-routes.md); matching-quality-design has no ticket
-(index entry only).
+`player-sync-core` (primary), `lab-routes`, `matching-quality-design`. Their
+tickets (`player-sync-core`, `lab-routes`) were deleted at close per the ticket
+lifecycle — git history keeps them; matching-quality-design had no ticket (index
+entry only).
 
 Goal: one canonical sync state (playhead <-> matched span <-> book location)
 owned by the player, panels as optional subscribers, EPUB -> audio reverse sync;
@@ -231,6 +236,44 @@ timeout, or `bookplayer-ebook-renderer` acceleration) or an embedded-browser
 artifact. One-shot `[reader]` mount breadcrumbs are left in EpubReader to make
 that check easy.
 
+RESULT (Daniel half, 2026-07-12, real browser, fixture + private):
+
+- follow with the alignment panel CLOSED: CONFIRMED.
+- the T2.6 residual display wedge did NOT reproduce — treated as an
+  embedded-browser artifact; breadcrumbs removed, no ticket.
+- EPUB dblclick: "couldn't resolve the clicked word" on EVERY book — the gesture
+  had NEVER worked (the orchestrator's earlier "success" was playback
+  progression misread as a seek). Root cause proven and fixed as T2.7; Daniel
+  re-verified with the fix: dblclick locates the play position.
+- residual off-by-one-word (click "leave", previous token "that" highlights):
+  diagnosed as media currentTime quantization reading back just below the exact
+  tokenStart boundary — fixed with a 20ms into-token seek nudge at the route
+  seek site (T2.7). PENDING Daniel's re-check; if still off, ticket it
+  (`bookplayer-reverse-sync-off-by-one`).
+- panel gesture overlap (row single-click seeks cue start AND word dblclick
+  shows in book, dblclick double-firing the row seek): consolidated in T2.7 per
+  Daniel's call — one gesture, single click on a word = seek to that word + show
+  in book.
+
+### T2.7 Reverse-sync srcdoc bridge + panel click consolidation `[tier: med]`
+
+Root cause (proven live): the rendered iframe is ALWAYS an `about:srcdoc`
+`text/html` parse — even for `.xhtml` sections — and the HTML parser drops the
+whitespace text node before `<head>` (rendered `[HEAD, #text, BODY]`, body@2)
+while capture's XML parse keeps it (`[#text, HEAD, #text, BODY]`, body@3). Raw
+childNodes paths from the rendered document can therefore NEVER match segPaths
+on xhtml-mode sections — the same divergence family as the Calibre prolog class,
+one level down.
+
+Fix: bridge with CFIs, the whitespace-tolerant mechanism epub.js itself uses for
+forward highlights — rendered click -> collapsed Range -> `section.cfiFromRange`
+-> `EpubCFI.toRange(detached capture-parse document)` (shared
+`loadDetachedSection` helper + the locate LRU) -> capture-side node/offset ->
+unchanged segPath lookup, which matches by construction. Bridge failures fall
+back to the rendered point so the refusal notice still fires. Plus the
+P2.6-requested panel consolidation (single click word = seek word + show in
+book; dblclick handler deleted) and the 20ms seek nudge.
+
 ### T2.6 EpubReader display-wedge hardening (added during P2.6) `[tier: med]`
 
 Root-caused live with console breadcrumbs; three layered fixes, all CI-covered:
@@ -302,8 +345,10 @@ LOCATE-SWEEP.md route references already updated by T1.1/T1.3.
 - [x] T2.4 reader chrome colocation + search panel
 - [x] T2.5 audio transport extraction
 - [x] T2.6 EpubReader display-wedge hardening (added during P2.6)
-- [ ] P2.6 acceptance — orchestrator half DONE (see RESULT); Daniel:
-      real-browser check of follow-with-panel-closed + dblclick, and whether the
-      residual display wedge reproduces outside the embedded browser
+- [x] T2.7 reverse-sync srcdoc bridge + panel click consolidation
+- [x] P2.6 acceptance — both halves done (see RESULTS); only the 20ms off-by-one
+      nudge awaits Daniel's re-check in normal use
 - [x] T3.1 matching-quality design doc
-- [ ] P3.2 design review gate (Daniel)
+- [x] P3.2 design review gate — Daniel 2026-07-12: accepted as the initial
+      baseline; revisit when the design docs are folded (digested, simplified)
+      into docs/ (the docs-taxonomy harvest)

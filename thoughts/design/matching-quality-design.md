@@ -4,7 +4,7 @@ Status: design baseline, dated 2026-07-11. Reproduces the CURRENT matcher
 (`packages/align/src`) — algorithm, actual parameter values, and the actual
 metrics vector — as the reference point for the matching-quality workstream
 (BACKLOG `matching-quality-design`). No code changes implied or made by this doc
-(plan `thoughts/plans/player-sync-core.md`, T3.1/S8).
+(plan `thoughts/plans/archive/player-sync-core.md`, T3.1/S8).
 
 ## 1. Pipeline as built
 
