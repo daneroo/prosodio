@@ -46,7 +46,7 @@ every commit.
 - [x] `cleanReportDir` reviewed: already minimal (delete all but `.git`); no
       change.
 - [x] Boundary close-out (`9ccc5b0`): nested LOCAL-ONLY reports repo documented
-      durably in `docs/PRIVACY.md` + explanatory `.gitignore` comments; `dist/`
+      durably in `docs/privacy.md` + explanatory `.gitignore` comments; `dist/`
       = generated (rebuilt every validate run), excluded from git/prettier/
       eslint; `reports/` stays fully excluded (deterministic prettier-clean
       reports judged not worth it).

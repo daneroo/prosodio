@@ -604,7 +604,7 @@ Files (delete): `apps/bookplayer/src/lib/alignment.ts`, `alignment.test.ts`,
 ### T5.2 Docs `[tier: low]`
 
 Files: `apps/bookplayer/README.md`, `apps/align/README.md`,
-`docs/FILE-LAYOUT.md` (if it names the deleted modules or the align cache dir),
+`docs/file-layout.md` (if it names the deleted modules or the align cache dir),
 `thoughts/BACKLOG.md`.
 
 - Bookplayer README: alignment section now describes the artifact endpoint

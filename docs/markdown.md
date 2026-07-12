@@ -1,6 +1,6 @@
 # Markdown
 
-Authoring style. Tooling: [FORMATTING.md](FORMATTING.md).
+Authoring style. Tooling: [formatting.md](formatting.md).
 
 - Unnumbered lists (`-`) and headings.
 - Bullets over tables — except when directed or alignment is paramount.

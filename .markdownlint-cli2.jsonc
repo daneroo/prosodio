@@ -3,7 +3,7 @@
   // The prettier-compatible preset disables rules that conflict with prettier
   // (line length, list/indent style, etc.) so the two tools never disagree;
   // prettier formats, markdownlint catches the structural problems prettier
-  // does not (e.g. duplicate headings, bare URLs). See docs/MARKDOWN.md.
+  // does not (e.g. duplicate headings, bare URLs). See docs/markdown.md.
   // gitignore: true makes globbing skip node_modules, out/, dist/ via .gitignore.
   "gitignore": true,
   "config": {

@@ -33,7 +33,7 @@ Quality gate: root `bun run ci` (from the repo root) — no app-local check
 scripts.
 
 Reports land in `reports/` — gitignored, PRIVATE (derived from the private
-corpus; see root `docs/PRIVACY.md`), with a nested LOCAL-ONLY git repo for
+corpus; see root `docs/privacy.md`), with a nested LOCAL-ONLY git repo for
 regression history. An unfiltered all-roots run regenerates the whole tree
 (preserving `.git`); filtered runs upsert. Per book:
 `reports/<root>/<base>.alignment.json`; per run: `reports/summary.json`.

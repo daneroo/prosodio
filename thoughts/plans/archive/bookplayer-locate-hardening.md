@@ -272,7 +272,7 @@ Phase 2 commit.
       absorbing newly transcribed/aligned corpus additions. Retires the
       revalidation item folded in from the predecessor plan.
 - [x] Docs: bookplayer README + BACKLOG updated (P3 docs commit);
-      `docs/LOCATE-SWEEP.md` added documenting what the sweep verifies and what
+      `docs/locate-sweep.md` added documenting what the sweep verifies and what
       an `ok` means.
 - [ ] Archive this plan AND the predecessor together after Daniel's sign-off
       (final corpus numbers recorded above).

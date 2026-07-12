@@ -2,7 +2,7 @@
 
 - Prettier formats
 - markdownlint lints structure.
-- Authoring style: [MARKDOWN.md](MARKDOWN.md). Commands:
+- Authoring style: [markdown.md](markdown.md). Commands:
   [AGENTS.md](../AGENTS.md).
 
 ## Config

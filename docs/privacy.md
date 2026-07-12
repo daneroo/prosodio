@@ -1,7 +1,7 @@
 # Privacy — public/private data boundary
 
 What may be committed to this public repo, and what must not. Where things live:
-[FILE-LAYOUT.md](FILE-LAYOUT.md).
+[file-layout.md](file-layout.md).
 
 - Committed `fixtures/` — public test data. The location is the contract:
   placing a file under `fixtures/` declares it safe/legal to expose. Large

@@ -25,7 +25,7 @@ export interface RootSet {
 export interface BookplayerConfig {
   repoRoot: string;
   activeRoot: RootSet;
-  /** Gitignored volatile state: data/bookplayer/… (docs/FILE-LAYOUT.md). */
+  /** Gitignored volatile state: data/bookplayer/… (docs/file-layout.md). */
   dataDir: string;
   cacheFile: string;
   evidenceDir: string;

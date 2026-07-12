@@ -238,7 +238,7 @@ Workspace integration (root conventions, no nested repo, no duplicated tooling):
   CI typecheck) but excluded from fmt/lint.
 - Dependencies via `bun add` from `apps/bookplayer` (member deps: `epubjs`,
   `p-limit`); `@prosodio/vtt` added by hand as `workspace:*` then root
-  `bun install` (per docs/DEPENDENCY.md). No catalog entries — no runtime dep is
+  `bun install` (per docs/dependency.md). No catalog entries — no runtime dep is
   shared by two members yet. `playwright` in `apps/epub-validate` is that app's
   corpus tool, not browser-test precedent; Bookplayer adds no Playwright.
 
@@ -282,7 +282,7 @@ Landing page `/`:
   active root with configuration guidance (which root is selected and how to
   switch via `BOOKPLAYER_ROOT`).
 
-Player page `/player/$bookId` (dark slate shell per docs/STYLING.md,
+Player page `/player/$bookId` (dark slate shell per docs/styling.md,
 high-contrast reading surface, `h-screen` flex column, every band `shrink-0`
 except the reader's `flex-1 overflow-hidden`):
 
@@ -399,7 +399,7 @@ Fixtures:
   in units). Browser acceptance requires
   `bun scripts/fetch-and-check-fixtures.ts` first (98 MB m4b).
 
-Privacy (docs/PRIVACY.md applies):
+Privacy (docs/privacy.md applies):
 
 - Public acceptance flow runs on the Alice fixture; the private flow
   (`Use Of Weapons`, EPUB query `Dizzy`) runs with `BOOKPLAYER_ROOT=private`
@@ -801,7 +801,7 @@ Outcome: contract-complete app with recorded evidence. Files: touch-ups only;
 - [x] Confirm no Playwright dependency was added to `apps/bookplayer`
       (`bun pm ls` / package.json inspection recorded)
 - [x] CI GATE; final diff review: only intended files changed
-- [x] Tick the backlog/plan closure per docs/WORKFLOW.md; Status: done
+- [x] Tick the backlog/plan closure per docs/workflow.md; Status: done
 
 Phase 8 log (2026-07-04; evidence:
 `data/bookplayer/evidence/phase5-reader-spike.md` + two private screenshots in

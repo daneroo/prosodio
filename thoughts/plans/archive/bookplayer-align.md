@@ -222,7 +222,7 @@ type AlignmentPayload =
 - [x] Phase 6 — acceptance + docs: fixtures acceptance recorded (Alice is the
       deliberately hard mismatch case — abridged EPUB vs full narration, so
       mixed runs and gap markers show prominently); private dev-time spot-check
-      on a high-coverage book (NOT in CI); READMEs + docs/FILE-LAYOUT.md (new
+      on a high-coverage book (NOT in CI); READMEs + docs/file-layout.md (new
       `data/bookplayer/align/` cache dir) + BACKLOG updates; plan → archive
       after Daniel's validation.
 

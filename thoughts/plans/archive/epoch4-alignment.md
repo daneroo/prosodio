@@ -30,7 +30,7 @@ executable increments.
   of epub-validate.
 - `apps/align` is the runnable workspace boundary. Matching logic may be
   extracted later only when a real second consumer justifies a package.
-- Anything derived from the private corpus is private (docs/PRIVACY.md).
+- Anything derived from the private corpus is private (docs/privacy.md).
   Alignment outputs live under gitignored `apps/align/reports/`; regression
   history uses a nested LOCAL-ONLY git repo inside it (exemplar:
   `apps/epub-validate/reports/`); regeneration preserves the nested `.git`.
@@ -171,7 +171,7 @@ Types and the three input builders, each with tests, before any matching.
       configured roots (missing roots skip); `-s`/`-r` filter; results and a run
       summary go under `apps/align/reports/`.
 - [x] Create the private results dir as a nested LOCAL-ONLY git repo inside
-      gitignored `apps/align/reports/` (per docs/PRIVACY.md); regeneration
+      gitignored `apps/align/reports/` (per docs/privacy.md); regeneration
       deletes stale generated files but preserves the nested `.git`.
 
 ## 7 — Multipass proof

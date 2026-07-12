@@ -1,7 +1,7 @@
 # BACKLOG
 
 Unscheduled work, grouped by theme. Format:
-[docs/WORKFLOW.md](../docs/WORKFLOW.md). This file is an INDEX — entries stay a
+[docs/workflow.md](../docs/workflow.md). This file is an INDEX — entries stay a
 few lines; items whose detail outgrows that carry a `ticket:` link into
 [tickets/](tickets/).
 
@@ -126,7 +126,7 @@ matching-quality experiments over the accepted design baseline.
       `design/matching-quality-design.md` (Daniel, P3.2 2026-07-12: revisit the
       baseline when it is digested and simplified into docs/).
 - [ ] catalog-workflow-doc — document the `workspaces.catalogs` workflow in
-      `docs/DEPENDENCY.md`; demand-driven (entry only at 2+ consumers), named
+      `docs/dependency.md`; demand-driven (entry only at 2+ consumers), named
       catalogs (`runtime`, `testing`) expected.
 - [ ] document-prosewrap — record `proseWrap: always` + width 80 rationale in
       docs (FORMATTING/MARKDOWN); include the prettier-tables validation

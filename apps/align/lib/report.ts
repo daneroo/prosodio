@@ -1,5 +1,5 @@
 // The CLI-owned book report projection: the private, human-reviewable JSON
-// written into reports/ (see docs/PRIVACY.md). This schema lives in the app,
+// written into reports/ (see docs/privacy.md). This schema lives in the app,
 // not the package, because it carries filesystem paths and review-sample text
 // extracts that never belong in the browser-served artifact
 // (packages/align/src/artifact.ts). Every TS type is inferred from its Zod
@@ -227,7 +227,7 @@ function toReviewSample(
 
 /**
  * Report writing into the private reports home (gitignored; see
- * docs/PRIVACY.md). The directory is a nested LOCAL-ONLY git repo — history
+ * docs/privacy.md). The directory is a nested LOCAL-ONLY git repo — history
  * for regression comparison without publication (exemplar:
  * apps/epub-validate/reports/). Regeneration deletes stale generated files
  * but must always preserve the nested `.git`.

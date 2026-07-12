@@ -6,7 +6,7 @@ Zod-validated `ParserOutput` (metadata, spine, manifest, per-item content
 SHA-256, TOC tree), and produces a deterministic pairwise comparison report.
 
 **Read first:**
-[`FINDINGS-epub-validate-2026-06-24.md`](docs/FINDINGS-epub-validate-2026-06-24.md)
+[`FINDINGS-epub-validate-2026-06-24.md`](docs/findings-epub-validate-2026-06-24.md)
 — consolidated findings and the problematic-books inventory (books to fix rather
 than code). Unscheduled work lives in the root
 [`thoughts/BACKLOG.md`](../../thoughts/BACKLOG.md).
@@ -24,7 +24,7 @@ lint, typecheck, and tests — there are no app-local check scripts.
 
 `bun run validate` processes every configured root and parser path and replaces
 the current reports only after successful completion — preserving the nested
-local-only `reports/.git` (see the root `docs/PRIVACY.md`). The corpus roots are
+local-only `reports/.git` (see the root `docs/privacy.md`). The corpus roots are
 defined in [`src/config.ts`](src/config.ts) (`test` → `fixtures/epub/`, `space`
 → a mounted volume, `drop` → a Dropbox path).
 
@@ -68,7 +68,7 @@ The three-way comparison is really **two pairs with different purposes**:
   parsing is equivalent. It is a verification tool, not part of the target
   pipeline. (It has already earned its keep — it caught the node-path metadata
   entity-truncation bug and the Thud! TOC failure; see
-  `docs/FINDINGS-epub-validate-2026-06-24.md`.)
+  `docs/findings-epub-validate-2026-06-24.md`.)
 
 - **epub.ts node vs storyteller (@storyteller-platform/epub)** — Storyteller has
   a full alignment solution we may want to interoperate with. The goal is to
@@ -79,7 +79,7 @@ The three-way comparison is really **two pairs with different purposes**:
 ### Documents
 
 `docs/` holds the retained findings:
-[`FINDINGS-epub-validate-2026-06-24.md`](docs/FINDINGS-epub-validate-2026-06-24.md)
+[`FINDINGS-epub-validate-2026-06-24.md`](docs/findings-epub-validate-2026-06-24.md)
 (consolidated findings + problematic-books inventory, maintained as the corpus
 evolves). Historical plans were pruned at port time; work tracking follows the
-root `docs/WORKFLOW.md` using `thoughts/BACKLOG.md` and `thoughts/plans/`.
+root `docs/workflow.md` using `thoughts/BACKLOG.md` and `thoughts/plans/`.

@@ -42,7 +42,7 @@ const ALICE = "Lewis Carroll - Alices Adventures in Wonderland";
 
 export const config = {
   appDir: APP_DIR,
-  // Private, gitignored, nested LOCAL-ONLY git repo (see docs/PRIVACY.md).
+  // Private, gitignored, nested LOCAL-ONLY git repo (see docs/privacy.md).
   // Everything under it derives from private corpora and is never committed.
   reportsDir: join(APP_DIR, "reports"),
   // Committed public test fixtures — NOT volatile data, anchored at REPO_ROOT.

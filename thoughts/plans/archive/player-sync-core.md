@@ -112,7 +112,7 @@ update the `createFileRoute` path literals (`bun run generate-routes` rewrites
 them — run it and commit the regenerated routeTree), internal links between the
 two pages, the player top-bar dev link (`/dev/locate/${book.id}` ->
 `/lab/locate/${book.id}`, label `sweep` -> `lab`), `apps/bookplayer/README.md`,
-`docs/LOCATE-SWEEP.md` route mentions. No logic changes; API rename is T1.3, not
+`docs/locate-sweep.md` route mentions. No logic changes; API rename is T1.3, not
 here.
 
 ### T1.2 Lab layout + landing `[tier: med]`
@@ -137,7 +137,7 @@ Per S6: `src/lib/sweep-store.ts` -> `src/lib/locate-sweep-store.ts` (+ its
 test), persisted filename suffix `.sweep.json` -> `.locate-sweep.json`,
 `/api/sweep` + `/api/sweep/:bookId` -> `/api/locate-sweep` +
 `/api/locate-sweep/:bookId`, and every client fetch/mention in the two lab
-pages, `apps/bookplayer/README.md`, `docs/LOCATE-SWEEP.md`. Grep for `sweep`
+pages, `apps/bookplayer/README.md`, `docs/locate-sweep.md`. Grep for `sweep`
 across the app afterward: remaining hits should only be the sweep ALGORITHM
 (`locate-sweep.ts`, `sweepBook`, report types), which keeps its name — the
 operation is a sweep; the surface is locate.

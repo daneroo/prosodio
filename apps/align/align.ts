@@ -1,6 +1,6 @@
 // Entry point for sparse VTT–EPUB alignment (epoch 4): discover matched
 // (vtt, epub, m4b) triplets per configured root, run the two-pass alignment,
-// and write private reports (see docs/PRIVACY.md).
+// and write private reports (see docs/privacy.md).
 import process from "node:process";
 import yargs from "yargs";
 import { alignBook, type AlignOptions } from "@prosodio/align";

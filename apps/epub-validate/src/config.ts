@@ -31,7 +31,7 @@ const roots: readonly RootConfig[] = [
 export const config = {
   appDir: APP_DIR,
   browserBundlePath: join(APP_DIR, "dist", "epubts-browser.js"),
-  // Private, gitignored, nested LOCAL-ONLY git repo (see docs/PRIVACY.md).
+  // Private, gitignored, nested LOCAL-ONLY git repo (see docs/privacy.md).
   reportsDir: join(APP_DIR, "reports"),
   // Committed public test fixtures — NOT volatile data, anchored at REPO_ROOT.
   fixturesDir: join(REPO_ROOT, "fixtures"),
