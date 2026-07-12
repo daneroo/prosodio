@@ -105,22 +105,17 @@ matching-quality experiments over the accepted design baseline.
 
 ## docs workflow
 
-- [ ] sync-repository-workflow — back-port the settled docs/thoughts workflow
-      refinements from nix-hardy; includes renaming all `docs/*.md` to lowercase
-      kebab-case (Daniel 2026-07-12: UPPERCASE `docs/` was a mistake, reversing
-      the earlier decision) — mind macOS case-insensitive rename handling.
-      ticket: [sync-repository-workflow](tickets/sync-repository-workflow.md)
 - [ ] document-delegation-tiers — pull the proven `[tier: low|med]` ->
       model-class scheme from `plans/archive/player-sync-core.md`'s "Dispatch
-      policy" into `docs/workflow.md`'s Plans section; the current guidance
-      there is abstract, this pattern is proven in practice. Revisit after
-      `sync-repository-workflow` settles where execution guidance lives.
+      policy" into `docs/workflow.md`'s Plans section (the paragraph deduped
+      there by `sync-repository-workflow`); current guidance there is abstract,
+      this pattern is proven in practice.
 - [ ] docs-taxonomy — grouped `docs/` index landed 2026-07-10 (working-here /
       pipeline-and-data / frameworks; flat files, index in docs/README.md).
-      Remaining: write DATA-CONTRACTS.md (per-artifact axes — deterministic?
+      Remaining: write data-contracts.md (per-artifact axes — deterministic?
       stored or cached? transported? schema-versioned? — and the version policy:
       single client, a version bump is a cache-invalidation tool, not a compat
-      promise) and ALIGNMENT.md (matcher pass contracts, extraction parse-mode
+      promise) and alignment.md (matcher pass contracts, extraction parse-mode
       policy, L1/L2/L3 validation ladder) by harvesting `thoughts/design/`;
       prune the harvested designs after. The harvest now also covers
       `design/matching-quality-design.md` (Daniel, P3.2 2026-07-12: revisit the
@@ -129,7 +124,7 @@ matching-quality experiments over the accepted design baseline.
       `docs/dependency.md`; demand-driven (entry only at 2+ consumers), named
       catalogs (`runtime`, `testing`) expected.
 - [ ] document-prosewrap — record `proseWrap: always` + width 80 rationale in
-      docs (FORMATTING/MARKDOWN); include the prettier-tables validation
+      docs (formatting.md/markdown.md); include the prettier-tables validation
       (byte-identical to deno fmt, 2026-06-28; spot-check alignment markers,
       very-wide tables, CJK width).
 - [ ] dependency-update-doc — document the update workflow (`outdated:fix` =
@@ -141,6 +136,14 @@ matching-quality experiments over the accepted design baseline.
 One line per closed item — this section doubles as the `plans/archive/` index.
 Prune old lines freely; git keeps everything.
 
+- 2026-07-12 sync-repository-workflow — `docs/` renamed to lowercase kebab-case
+  (reversed the earlier UPPERCASE decision; verified two-hop `git mv` procedure
+  for macOS case-insensitive filesystems), all 20 referencing files fixed,
+  `docs/workflow.md`'s casing statement corrected, `AGENTS.md`'s Execution
+  section deduped to a pointer, the "one named quality gate per repo" invariant
+  added. Nix-hardy commit `8516003` was the source; review comments delivered to
+  Codex separately.
+  [plans/archive/sync-repository-workflow.md](plans/archive/sync-repository-workflow.md)
 - 2026-07-12 player-sync-core — route-level `usePlayerSync` (follow works with
   the panel closed), EPUB dblclick reverse sync (srcdoc CFI bridge; the raw path
   lookup could never work), reader chrome colocated with the EPUB pane, panel

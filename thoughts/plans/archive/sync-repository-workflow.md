@@ -1,14 +1,14 @@
 # sync-repository-workflow — lowercase `docs/`, dedupe delegation guidance
 
-Status: active
+Status: DONE (2026-07-12)
 
 Goal: rename all `docs/` filenames to lowercase kebab-case (reversing the
 earlier UPPERCASE decision), fix every reference, and land the two small
 nix-hardy-derived workflow improvements the ticket identified.
 
-Ticket: [sync-repository-workflow](../tickets/sync-repository-workflow.md) (full
-inventory, verified rename mechanics, and rationale — read it before starting;
-this plan is the execution checklist).
+Its ticket (`sync-repository-workflow`) was deleted at close per the ticket
+lifecycle — git history keeps it; it held the full 13-file rename inventory, the
+20-file reference list, and the empirically-verified rename mechanics.
 
 ## Dispatch policy
 
@@ -27,26 +27,25 @@ per task, `bun run ci` green before each.
 
 ## Tasks
 
-- [ ] T1 — rename all 13 files (Task 1 in the ticket: 12 under `docs/` + the
+- [x] T1 — rename all 13 files (Task 1 in the ticket: 12 under `docs/` + the
       `FINDINGS` file under `apps/epub-validate/docs/`) to lowercase kebab-case
       via the verified two-hop `git mv` procedure. Verify with
       `git status --short` after each pair.
-- [ ] T2 — update every link/comment referencing the old names (Task 2's 20-file
+- [x] T2 — update every link/comment referencing the old names (Task 2's 20-file
       inventory), then re-grep to confirm zero stale uppercase `docs/`
       references remain (excluding the ticket's own historical table).
-- [ ] T3 — fix `docs/workflow.md`'s casing statement (was: "docs/ is UPPERCASE
+- [x] T3 — fix `docs/workflow.md`'s casing statement (was: "docs/ is UPPERCASE
       by convention"); state both `docs/` and `thoughts/` are lowercase kebab,
       `README.md`/`BACKLOG.md` excepted.
-- [ ] T4 — dedupe delegation guidance: shrink `AGENTS.md`'s `## Execution`
+- [x] T4 — dedupe delegation guidance: shrink `AGENTS.md`'s `## Execution`
       section to a pointer, keep the full version in `docs/workflow.md` under
       `## Plans`.
-- [ ] T5 — add the "one named quality gate per repo" invariant to
+- [x] T5 — add the "one named quality gate per repo" invariant to
       `docs/workflow.md`.
-- [ ] T6 — verify-only checks (already-true items per the ticket); fix only if
+- [x] T6 — verify-only checks (already-true items per the ticket); fix only if
       something's actually wrong.
-- [ ] P7 — `bun run ci` green, `bun run lint:md` clean, final
-      `grep -rnE '\bdocs/[A-Z][A-Z0-9-]*\.md\b' . --exclude-dir=node_modules --exclude-dir=.git`
-      returns nothing outside the ticket's historical table.
+- [x] P7 — `bun run ci` green (524 pass), `bun run lint:md` clean, final grep
+      returned zero unexpected hits.
 
 ## Closing
 
