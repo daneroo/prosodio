@@ -3,8 +3,15 @@
 Backlog -> plan -> implement (small commits) -> done. Everything in `thoughts/`
 is transient except `BACKLOG.md`.
 
-Filenames in `thoughts/` are lowercase kebab; only `BACKLOG.md` is capitalized.
-(`docs/` is UPPERCASE by convention; `thoughts/` is not.)
+Filenames in both `docs/` and `thoughts/` are lowercase kebab; only `README.md`
+and `BACKLOG.md` are capitalized, as recognized repository indexes. (`docs/` was
+UPPERCASE until 2026-07-12 — reversed as a mistake; if you find a reference to
+the old casing elsewhere, fix it.)
+
+Prosodio's one required quality gate is `bun run ci` (see `AGENTS.md`). This
+convention is shared with other repos using the same docs/thoughts model (e.g.
+nix-hardy uses `just pre-commit`) — the invariant is "name one gate," not a
+specific command.
 
 ## Backlog — `thoughts/BACKLOG.md`
 

@@ -12,14 +12,8 @@ alongside their ebooks on a synchronized timeline.
 
 ## Execution
 
-- When planning, shape coding tasks so model class and effort can be selected
-  per task. State the relevant context, boundaries, dependencies, risk,
-  acceptance criteria, and verification.
-- For coding tasks, use judgment to select an appropriate lower-power subagent
-  model and effort level. Reassess the plan's recommendation when execution
-  reveals additional complexity or risk.
-- Keep integration, architectural judgment, and final verification with the
-  coordinating agent.
+Plan coding tasks for delegation (model/effort selection, boundaries, acceptance
+criteria) — see [docs/workflow.md](docs/workflow.md#plans).
 
 ## Layout
 
