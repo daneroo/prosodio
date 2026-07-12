@@ -104,12 +104,16 @@ export const EMPTY_SEARCH: SearchState = {
   activeIndex: null,
 };
 
-/** A raw DOM point reported by a double-click in the reader (plan
- * player-sync-core S4): the section's epub.js href plus the resolved
- * text-node/offset. Deliberately artifact-agnostic — EpubReader knows
- * nothing about spines/tokens; the route maps this to a seek target via
- * `seekTargetForBookPoint` (player-sync.ts), same division of labor as
- * `locate`. */
+/** A DOM point reported by a double-click in the reader (plan
+ * player-sync-core S4): the section's epub.js href plus a text-node/offset.
+ * The node belongs to the section's CAPTURE-PARSE (detached) document, NOT
+ * the rendered iframe: the rendered view is about:srcdoc and thus always
+ * text/html-parsed, while segPaths come from the capture parse (XML for
+ * .xhtml), so the click point is bridged across that divergence via CFI
+ * (rendered point -> CFI -> range in the detached document). Deliberately
+ * artifact-agnostic — EpubReader knows nothing about spines/tokens; the
+ * route maps this to a seek target via `seekTargetForBookPoint`
+ * (player-sync.ts), same division of labor as `locate`. */
 export interface WordActivatePoint {
   sectionHref: string;
   node: Node;
@@ -247,6 +251,47 @@ export function EpubReader({
       }
     };
 
+    // DETACHED section load, shared by locate and the dblclick bridge:
+    // fetch + parse the section content WITHOUT mutating the shared Section
+    // object. section.load() sets section.document/contents and fires
+    // content hooks on the SAME Section instance rendition.display() loads
+    // internally; that contention wedges epub.js's display queue (observed:
+    // locate loads a section, a follow display of that section tears down
+    // the old view and hangs forever, poisoning every later display).
+    // book.load(section.url) goes straight to the archive/request layer and
+    // leaves the Section untouched. Results cache in the sectionCache LRU,
+    // keyed by section.href.
+    type DetachedSectionLoad =
+      | { ok: true; document: Document }
+      | {
+          ok: false;
+          reason:
+            | "reader-not-ready"
+            | "section-load-failed"
+            | "section-document-missing";
+          error?: unknown;
+        };
+    const loadDetachedSection = async (
+      section: SpineItemLike,
+    ): Promise<DetachedSectionLoad> => {
+      const cached = sectionCache.get(section.href);
+      if (cached) return { ok: true, document: cached };
+      if (!book) return { ok: false, reason: "reader-not-ready" };
+      let response: unknown;
+      try {
+        response = await book.load(section.url);
+      } catch (error) {
+        return { ok: false, reason: "section-load-failed", error };
+      }
+      if (!alive()) return { ok: false, reason: "reader-not-ready" };
+      const document = documentFromSectionResponse(response, section.href);
+      if (!document) {
+        return { ok: false, reason: "section-document-missing" };
+      }
+      cacheSection(section.href, document);
+      return { ok: true, document };
+    };
+
     const pushSearch = (next: SearchState) => {
       searchState.current = next;
       callbacksRef.current.onSearchState(next);
@@ -351,13 +396,53 @@ export function EpubReader({
             if (!point) return;
             // spineItems (below), not book.spine.get: its type honestly
             // reflects that an out-of-range sectionIndex has no entry.
-            const sectionHref = spineItems(book)[contents.sectionIndex]?.href;
-            if (!sectionHref) return;
-            activateWord({
-              sectionHref,
-              node: point.node,
-              offset: point.offset,
-            });
+            const section = spineItems(book)[contents.sectionIndex];
+            if (!section) return;
+            // CFI bridge (see WordActivatePoint): the rendered view is an
+            // about:srcdoc iframe, ALWAYS HTML-parsed — even a .xhtml
+            // section gets the HTML parser's whitespace handling (e.g. the
+            // text node before <head> is dropped), so childNodes paths
+            // computed against this document can never match the capture
+            // parse's segPaths (systematic node-not-located). CFIs are how
+            // epub.js itself crosses that divergence for forward highlights
+            // (element-only even steps + merged text chunks are
+            // whitespace-tolerant), so run the same bridge in reverse:
+            // rendered click point -> CFI -> range in the DETACHED
+            // capture-parse document -> capture-side node/offset.
+            void (async () => {
+              let bridged: { node: Node; offset: number } | null = null;
+              try {
+                const clickRange = contents.document.createRange();
+                clickRange.setStart(point.node, point.offset);
+                clickRange.collapse(true);
+                const cfi = section.cfiFromRange(clickRange);
+                const detached = await loadDetachedSection(section);
+                if (detached.ok) {
+                  // The .d.ts says toRange always returns a Range; the
+                  // runtime hands back undefined when it can't resolve —
+                  // same guard as the locate sweep.
+                  const target = new EpubCFI(cfi).toRange(detached.document) as
+                    Range | null | undefined;
+                  if (target) {
+                    bridged = {
+                      node: target.startContainer,
+                      offset: target.startOffset,
+                    };
+                  }
+                }
+              } catch {
+                /* bridge is best-effort; fall through to the rendered point */
+              }
+              if (!alive()) return;
+              // Fallback on any bridge failure: deliver the RENDERED-doc
+              // point — downstream fails node-not-located and the route's
+              // notice still gives feedback (no silent dead clicks).
+              activateWord({
+                sectionHref: section.href,
+                node: bridged?.node ?? point.node,
+                offset: bridged?.offset ?? point.offset,
+              });
+            })();
           };
           contents.document.addEventListener("dblclick", handleDblClick);
           dblClickCleanup.set(contents.document, () => {
@@ -375,10 +460,8 @@ export function EpubReader({
         });
 
         // Spine items exist only after the book is fully opened.
-        console.debug("[reader] awaiting book.ready");
         await book.ready;
         if (!alive()) return;
-        console.debug("[reader] book ready");
 
         // Nothing user-critical may await a display from here on: an epub.js
         // display() can wedge (never settle — the same failure class the
@@ -389,7 +472,6 @@ export function EpubReader({
         // NB: book.ready's Promise.all already includes loaded.navigation,
         // so this await is an already-settled promise, not a real wait.
         const nav = await book.loaded.navigation;
-        console.debug("[reader] nav loaded");
         callbacksRef.current.onToc(
           nav.toc.map((item: NavItem) => ({
             label: item.label.trim(),
@@ -464,37 +546,16 @@ export function EpubReader({
               });
             }
 
-            let document = sectionCache.get(section.href);
-            if (!document) {
-              // DETACHED load — locate must never mutate shared Section
-              // state. section.load() sets section.document/contents and
-              // fires content hooks on the SAME Section instance that
-              // rendition.display() loads internally; that contention
-              // wedges epub.js's display queue (observed: locate loads a
-              // section, a follow display of that section tears down the
-              // old view and hangs forever, poisoning every later
-              // display). book.load(section.url) goes straight to the
-              // archive/request layer and leaves the Section untouched.
-              let response: unknown;
-              try {
-                response = await book.load(section.url);
-              } catch (error) {
-                return fail("section-load-failed", {
-                  sectionHref: section.href,
-                  error,
-                });
-              }
-              if (!alive()) return fail("reader-not-ready");
-              document =
-                documentFromSectionResponse(response, section.href) ??
-                undefined;
-              if (!document) {
-                return fail("section-document-missing", {
-                  sectionHref: section.href,
-                });
-              }
-              cacheSection(section.href, document);
+            // Detached load (never mutates shared Section state — see
+            // loadDetachedSection above); LRU-cached by href.
+            const loaded = await loadDetachedSection(section);
+            if (!loaded.ok) {
+              return fail(loaded.reason, {
+                sectionHref: section.href,
+                error: loaded.error,
+              });
             }
+            const { document } = loaded;
 
             // Section parity gate (design D6): validate the whole segment
             // table once per section href before trusting any token locate in
@@ -613,7 +674,6 @@ export function EpubReader({
             });
           },
         });
-        console.debug("[reader] controller delivered");
 
         // Initial position, NON-BLOCKING, through the same latest-wins
         // scheduler as locate/resize displays (display() accepts hrefs as
@@ -627,7 +687,6 @@ export function EpubReader({
         if (initialTarget) {
           void displayScheduler(initialTarget)
             .then((outcome) => {
-              console.debug(`[reader] initial display ${outcome}`);
               // "superseded": an early follow locate already took the
               // screen — it owns the position; no cover-advance either.
               if (outcome === "superseded") return;
@@ -643,7 +702,6 @@ export function EpubReader({
                 const textLength = visibleTextLength(rendition);
                 if (textLength !== null && textLength < 200) {
                   void rendition.next();
-                  console.debug("[reader] advanced past cover");
                 }
               }
             })
@@ -654,7 +712,6 @@ export function EpubReader({
           // No saved position and no readable spine href to aim at: let
           // epub.js pick its default start (still non-blocking).
           void rendition.display();
-          console.debug("[reader] initial display defaulted");
         }
       } catch (error) {
         if (alive()) {

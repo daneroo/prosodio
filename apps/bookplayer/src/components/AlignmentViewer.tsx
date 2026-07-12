@@ -27,7 +27,8 @@ interface AlignmentViewerProps {
   activeTokenSeq: number;
   activeCueIndex: number;
   onSeek: (sec: number) => void;
-  /** "Show in book": the double-clicked matched token. */
+  /** "Show in book": the clicked matched token (word clicks seek AND show;
+   * see CueRow). */
   onShowInBook?: (token: ActiveTokenInfo) => void;
   /** Last failed EPUB follow/show-in-book attempt; rendered as a status hint. */
   locateFailure?: LocateFailure | null;
@@ -284,9 +285,15 @@ function CueRow({
         const isActiveToken = isActive && seq === activeTokenSeq;
         const canShowToken = onShowInBook !== undefined && matched;
         return (
+          // One gesture per word (symmetric with the reader's dblclick
+          // reverse-sync): a single click seeks to THAT word's time and,
+          // when it's matched, also shows it in the book. The enclosing row
+          // is already a <button> (cue-start seek), so these stay <span>s
+          // with onClick+stopPropagation — nesting buttons would be invalid
+          // interactive semantics.
           <span
             key={segment.key}
-            className={`${canShowToken ? "cursor-pointer" : ""} ${
+            className={`cursor-pointer ${
               isActiveToken
                 ? "rounded-sm bg-cyan-400/30 text-white"
                 : matched
@@ -295,16 +302,18 @@ function CueRow({
                     : "text-slate-300"
                   : "text-rose-400/90"
             }`}
-            onDoubleClick={(event) => {
-              if (!canShowToken) return;
+            onClick={(event) => {
               event.stopPropagation();
-              onShowInBook({
-                vttSeq: seq,
-                epubSeq: prepared.epubSeq[seq] ?? null,
-                raw: segment.text,
-              });
+              onSeek(prepared.tokenStart[seq] ?? startSec);
+              if (canShowToken) {
+                onShowInBook({
+                  vttSeq: seq,
+                  epubSeq: prepared.epubSeq[seq] ?? null,
+                  raw: segment.text,
+                });
+              }
             }}
-            title={canShowToken ? "Double-click to show in book" : undefined}
+            title={`Play from this word${canShowToken ? " (shows in book)" : ""}`}
           >
             {segment.text}
           </span>

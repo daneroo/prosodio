@@ -178,7 +178,11 @@ function PlayerPage() {
         );
         return;
       }
-      audio.seek(target.timeSec);
+      // Seek a hair INTO the token, not exactly onto its boundary: the media
+      // element quantizes currentTime and can read back just below the set
+      // value, which would make activeTokenAt resolve the PREVIOUS token (the
+      // consistent off-by-one-word Daniel observed in P2.6).
+      audio.seek(target.timeSec + 0.02);
       lastFollowedSeqRef.current = -1;
     },
     [sync.prepared, audio],
