@@ -106,9 +106,15 @@ matching-quality experiments over the accepted design baseline.
 ## docs workflow
 
 - [ ] sync-repository-workflow — back-port the settled docs/thoughts workflow
-      refinements from nix-hardy, then identify and preserve Prosodio-specific
-      adaptations. ticket:
-      [sync-repository-workflow](tickets/sync-repository-workflow.md)
+      refinements from nix-hardy; includes renaming all `docs/*.md` to lowercase
+      kebab-case (Daniel 2026-07-12: UPPERCASE `docs/` was a mistake, reversing
+      the earlier decision) — mind macOS case-insensitive rename handling.
+      ticket: [sync-repository-workflow](tickets/sync-repository-workflow.md)
+- [ ] document-delegation-tiers — pull the proven `[tier: low|med]` ->
+      model-class scheme from `plans/archive/player-sync-core.md`'s "Dispatch
+      policy" into `docs/workflow.md`'s Plans section; the current guidance
+      there is abstract, this pattern is proven in practice. Revisit after
+      `sync-repository-workflow` settles where execution guidance lives.
 - [ ] docs-taxonomy — grouped `docs/` index landed 2026-07-10 (working-here /
       pipeline-and-data / frameworks; flat files, index in docs/README.md).
       Remaining: write DATA-CONTRACTS.md (per-artifact axes — deterministic?
