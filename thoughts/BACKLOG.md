@@ -105,6 +105,10 @@ matching-quality experiments over the accepted design baseline.
 
 ## docs workflow
 
+- [ ] sync-repository-workflow — back-port the settled docs/thoughts workflow
+      refinements from nix-hardy, then identify and preserve Prosodio-specific
+      adaptations. ticket:
+      [sync-repository-workflow](tickets/sync-repository-workflow.md)
 - [ ] docs-taxonomy — grouped `docs/` index landed 2026-07-10 (working-here /
       pipeline-and-data / frameworks; flat files, index in docs/README.md).
       Remaining: write DATA-CONTRACTS.md (per-artifact axes — deterministic?

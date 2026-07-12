@@ -62,6 +62,13 @@ Goal: <one line>.
   not permanent: prune them once nothing depends on them, and don't index them
   by directory listing — the Closed section (newest first) is the index.
 
+Plan coding tasks for delegation and routing, not only sequencing. Each task
+should provide enough context to select an appropriate subagent model class and
+effort level without reconstructing the design. State its boundaries,
+dependencies, risk or ambiguity, acceptance criteria, and verification where
+they are not obvious. Recommend model or effort when useful, but let the
+executor reassess when implementation reveals new complexity.
+
 ## Design — `thoughts/design/<id>-design.md`
 
 Working system design: problem, constraints, alternatives, decisions, and open
