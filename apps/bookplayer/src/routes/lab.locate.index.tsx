@@ -1,14 +1,14 @@
 /**
- * /dev/sweep — the corpus sweep page (plan
+ * /lab/locate — the corpus sweep page (plan
  * thoughts/plans/bookplayer-locate-hardening.md, T2.3; decisions H4/H5). The
- * single-book sweep at dev.locate.$bookId.tsx runs the L3 locate sweep for
+ * single-book sweep at lab.locate.$bookId.tsx runs the L3 locate sweep for
  * one book and auto-persists its report (T2.2); this page loops the whole
  * corpus in-page, sequentially, one book at a time, and persists each
  * finished report the same way. It replaces the need for any out-of-repo
  * driver script (Daniel's playwright-as-page-driver tool) — see the plan's
  * "How the sweep actually works" section.
  *
- * Dev-gated identically to dev.locate: import.meta.env.DEV is checked before
+ * Dev-gated identically to lab.locate: import.meta.env.DEV is checked before
  * SweepCorpusPage mounts, so no hooks run and nothing fetches or imports
  * epubjs outside dev.
  */
@@ -21,7 +21,7 @@ import { fetchLibrary } from "#/server/library";
 import type { SweepReport } from "#/lib/locate-sweep";
 import type { BookRow } from "#/server/library";
 
-export const Route = createFileRoute("/dev/sweep")({
+export const Route = createFileRoute("/lab/locate/")({
   component: DevSweepRoute,
 });
 
@@ -147,7 +147,7 @@ function SweepCorpusPage() {
       try {
         const [library, sweepRes] = await Promise.all([
           fetchLibrary(),
-          fetch("/api/sweep", { signal: controller.signal }),
+          fetch("/api/locate-sweep", { signal: controller.signal }),
         ]);
         if (!aliveRef.current) return;
         const index: Array<SweepIndexEntry> = sweepRes.ok
@@ -242,7 +242,7 @@ function SweepCorpusPage() {
     }));
 
     try {
-      const response = await fetch(`/api/sweep/${id}`, {
+      const response = await fetch(`/api/locate-sweep/${id}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(report),
@@ -277,7 +277,7 @@ function SweepCorpusPage() {
     // `.current` to a literal after the assignment above and won't re-widen
     // it across the loop's checks, even though `stop()` mutates it from a
     // separate closure between iterations (same reasoning as
-    // dev.locate.$bookId.tsx's `isCancelled`).
+    // lab.locate.$bookId.tsx's `isCancelled`).
     const isCancelled = () => cancelledRef.current;
     setRunning(true);
     const idSet = new Set(ids);
@@ -324,10 +324,10 @@ function SweepCorpusPage() {
       <div className="mb-3 flex items-baseline justify-between">
         <h1 className="text-sm font-medium text-slate-300">Sweep — corpus</h1>
         <a
-          href="/"
+          href="/lab"
           className="text-xs text-slate-400 underline hover:text-slate-300"
         >
-          library
+          lab
         </a>
       </div>
 
@@ -435,7 +435,7 @@ function SweepRow({
     <tr className="border-b border-slate-800">
       <td className="max-w-[280px] truncate py-1 pr-3 text-slate-300">
         <Link
-          to="/dev/locate/$bookId"
+          to="/lab/locate/$bookId"
           params={{ bookId: row.id }}
           className="underline hover:text-white"
         >

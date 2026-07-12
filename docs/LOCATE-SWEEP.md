@@ -6,7 +6,7 @@ token's server-captured EPUB address and a working epub.js locator in the
 browser. Dev-only; never in CI (needs a browser and a served book).
 
 Code: `apps/bookplayer/src/lib/locate-sweep.ts` (`sweepBook`). Pages:
-`/dev/locate/:bookId` (one book), `/dev/sweep` (whole corpus). Design context:
+`/lab/locate/:bookId` (one book), `/lab/locate` (whole corpus). Design context:
 `thoughts/design/bookplayer-align-refine-model.md` ("The DOM path", ladder L3).
 
 ## Scope
@@ -48,8 +48,9 @@ short-circuit.
 `{ bookId, totals { sections, tokens, ok, failed }, sections[] }`. Each section
 carries `parseMode`, `extensionPredictedMode` (a mismatch predicts parity risk —
 see design D10), parity result, and capped `failures`. Persisted as
-`data/bookplayer/cache/<bookId>.sweep.json` via `PUT /api/sweep/:bookId`;
-`/dev/sweep` reads the index (`GET /api/sweep`) and re-runs on demand.
+`data/bookplayer/cache/<bookId>.locate-sweep.json` via
+`PUT /api/locate-sweep/:bookId`; `/lab/locate` reads the index
+(`GET /api/locate-sweep`) and re-runs on demand.
 
 ## Interpreting results
 

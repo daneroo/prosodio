@@ -9,7 +9,7 @@
  * per section) is recorded alongside but does not gate the per-token loop —
  * this sweep MEASURES, it does not short-circuit.
  *
- * Dev-only tool (see routes/dev.locate.$bookId.tsx), never run in CI: it
+ * Dev-only tool (see routes/lab.locate.$bookId.tsx), never run in CI: it
  * needs a browser + a served book. Browser-only module — epubjs is dynamic-
  * imported inside sweepBook, never at module scope (same rule as
  * EpubReader.tsx), so this file stays safe to import from a route module
@@ -304,7 +304,7 @@ export async function sweepBook(
   epubUrl: string,
   onProgress?: (done: number, total: number, href: string) => void,
 ): Promise<SweepReport> {
-  // epubUrl is always `/api/epub/${bookId}` (see routes/dev.locate.$bookId.tsx)
+  // epubUrl is always `/api/epub/${bookId}` (see routes/lab.locate.$bookId.tsx)
   // — the bookId is its last path segment.
   const bookId = epubUrl.split("/").filter(Boolean).pop() ?? "";
 

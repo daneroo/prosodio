@@ -71,17 +71,18 @@ and
   `html-fallback` is malformed content forced through the lenient HTML parser:
   predicted-unlocatable, since epub.js hits the same malformed markup and gets a
   parsererror tree.
-- Dev-only `/dev/locate/:bookId` (`src/routes/dev.locate.$bookId.tsx`) sweeps
+- Dev-only `/lab/locate/:bookId` (`src/routes/lab.locate.$bookId.tsx`) sweeps
   every matched EPUB token through the real epub.js: DOM path resolve -> text
   guard -> `cfiFromRange` -> `EpubCFI` round-trip. Reports totals + per-section
   detail (incl. `parseMode` vs extension-predicted mode) in the UI and via
   `window.__locateSweepReport`; auto-persists its report on completion; never
-  runs outside `import.meta.env.DEV`. Player top bar carries a dev-only "sweep"
+  runs outside `import.meta.env.DEV`. Player top bar carries a dev-only "lab"
   link to it.
-- `/dev/sweep` (`src/routes/dev.sweep.tsx`) runs the same sweep across every
-  book with both EPUB and transcript, sequentially one book at a time; "Run
-  all"/"Run missing" plus a per-row "Run", live per-book progress, and a totals
-  footer (clean/partial/zero-ok, token sums). Sweep reports persist server-side
-  via `GET/PUT /api/sweep/:bookId` (`server/handlers/sweep.ts`,
-  `src/lib/sweep-store.ts`) as `data/bookplayer/cache/<bookId>.sweep.json`;
-  `GET /api/sweep` returns the totals-only index for the corpus table.
+- `/lab/locate` (`src/routes/lab.locate.index.tsx`) runs the same sweep across
+  every book with both EPUB and transcript, sequentially one book at a time;
+  "Run all"/"Run missing" plus a per-row "Run", live per-book progress, and a
+  totals footer (clean/partial/zero-ok, token sums). Sweep reports persist
+  server-side via `GET/PUT /api/locate-sweep/:bookId`
+  (`server/handlers/locate-sweep.ts`, `src/lib/locate-sweep-store.ts`) as
+  `data/bookplayer/cache/<bookId>.locate-sweep.json`; `GET /api/locate-sweep`
+  returns the totals-only index for the corpus table.

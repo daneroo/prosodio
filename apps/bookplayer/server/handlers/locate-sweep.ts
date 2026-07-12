@@ -1,8 +1,8 @@
 /**
- * Nitro-native /api/sweep/:bookId handler (plan
+ * Nitro-native /api/locate-sweep/:bookId handler (plan
  * thoughts/plans/bookplayer-locate-hardening.md, T2.1; decisions H4/H5).
  * GET serves the stored sweep report bytes as-is; PUT validates and persists
- * a fresh one from /dev/locate or /dev/sweep. Unlike /api/alignment, no
+ * a fresh one from /lab/locate/:bookId or /lab/locate. Unlike /api/alignment, no
  * library/book lookup is required — the store is keyed by the validated id
  * format only (dev diagnostics; a sweep for an unknown id is harmless).
  *
@@ -18,7 +18,11 @@ import { defineHandler } from "nitro/h3";
 
 import { getConfig } from "#/lib/config";
 import { BOOK_ID_RE, jsonError } from "#/lib/media";
-import { sweepPath, validateSweepBody, writeSweep } from "#/lib/sweep-store";
+import {
+  sweepPath,
+  validateSweepBody,
+  writeSweep,
+} from "#/lib/locate-sweep-store";
 
 // Sweep reports run large on long books (every matched token can carry
 // failure detail); this is a generous ceiling against a runaway body, not a

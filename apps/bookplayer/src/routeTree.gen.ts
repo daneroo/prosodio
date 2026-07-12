@@ -9,75 +9,117 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LabRouteImport } from './routes/lab'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LabIndexRouteImport } from './routes/lab.index'
 import { Route as PlayerBookIdRouteImport } from './routes/player/$bookId'
-import { Route as DevSweepRouteImport } from './routes/dev.sweep'
-import { Route as DevLocateBookIdRouteImport } from './routes/dev.locate.$bookId'
+import { Route as LabLocateIndexRouteImport } from './routes/lab.locate.index'
+import { Route as LabLocateBookIdRouteImport } from './routes/lab.locate.$bookId'
 
+const LabRoute = LabRouteImport.update({
+  id: '/lab',
+  path: '/lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LabIndexRoute = LabIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LabRoute,
 } as any)
 const PlayerBookIdRoute = PlayerBookIdRouteImport.update({
   id: '/player/$bookId',
   path: '/player/$bookId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DevSweepRoute = DevSweepRouteImport.update({
-  id: '/dev/sweep',
-  path: '/dev/sweep',
-  getParentRoute: () => rootRouteImport,
+const LabLocateIndexRoute = LabLocateIndexRouteImport.update({
+  id: '/locate/',
+  path: '/locate/',
+  getParentRoute: () => LabRoute,
 } as any)
-const DevLocateBookIdRoute = DevLocateBookIdRouteImport.update({
-  id: '/dev/locate/$bookId',
-  path: '/dev/locate/$bookId',
-  getParentRoute: () => rootRouteImport,
+const LabLocateBookIdRoute = LabLocateBookIdRouteImport.update({
+  id: '/locate/$bookId',
+  path: '/locate/$bookId',
+  getParentRoute: () => LabRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dev/sweep': typeof DevSweepRoute
+  '/lab': typeof LabRouteWithChildren
   '/player/$bookId': typeof PlayerBookIdRoute
-  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
+  '/lab/': typeof LabIndexRoute
+  '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/locate/': typeof LabLocateIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dev/sweep': typeof DevSweepRoute
   '/player/$bookId': typeof PlayerBookIdRoute
-  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
+  '/lab': typeof LabIndexRoute
+  '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/locate': typeof LabLocateIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dev/sweep': typeof DevSweepRoute
+  '/lab': typeof LabRouteWithChildren
   '/player/$bookId': typeof PlayerBookIdRoute
-  '/dev/locate/$bookId': typeof DevLocateBookIdRoute
+  '/lab/': typeof LabIndexRoute
+  '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/locate/': typeof LabLocateIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dev/sweep' | '/player/$bookId' | '/dev/locate/$bookId'
+  fullPaths:
+    | '/'
+    | '/lab'
+    | '/player/$bookId'
+    | '/lab/'
+    | '/lab/locate/$bookId'
+    | '/lab/locate/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dev/sweep' | '/player/$bookId' | '/dev/locate/$bookId'
+  to: '/' | '/player/$bookId' | '/lab' | '/lab/locate/$bookId' | '/lab/locate'
   id:
-    '__root__' | '/' | '/dev/sweep' | '/player/$bookId' | '/dev/locate/$bookId'
+    | '__root__'
+    | '/'
+    | '/lab'
+    | '/player/$bookId'
+    | '/lab/'
+    | '/lab/locate/$bookId'
+    | '/lab/locate/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DevSweepRoute: typeof DevSweepRoute
+  LabRoute: typeof LabRouteWithChildren
   PlayerBookIdRoute: typeof PlayerBookIdRoute
-  DevLocateBookIdRoute: typeof DevLocateBookIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/lab': {
+      id: '/lab'
+      path: '/lab'
+      fullPath: '/lab'
+      preLoaderRoute: typeof LabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/lab/': {
+      id: '/lab/'
+      path: '/'
+      fullPath: '/lab/'
+      preLoaderRoute: typeof LabIndexRouteImport
+      parentRoute: typeof LabRoute
     }
     '/player/$bookId': {
       id: '/player/$bookId'
@@ -86,28 +128,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayerBookIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dev/sweep': {
-      id: '/dev/sweep'
-      path: '/dev/sweep'
-      fullPath: '/dev/sweep'
-      preLoaderRoute: typeof DevSweepRouteImport
-      parentRoute: typeof rootRouteImport
+    '/lab/locate/': {
+      id: '/lab/locate/'
+      path: '/locate'
+      fullPath: '/lab/locate/'
+      preLoaderRoute: typeof LabLocateIndexRouteImport
+      parentRoute: typeof LabRoute
     }
-    '/dev/locate/$bookId': {
-      id: '/dev/locate/$bookId'
-      path: '/dev/locate/$bookId'
-      fullPath: '/dev/locate/$bookId'
-      preLoaderRoute: typeof DevLocateBookIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/lab/locate/$bookId': {
+      id: '/lab/locate/$bookId'
+      path: '/locate/$bookId'
+      fullPath: '/lab/locate/$bookId'
+      preLoaderRoute: typeof LabLocateBookIdRouteImport
+      parentRoute: typeof LabRoute
     }
   }
 }
 
+interface LabRouteChildren {
+  LabIndexRoute: typeof LabIndexRoute
+  LabLocateBookIdRoute: typeof LabLocateBookIdRoute
+  LabLocateIndexRoute: typeof LabLocateIndexRoute
+}
+
+const LabRouteChildren: LabRouteChildren = {
+  LabIndexRoute: LabIndexRoute,
+  LabLocateBookIdRoute: LabLocateBookIdRoute,
+  LabLocateIndexRoute: LabLocateIndexRoute,
+}
+
+const LabRouteWithChildren = LabRoute._addFileChildren(LabRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DevSweepRoute: DevSweepRoute,
+  LabRoute: LabRouteWithChildren,
   PlayerBookIdRoute: PlayerBookIdRoute,
-  DevLocateBookIdRoute: DevLocateBookIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

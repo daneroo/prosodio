@@ -1,7 +1,7 @@
 /**
  * Server-side persistence for L3 locate sweeps (plan
  * thoughts/plans/bookplayer-locate-hardening.md, T2.1; decisions H4/H5).
- * Reports are written whole as `<bookId>.sweep.json` under
+ * Reports are written whole as `<bookId>.locate-sweep.json` under
  * `data/bookplayer/cache/` — wall-clock `generatedAt` is fine here
  * (diagnostics, not a determinism-contract artifact). `SweepReport` is
  * imported type-only so this module (and its handlers) never pull epubjs or
@@ -20,7 +20,7 @@ export interface StoredSweep {
 }
 
 export function sweepPath(config: BookplayerConfig, bookId: string): string {
-  return join(config.dataDir, "cache", `${bookId}.sweep.json`);
+  return join(config.dataDir, "cache", `${bookId}.locate-sweep.json`);
 }
 
 /** Structural totals check shared by readSweep and validateSweepBody: every
@@ -90,7 +90,7 @@ export function writeSweep(path: string, report: SweepReport): StoredSweep {
  * Structural sanity for a PUT body, not a full schema: confirms it's a
  * SweepReport for the requested book with self-consistent totals/sections.
  * Callers must enforce a body size cap BEFORE parsing JSON (see
- * handlers/sweep.ts) — this function assumes `body` is already parsed.
+ * handlers/locate-sweep.ts) — this function assumes `body` is already parsed.
  */
 export function validateSweepBody(
   bookId: string,
@@ -126,12 +126,12 @@ export function validateSweepBody(
   return { ok: true, report: candidate as SweepReport };
 }
 
-const SWEEP_FILE_RE = /^(.+)\.sweep\.json$/;
+const SWEEP_FILE_RE = /^(.+)\.locate-sweep\.json$/;
 
 /**
  * Totals-only summary of every stored sweep in the cache dir, sorted by
  * bookId. Never ships per-section detail — that lives behind
- * GET /api/sweep/:bookId. Missing cache dir (nothing swept yet) reads as
+ * GET /api/locate-sweep/:bookId. Missing cache dir (nothing swept yet) reads as
  * empty, not an error.
  */
 export function sweepIndex(config: BookplayerConfig): Array<{

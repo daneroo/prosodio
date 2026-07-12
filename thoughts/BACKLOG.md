@@ -7,21 +7,18 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 ## Now
 
-Next scheduled work, in order (grooming decision 2026-07-10):
-
-1. `player-sync-core` — the player-ux + component-boundary cleanup
-2. `matching-quality-design` — workstream kickoff (design doc, not a plan)
-3. `lab-routes` — fold into the first change that touches those routes
+Empty — refill at the next take-stock. Leading candidates (Daniel, 2026-07-12):
+the docs-taxonomy harvest (fold settled design docs into docs/), and the first
+matching-quality experiments over the accepted design baseline.
 
 ## player-ux
 
-- [ ] player-sync-core — one canonical sync state (playhead <-> matched span <->
-      book location) owned by the player; panels become optional subscribers;
-      EPUB -> audio reverse sync (double-click a word, seek). ticket:
-      [player-sync-core](tickets/player-sync-core.md)
-- [ ] lab-routes — rename `/dev/*` to `/lab/*`; "sweep" -> "locate"; reserve the
-      per-surface summary + `$bookId` detail route map. ticket:
-      [lab-routes](tickets/lab-routes.md)
+- [ ] bookplayer-epub-serve-oom — `GET /api/epub/:bookId` can throw
+      `RangeError: Out of memory` at `serveBuffered` (`src/lib/media.ts`, the
+      whole-file `readFileSync` + `new Uint8Array(bytes)` copy) after opening
+      many books in a row; sometimes kills the dev server. Candidate: stream (or
+      at least not double-buffer) large assets; check what holds the old buffers
+      live. Observed by Daniel 2026-07-12; not urgent.
 - [ ] bookplayer-ebook-renderer — keep the EPUB renderer swappable; evaluate
       epub.js alternatives when search/highlight or theming becomes a real
       limitation. ticket:
@@ -38,11 +35,6 @@ Next scheduled work, in order (grooming decision 2026-07-10):
 
 ## alignment quality
 
-- [ ] matching-quality-design — design the next matcher iteration: metrics
-      beyond coverage, gap heuristics (skipped words), and content qualification
-      — front/back matter, footnotes read or skipped, audio-only segments that
-      break linearity. Runs on the existing loop: CLI computes -> reports
-      persist -> lab views render. Design doc first; plans follow.
 - [ ] align-precision-at-scale — automated precision signal over the corpus;
       manual `reviewSamples` reading does not scale to ~700 books. ticket:
       [align-precision-at-scale](tickets/align-precision-at-scale.md)
@@ -56,10 +48,14 @@ Next scheduled work, in order (grooming decision 2026-07-10):
 
 ## corpus quality
 
-- [ ] bookplayer-calibre-html-locate — the two Calibre `.html` books sweep 0-ok
-      (document-prolog divergence, root off-by-one). Decide: replace the books
-      (cheap) or documentElement-anchoring fix (general, schema bump). ticket:
-      [bookplayer-calibre-html-locate](tickets/bookplayer-calibre-html-locate.md)
+- [ ] corpora-omnibus-mapping — some EPUBs are omnibus editions mapping to MANY
+      audiobooks (Neal Stephenson, Baroque Cycle: the "Quicksilver" audiobook
+      dir contains an epub covering volumes 01-02-03; other series omnibuses
+      known). Discovery/pairing assumes 1:1 — decide how to represent
+      1-epub:N-audiobooks (and the alignment window per audiobook: each book
+      would match a SUB-RANGE of the epub, breaking the whole-book linearity
+      assumption). Relates: `align-soft-basename-match`, and the
+      matching-quality content-qualification direction.
 - [ ] epub-calibre-pollution-audit — Calibre bookmark files silently change epub
       sha256 (141 + 167 flagged 2026-07-03); decide strip/prevent/CI-gate.
       ticket:
@@ -116,7 +112,9 @@ Next scheduled work, in order (grooming decision 2026-07-10):
       single client, a version bump is a cache-invalidation tool, not a compat
       promise) and ALIGNMENT.md (matcher pass contracts, extraction parse-mode
       policy, L1/L2/L3 validation ladder) by harvesting `thoughts/design/`;
-      prune the harvested designs after.
+      prune the harvested designs after. The harvest now also covers
+      `design/matching-quality-design.md` (Daniel, P3.2 2026-07-12: revisit the
+      baseline when it is digested and simplified into docs/).
 - [ ] catalog-workflow-doc — document the `workspaces.catalogs` workflow in
       `docs/DEPENDENCY.md`; demand-driven (entry only at 2+ consumers), named
       catalogs (`runtime`, `testing`) expected.
@@ -132,6 +130,24 @@ Next scheduled work, in order (grooming decision 2026-07-10):
 
 One line per closed item — this section doubles as the `plans/archive/` index.
 Prune old lines freely; git keeps everything.
+
+- 2026-07-12 player-sync-core — route-level `usePlayerSync` (follow works with
+  the panel closed), EPUB dblclick reverse sync (srcdoc CFI bridge; the raw path
+  lookup could never work), reader chrome colocated with the EPUB pane, panel
+  word gesture = single click seek+show, EpubReader hardened against epub.js
+  display wedges (latest-wins scheduler, non-blocking init, detached section
+  loads). [plans/archive/player-sync-core.md](plans/archive/player-sync-core.md)
+- 2026-07-12 lab-routes — `/dev/*` -> `/lab/*` with tabbed layout + landing
+  (Locate live; Align/Epub/Parsers reserved); data-plane renamed
+  `/api/locate-sweep` + `<bookId>.locate-sweep.json`. Same plan.
+- 2026-07-12 matching-quality-design — as-built baseline design doc accepted
+  (P3.2); revisit when design docs are folded into docs/ (docs-taxonomy).
+  [design/matching-quality-design.md](design/matching-quality-design.md)
+- 2026-07-12 bookplayer-calibre-html-locate — RESOLVED by replacing the two
+  Calibre `.html` books (Daniel); full corpus now 93/93 swept, 93 clean,
+  11,554,769/11,554,769 tokens ok, 0 failed. The documentElement-anchoring fix
+  drops to optional general robustness — revisit only if a new prolog-polluted
+  book appears.
 
 - 2026-07-10 bookplayer-epub-locator-hardening — predicted-mode mismatch class
   fixed (extension-driven parsing, schema v3); L2/L3 tooling + sweep persistence
