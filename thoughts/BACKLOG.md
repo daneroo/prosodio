@@ -133,8 +133,8 @@ matching-quality experiments over the accepted design baseline.
 
 ## Closed (newest first)
 
-One line per closed item — this section doubles as the `plans/archive/` index.
-Prune old lines freely; git keeps everything.
+One line per closed item — this section doubles as the `tickets - archive `
+index. Prune old lines freely; git keeps everything.
 
 - 2026-07-12 sync-repository-workflow — `docs/` renamed to lowercase kebab-case
   (reversed the earlier UPPERCASE decision; verified two-hop `git mv` procedure
