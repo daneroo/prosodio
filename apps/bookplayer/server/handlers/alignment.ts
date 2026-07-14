@@ -7,7 +7,7 @@
  * big private books) intentionally holds the request open — same UX as the
  * old fetchAlignment path.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { createReadStream, existsSync, statSync } from "node:fs";
 
 import { defineHandler } from "nitro/h3";
 
@@ -66,18 +66,18 @@ async function serveAlignment(
   );
   const path = encoding === "gzip" ? entry.paths.gz : entry.paths.json;
 
-  let bytes: Buffer;
+  let size: number;
   try {
-    bytes = readFileSync(path);
+    size = statSync(path).size;
   } catch {
     return jsonError(404, "ASSET_MISSING", "Artifact file is missing.");
   }
 
-  return new Response(new Uint8Array(bytes), {
+  return new Response(createReadStream(path) as unknown as ReadableStream, {
     status: 200,
     headers: {
       "Content-Type": "application/json",
-      "Content-Length": String(bytes.byteLength),
+      "Content-Length": String(size),
       ETag: etag,
       "Cache-Control": "no-cache",
       ...(encoding === "gzip" ? { "Content-Encoding": "gzip" } : {}),

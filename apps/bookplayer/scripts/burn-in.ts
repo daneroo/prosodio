@@ -1,9 +1,11 @@
 import { chromium } from "playwright";
 
 const SERVER_URL = "http://localhost:3000/";
-const PLAY_TIME_MS = 30_000;
-const NUM_BOOKS = 10;
-const RANDOMIZE_ORDER = true;
+const PLAY_TIME_MS = 10_000;
+const SILENT_TIME_MS = 1000;
+const SEEK_MIDDLE = true;
+const NUM_BOOKS = 100;
+const RANDOMIZE_ORDER = true as boolean;
 
 async function main() {
   console.log("\n# bookplayer Burn-in test\n");
@@ -27,7 +29,8 @@ async function main() {
   await page.goto(SERVER_URL);
 
   let links: string[] = [];
-  while (true) {
+  let hasNext = true;
+  while (hasNext) {
     await page.waitForSelector('a[href^="/player/"]', { timeout: 10000 });
     const pageLinks = await page.$$eval("a", (as) =>
       as.map((a) => a.href).filter((h) => h.includes("/player/")),
@@ -36,11 +39,12 @@ async function main() {
 
     const nextBtn = await page.$('button:has-text("Next")');
     if (!nextBtn || (await nextBtn.isDisabled())) {
-      break;
+      hasNext = false;
+    } else {
+      await nextBtn.click();
+      // Brief pause to let React render the next page
+      await page.waitForTimeout(100);
     }
-    await nextBtn.click();
-    // Brief pause to let React render the next page
-    await page.waitForTimeout(100);
   }
 
   // Deduplicate and filter out non-string falsy values
@@ -68,18 +72,60 @@ async function main() {
     console.log(`- Opening ${links[i]}`);
     await page.goto(links[i] as string);
 
-    console.log("- Waiting for audio player and playing...");
-    await page.waitForSelector("audio", { timeout: 5000 }).catch(() => {});
-    await page.evaluate(() => {
-      const audio = document.querySelector("audio");
-      if (audio) {
-        audio.muted = true; // Prevent blasting audio during burn-in
-        audio.play().catch(() => {});
-      }
-    });
+    console.log("- Waiting for player to render...");
+    const startWait = performance.now();
+    // `<audio>` has no `controls`, so it's invisible. We must wait for it to be 'attached', not 'visible'
+    const audioEl = await page
+      .waitForSelector("audio", { state: "attached", timeout: 5000 })
+      .catch(() => null);
 
-    console.log(`- Waiting ${PLAY_TIME_MS / 1000} seconds...`);
-    await page.waitForTimeout(PLAY_TIME_MS);
+    if (audioEl) {
+      console.log(
+        `  ✓ Player rendered in ${Math.round(performance.now() - startWait)}ms`,
+      );
+    } else {
+      console.log("  ⚠ Audio player did not render within 5 seconds.");
+    }
+
+    if (PLAY_TIME_MS > 0 && audioEl) {
+      console.log(
+        SEEK_MIDDLE
+          ? "- Playing audio from the middle..."
+          : "- Playing audio...",
+      );
+      await audioEl.evaluate((node, shouldSeek) => {
+        const audio = node as HTMLAudioElement;
+        audio.muted = true; // Prevent blasting audio during burn-in
+
+        const tryPlay = () => audio.play().catch(() => {});
+
+        if (shouldSeek) {
+          const seekToMiddle = () => {
+            if (Number.isFinite(audio.duration) && audio.duration > 0) {
+              audio.currentTime = audio.duration / 2;
+            }
+          };
+
+          if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            seekToMiddle();
+          } else {
+            audio.addEventListener("loadedmetadata", seekToMiddle, {
+              once: true,
+            });
+          }
+        }
+
+        tryPlay();
+      }, SEEK_MIDDLE);
+
+      console.log(`- Waiting ${PLAY_TIME_MS / 1000} seconds...`);
+      await page.waitForTimeout(PLAY_TIME_MS);
+    } else {
+      console.log(
+        `- Silent mode: waiting ${SILENT_TIME_MS / 1000}s for requests to fire...`,
+      );
+      await page.waitForTimeout(SILENT_TIME_MS);
+    }
 
     console.log("- Going back to library...\n");
     await page.goto(SERVER_URL);
