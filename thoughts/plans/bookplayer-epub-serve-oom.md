@@ -1,50 +1,53 @@
 # Bookplayer EPUB Serve Memory Leak (OOM)
 
-**Status:** Active
-
-## Tasks
-
-- [x] **The Fix**: Apply the fix in `apps/bookplayer/src/lib/media.ts` (replace
-      double-buffering approach with `createReadStream` while preserving
-      `Content-Length`).
-- [x] **Add the Repro Script**: Add the headed Playwright script in
-      `apps/bookplayer/scripts/burn-in.ts` so it can be re-run in the future. It
-      tests if the server is running and also triggers audio playback.
-- [x] **Add an Automated Test**: Add a `bun test` integration test directly in
-      `apps/bookplayer/src/lib/media.test.ts` that loops `serveBuffered` on a
-      5MB file 50 times to catch the leak without needing the HTTP server.
-- [x] **Update Backlog**: Add an item to `BACKLOG.md` to decide on the e2e
-      testing harness and statute on the Playwright question.
+**Status:** Completed
 
 ## Goal
 
 Document the reproduction, diagnosis, and fix for the
-`RangeError: Out of memory` crash that occurs when repeatedly serving EPUB
-assets in the `bookplayer` dev server.
+`RangeError: Out of memory` crash that occurs when repeatedly serving large
+media assets in the `bookplayer` dev server.
 
-## Reproduction Script
+## Tasks Completed
 
-The problem required repeatedly navigating between books to reproduce. We will
-add a durable burn-in script (`apps/bookplayer/scripts/burn-in.ts`) that uses
-Playwright (headed, to allow co-observation of the UI and server logs) to
-automatically navigate through the library and trigger the issue.
+- [x] **The Fix**: Replaced the `readFileSync` buffering approach in **both**
+      `apps/bookplayer/server/handlers/alignment.ts` and
+      `apps/bookplayer/src/lib/media.ts` with `createReadStream` to properly
+      stream large media to the client.
+- [x] **Burn-in Script**: Created a headed Playwright load-testing script
+      (`apps/bookplayer/scripts/burn-in.ts`) to programmatically navigate the
+      library, render the audio player, and simulate playback/seeking.
+- [x] **Backlog - E2E Testing**: Abandoned "fake" offline unit tests in favor of
+      adding a backlog ticket (`e2e-testing-harness`) to build a robust E2E
+      testing framework capable of tracking actual server lifecycle memory
+      leaks.
 
-- **Dependency Note**: The `playwright` devDependency was added to
-  `apps/bookplayer/package.json`. It is a known policy/fact that we wanted to
-  avoid Playwright as a dependency (even dev) in the `bookplayer` app, but we
-  are keeping it for now so the repro script continues to function. A new
-  `BACKLOG.md` item (`e2e-testing-harness`) has been added to formally decide
-  how we handle E2E testing and statute on the Playwright question globally.
+## Diagnosis & Fix
 
-## Diagnosis
+Both the `GET /api/align/:bookId` endpoint and the EPUB media server
+(`serveBuffered` in `media.ts`) were reading large media files entirely into
+memory using `readFileSync`. They then returned the results as a `Uint8Array`.
+Passing a Node `Buffer` to the `Uint8Array` constructor caused a **full memory
+copy** in the V8 heap. For large audio files and EPUBs, this double-buffering
+rapidly exhausted the heap, leading to a `RangeError: Out of memory` crash in
+the dev server.
 
-The `serveBuffered` function in `src/lib/media.ts` was designed to buffer assets
-completely in memory to avoid `ERR_CONTENT_LENGTH_MISMATCH` by guaranteeing the
-`Content-Length` matched the payload exactly. However, it read the file via
-`readFileSync` (yielding a `Buffer`) and then passed it to
-`new Uint8Array(bytes)`. In Node/Bun, a `Buffer` is already a `Uint8Array`.
-Passing it to the `Uint8Array` constructor creates a **full copy** of the
-underlying memory buffer in the V8 heap. For large EPUBs (10-20MB), this
-double-buffering combined with V8's garbage collection lag quickly exhausted the
-heap, leading to `RangeError: Out of memory at allocUnsafeSlow (native:1:1)` and
-crashing the Nitro/Vite dev server.
+The fix involved returning `createReadStream(path) as unknown as ReadableStream`
+to stream the payload natively in Nitro, bypassing the V8 heap entirely.
+
+## The Aborted Stream Leak (Secondary Discovery)
+
+While verifying the fix with the burn-in script in "fast mode" (navigating
+rapidly between pages without waiting for playback), we uncovered a second
+memory leak.
+
+When a client aborts a media stream mid-flight, the underlying Nitro/Node HTTP
+framework fails to properly destroy the source `createReadStream`. This causes
+`internal:webstreams_adapters` to silently pump the entire file from disk into a
+"dead" memory queue until the V8 heap explodes.
+
+We concluded that isolating this deep framework bug using synthetic unit tests
+(`bun:test` without a server) is impossible. We deferred fixing this second leak
+until we have a dedicated E2E testing harness (tracked in `BACKLOG.md`) capable
+of booting a real dev server and accurately observing request/response lifecycle
+memory usage.
