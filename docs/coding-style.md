@@ -2,6 +2,11 @@
 
 Conventions agents don't adopt by default. Will grow.
 
+## No emojis
+
+- Do not use emojis anywhere (code, UI, logs, markdown, etc.) — use UTF-8
+  characters instead if necessary.
+
 ## Top-down: caller before callee
 
 Entry point first, helpers below.

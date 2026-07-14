@@ -7,12 +7,7 @@
  * Content-Length always matches the payload exactly (the codex experiment's
  * ERR_CONTENT_LENGTH_MISMATCH lesson); audio streams, sliced per range.
  */
-import {
-  createReadStream,
-  readFileSync,
-  realpathSync,
-  statSync,
-} from "node:fs";
+import { createReadStream, realpathSync, statSync } from "node:fs";
 import { extname, resolve, sep } from "node:path";
 
 import type { BookplayerConfig } from "./config.ts";
@@ -92,20 +87,20 @@ export function mimeType(filePath: string): string {
   );
 }
 
-/** Buffered 200: Content-Length is the actual payload length, always. */
+/** Streamed 200: Content-Length is the actual payload length, always. */
 export function serveBuffered(absPath: string): Response {
   const started = performance.now();
-  let bytes: Buffer;
+  let size: number;
   try {
-    bytes = readFileSync(absPath);
+    size = statSync(absPath).size;
   } catch {
     return jsonError(404, "ASSET_MISSING", "Asset file is missing.");
   }
-  return new Response(new Uint8Array(bytes), {
+  return new Response(createReadStream(absPath) as unknown as ReadableStream, {
     status: 200,
     headers: {
       "Content-Type": mimeType(absPath),
-      "Content-Length": String(bytes.byteLength),
+      "Content-Length": String(size),
       "Cache-Control": "public, max-age=3600",
       "Server-Timing": timing(started),
     },

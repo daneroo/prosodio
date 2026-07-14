@@ -88,6 +88,10 @@ matching-quality experiments over the accepted design baseline.
 - [ ] promote-app-config — shared `packages/config` (four consumers now); the
       first brick of any future data-plane extraction. ticket:
       [promote-app-config](tickets/promote-app-config.md)
+- [ ] e2e-testing-harness — decide how we want to handle "e2e" testing and
+      statute on the Playwright question. We wanted to avoid Playwright as a
+      dependency (even dev) in `apps/bookplayer` (harvested as a new fact), so
+      we need a dedicated harness or strategy.
 - [ ] sanity-reconcilers — desired -> actual convergence validators
       (`sanity:<thing>`); editor settings + package.json invariants first.
       ticket: [sanity-reconcilers](tickets/sanity-reconcilers.md)
@@ -133,7 +137,7 @@ matching-quality experiments over the accepted design baseline.
 
 ## Closed (newest first)
 
-One line per closed item — this section doubles as the `tickets - archive `
+One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
 - 2026-07-12 sync-repository-workflow — `docs/` renamed to lowercase kebab-case

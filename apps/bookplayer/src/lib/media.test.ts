@@ -183,6 +183,26 @@ describe("serveBuffered", () => {
     expect(res.headers.get("Content-Length")).toBe("2222");
     expect((await res.arrayBuffer()).byteLength).toBe(2222);
   });
+
+  test("calling it sequentially on a large file does not leak heap memory (OOM)", async () => {
+    const root = makeDir("media-root-");
+    const path = join(root, "book.epub");
+    // Create a moderately sized file (5MB)
+    const size = 5 * 1024 * 1024;
+    writeFileSync(path, Buffer.alloc(size, 4));
+
+    // Call it 50 times. Without the createReadStream fix,
+    // the multiple new Uint8Array(readFileSync(..)) copies would exhaust V8's heap limit.
+    let successCount = 0;
+    for (let i = 0; i < 50; i++) {
+      const res = serveBuffered(path);
+      const ab = await res.arrayBuffer();
+      if (ab.byteLength === size) {
+        successCount++;
+      }
+    }
+    expect(successCount).toBe(50);
+  });
 });
 
 describe("BOOK_ID_RE", () => {
