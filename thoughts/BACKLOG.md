@@ -88,10 +88,10 @@ matching-quality experiments over the accepted design baseline.
 - [ ] promote-app-config — shared `packages/config` (four consumers now); the
       first brick of any future data-plane extraction. ticket:
       [promote-app-config](tickets/promote-app-config.md)
-- [ ] e2e-testing-harness — decide how we want to handle "e2e" testing and
-      statute on the Playwright question. We wanted to avoid Playwright as a
-      dependency (even dev) in `apps/bookplayer` (harvested as a new fact), so
-      we need a dedicated harness or strategy.
+- [ ] e2e-testing-harness — we need a full e2e test harness which will include a
+      "real" server start, and run tests (including a burn-in equivalent on it
+      to catch server-lifecycle memory leaks, but surely many other tests when
+      we have a good setup).
 - [ ] sanity-reconcilers — desired -> actual convergence validators
       (`sanity:<thing>`); editor settings + package.json invariants first.
       ticket: [sanity-reconcilers](tickets/sanity-reconcilers.md)

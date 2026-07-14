@@ -1,9 +1,9 @@
 import { chromium } from "playwright";
 
 const SERVER_URL = "http://localhost:3000/";
-const PLAY_TIME_MS = 10_000;
+const PLAY_TIME_MS = 0 * 10_000;
 const SILENT_TIME_MS = 1000;
-const SEEK_MIDDLE = true;
+const SEEK_MIDDLE = true as boolean;
 const NUM_BOOKS = 100;
 const RANDOMIZE_ORDER = true as boolean;
 
@@ -94,7 +94,7 @@ async function main() {
           : "- Playing audio...",
       );
       await audioEl.evaluate((node, shouldSeek) => {
-        const audio = node as HTMLAudioElement;
+        const audio = node;
         audio.muted = true; // Prevent blasting audio during burn-in
 
         const tryPlay = () => audio.play().catch(() => {});
