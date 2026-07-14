@@ -183,8 +183,6 @@ describe("serveBuffered", () => {
     expect(res.headers.get("Content-Length")).toBe("2222");
     expect((await res.arrayBuffer()).byteLength).toBe(2222);
   });
-
-
 });
 
 describe("BOOK_ID_RE", () => {
