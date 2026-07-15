@@ -35,5 +35,5 @@ export function serveAsset(
   }
   return kind === "audio"
     ? serveStreamedWithRange(absPath, request)
-    : serveBuffered(absPath);
+    : serveBuffered(absPath, request.signal);
 }

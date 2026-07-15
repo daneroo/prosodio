@@ -73,7 +73,7 @@ async function serveAlignment(
     return jsonError(404, "ASSET_MISSING", "Artifact file is missing.");
   }
 
-  return new Response(rawFileBody(path), {
+  return new Response(rawFileBody(path, undefined, request.signal), {
     status: 200,
     headers: {
       "Content-Type": "application/json",

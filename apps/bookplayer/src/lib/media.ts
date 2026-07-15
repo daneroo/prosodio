@@ -3,18 +3,23 @@
  * Response builders with correct range/content-length semantics. Routes are
  * thin shims over these functions so the semantics are unit-testable.
  *
- * Serving policy: small assets (cover, epub, vtt) are buffered so the
- * Content-Length always matches the payload exactly (the codex experiment's
- * ERR_CONTENT_LENGTH_MISMATCH lesson); audio streams, sliced per range.
+ * Serving policy: every raw asset uses one bounded, demand-driven file body
+ * with centralized disconnect cleanup. Content-Length always describes the
+ * selected file or range exactly.
  */
-import { createReadStream, realpathSync, statSync } from "node:fs";
+import { realpathSync, statSync } from "node:fs";
+import { open } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
-import { Readable } from "node:stream";
+
+import type { FileHandle } from "node:fs/promises";
 
 import type { BookplayerConfig } from "./config.ts";
 import type { BookRecord } from "./types.ts";
 
 export const BOOK_ID_RE = /^[a-f0-9]{12}$/;
+
+const RAW_FILE_CHUNK_BYTES = 64 * 1024;
+export const AUDIO_RANGE_RESPONSE_MAX_BYTES = 1024 * 1024;
 
 export type AssetKind = "audio" | "cover" | "epub" | "vtt";
 
@@ -89,23 +94,143 @@ export function mimeType(filePath: string): string {
 }
 
 /**
- * Open a raw file as a web Response body. The Node adapter forwards source
- * errors to the web stream and destroys the file stream when its consumer
- * cancels, so every raw-file endpoint shares the same lifecycle behavior.
+ * Open a raw file as a bounded, demand-driven Response body. Each pull reads at
+ * most one fixed-size chunk and the common close path releases the file handle
+ * on EOF, range completion, cancellation, or error. File open errors remain
+ * asynchronous and surface when the body is consumed.
  */
 export function rawFileBody(
   absPath: string,
   range?: { start: number; end: number },
-): ReadableStream {
-  const source = createReadStream(absPath, range);
-  // @types/node and Bun currently declare separate structural Web Stream
-  // types even though this is the same runtime object Response consumes.
-  // @ts-expect-error -- Node's stream/web type is Bun's Web Stream at runtime.
-  return Readable.toWeb(source);
+  signal?: AbortSignal,
+): ReadableStream<Uint8Array> {
+  let position = range?.start ?? 0;
+  const endExclusive = range ? range.end + 1 : undefined;
+  let handle: FileHandle | undefined;
+  let handlePromise: Promise<FileHandle> | undefined;
+  let closed = false;
+  let cancelled = false;
+  let aborted = false;
+  let streamController: { close: () => void } | undefined;
+
+  const onAbort = (): void => {
+    if (aborted) return;
+    aborted = true;
+    cancelled = true;
+    streamController?.close();
+    void closeHandle();
+  };
+
+  const detachAbortListener = (): void => {
+    signal?.removeEventListener("abort", onAbort);
+  };
+
+  const getHandle = async (): Promise<FileHandle> => {
+    handlePromise ??= open(absPath, "r");
+    handle ??= await handlePromise;
+    return handle;
+  };
+
+  const closeHandle = async (): Promise<void> => {
+    if (closed) return;
+    closed = true;
+    detachAbortListener();
+
+    const opened = handle ?? (await handlePromise?.catch(() => undefined));
+    await opened?.close().catch(() => undefined);
+  };
+
+  if (signal?.aborted) onAbort();
+  else signal?.addEventListener("abort", onAbort, { once: true });
+
+  return new ReadableStream<Uint8Array>(
+    {
+      type: "bytes",
+      start(controller): void {
+        streamController = controller;
+        if (aborted) controller.close();
+      },
+      async pull(controller): Promise<void> {
+        try {
+          const remaining =
+            endExclusive === undefined
+              ? RAW_FILE_CHUNK_BYTES
+              : endExclusive - position;
+          if (remaining <= 0) {
+            controller.close();
+            await closeHandle();
+            return;
+          }
+
+          const file = await getHandle();
+          if (cancelled) {
+            await closeHandle();
+            return;
+          }
+
+          const byteController =
+            "byobRequest" in controller ? controller : undefined;
+          const byobRequest = byteController?.byobRequest;
+          const byobView = byobRequest?.view;
+          const readLength = Math.min(
+            RAW_FILE_CHUNK_BYTES,
+            remaining,
+            byobView?.byteLength ?? Number.POSITIVE_INFINITY,
+          );
+          const buffer: Uint8Array<ArrayBuffer> =
+            byobView instanceof Uint8Array && byobView.byteLength === readLength
+              ? (byobView as Uint8Array<ArrayBuffer>)
+              : byobView
+                ? new Uint8Array(
+                    byobView.buffer,
+                    byobView.byteOffset,
+                    readLength,
+                  )
+                : new Uint8Array(readLength);
+          const { bytesRead } = await file.read(
+            buffer,
+            0,
+            buffer.byteLength,
+            position,
+          );
+          if (bytesRead === 0) {
+            controller.close();
+            byobRequest?.respond(0);
+            await closeHandle();
+            return;
+          }
+
+          position += bytesRead;
+          if (byobRequest) {
+            byobRequest.respond(bytesRead);
+          } else {
+            controller.enqueue(
+              bytesRead === buffer.byteLength
+                ? buffer
+                : buffer.subarray(0, bytesRead),
+            );
+          }
+
+          if (endExclusive !== undefined && position >= endExclusive) {
+            controller.close();
+            await closeHandle();
+          }
+        } catch (error) {
+          await closeHandle();
+          if (!cancelled) controller.error(error);
+        }
+      },
+      async cancel(): Promise<void> {
+        cancelled = true;
+        await closeHandle();
+      },
+    },
+    { highWaterMark: 0 },
+  );
 }
 
 /** Streamed 200: Content-Length is the actual payload length, always. */
-export function serveBuffered(absPath: string): Response {
+export function serveBuffered(absPath: string, signal?: AbortSignal): Response {
   const started = performance.now();
   let size: number;
   try {
@@ -113,7 +238,7 @@ export function serveBuffered(absPath: string): Response {
   } catch {
     return jsonError(404, "ASSET_MISSING", "Asset file is missing.");
   }
-  return new Response(rawFileBody(absPath), {
+  return new Response(rawFileBody(absPath, undefined, signal), {
     status: 200,
     headers: {
       "Content-Type": mimeType(absPath),
@@ -147,7 +272,7 @@ export function serveStreamedWithRange(
   }
 
   if (range === null) {
-    return new Response(rawFileBody(absPath), {
+    return new Response(rawFileBody(absPath, undefined, request.signal), {
       status: 200,
       headers: {
         "Content-Type": mime,
@@ -159,8 +284,12 @@ export function serveStreamedWithRange(
     });
   }
 
-  const { start, end } = range;
-  return new Response(rawFileBody(absPath, { start, end }), {
+  const { start } = range;
+  // A 206 may select a smaller interval than a broad requested range. The
+  // 1 MiB cap bounds native allocation churn when a downstream dev adapter
+  // drains after disconnect; MediaElement requests subsequent spans as needed.
+  const end = Math.min(range.end, start + AUDIO_RANGE_RESPONSE_MAX_BYTES - 1);
+  return new Response(rawFileBody(absPath, { start, end }, request.signal), {
     status: 206,
     headers: {
       "Content-Type": mime,

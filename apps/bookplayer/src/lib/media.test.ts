@@ -2,15 +2,17 @@ import { afterEach, describe, expect, test } from "bun:test";
 import {
   mkdtempSync,
   mkdirSync,
-  ReadStream,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { open } from "node:fs/promises";
+import { createConnection, createServer } from "node:net";
 
 import {
+  AUDIO_RANGE_RESPONSE_MAX_BYTES,
   BOOK_ID_RE,
   parseRangeHeader,
   rawFileBody,
@@ -158,6 +160,21 @@ describe("serveStreamedWithRange", () => {
     expect((await res.arrayBuffer()).byteLength).toBe(100);
   });
 
+  test("caps a broad range while preserving 206 response semantics", async () => {
+    const path = makeAudio(AUDIO_RANGE_RESPONSE_MAX_BYTES + 4096);
+    const res = serveStreamedWithRange(path, rangeRequest("bytes=0-"));
+    expect(res.status).toBe(206);
+    expect(res.headers.get("Content-Range")).toBe(
+      `bytes 0-${AUDIO_RANGE_RESPONSE_MAX_BYTES - 1}/${AUDIO_RANGE_RESPONSE_MAX_BYTES + 4096}`,
+    );
+    expect(res.headers.get("Content-Length")).toBe(
+      String(AUDIO_RANGE_RESPONSE_MAX_BYTES),
+    );
+    expect((await res.arrayBuffer()).byteLength).toBe(
+      AUDIO_RANGE_RESPONSE_MAX_BYTES,
+    );
+  });
+
   test("unsatisfiable range returns 416 with Content-Range */size", () => {
     const path = makeAudio(4096);
     const res = serveStreamedWithRange(path, rangeRequest("bytes=99999-"));
@@ -185,52 +202,200 @@ describe("serveBuffered", () => {
     expect(res.headers.get("Content-Length")).toBe("2222");
     expect((await res.arrayBuffer()).byteLength).toBe(2222);
   });
-
-  test("cancelling the response body stops its file stream before EOF", async () => {
-    const root = makeDir("media-cancel-");
-    const path = join(root, "large.epub");
-    const fileSize = 8 * 1024 * 1024;
-    writeFileSync(path, Buffer.alloc(fileSize, 3));
-
-    let bytesProduced = 0;
-    let observedSource: ReadStream | undefined;
-    const originalPush = ReadStream.prototype.push;
-
-    ReadStream.prototype.push = function (chunk, encoding) {
-      if (this.path === path) {
-        observedSource = this;
-        if (chunk !== null) bytesProduced += chunk.byteLength;
-      }
-      return originalPush.call(this, chunk, encoding);
-    };
-
-    try {
-      const response = serveBuffered(path);
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("response has no readable body");
-
-      const first = await reader.read();
-      expect(first.done).toBe(false);
-      expect(first.value?.byteLength).toBeGreaterThan(0);
-
-      await reader.cancel("test stopped after the first chunk");
-
-      const source = observedSource;
-      if (!source) throw new Error("file stream did not produce a chunk");
-      if (!source.closed) {
-        await new Promise<void>((resolve) => source.once("close", resolve));
-      }
-
-      expect(source.destroyed).toBe(true);
-      expect(source.readableEnded).toBe(false);
-      expect(bytesProduced).toBeLessThan(fileSize);
-    } finally {
-      ReadStream.prototype.push = originalPush;
-    }
-  });
 });
 
 describe("rawFileBody", () => {
+  test("reads an exact inclusive range", async () => {
+    const root = makeDir("media-range-body-");
+    const path = join(root, "asset.bin");
+    writeFileSync(path, Uint8Array.from([0, 1, 2, 3, 4, 5]));
+
+    const response = new Response(rawFileBody(path, { start: 2, end: 4 }));
+    expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual([
+      2, 3, 4,
+    ]);
+  });
+
+  test("fills BYOB views directly across an exact range", async () => {
+    const root = makeDir("media-byob-body-");
+    const path = join(root, "asset.bin");
+    writeFileSync(path, Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]));
+    const reader = rawFileBody(path, { start: 2, end: 6 }).getReader({
+      mode: "byob",
+    });
+
+    const firstBuffer = new Uint8Array(3);
+    const firstBacking = firstBuffer.buffer;
+    const first = await reader.read(firstBuffer);
+    expect(first.done).toBe(false);
+    expect(first.value?.buffer).toBe(firstBacking);
+    expect(Array.from(first.value ?? [])).toEqual([2, 3, 4]);
+
+    const secondBuffer = new Uint8Array(8);
+    const secondBacking = secondBuffer.buffer;
+    const second = await reader.read(secondBuffer);
+    expect(second.done).toBe(false);
+    expect(second.value?.buffer).toBe(secondBacking);
+    expect(Array.from(second.value ?? [])).toEqual([5, 6]);
+
+    const end = await reader.read(new Uint8Array(1));
+    expect(end.done).toBe(true);
+  });
+
+  test("settles a pending BYOB read at zero-byte EOF", async () => {
+    const root = makeDir("media-byob-eof-");
+    const path = join(root, "asset.bin");
+    writeFileSync(path, Uint8Array.from([8, 9]));
+    const reader = rawFileBody(path).getReader({ mode: "byob" });
+
+    const body = await reader.read(new Uint8Array(4));
+    expect(Array.from(body.value ?? [])).toEqual([8, 9]);
+
+    const end = await reader.read(new Uint8Array(4));
+    expect(end.done).toBe(true);
+    expect(end.value?.byteLength).toBe(0);
+  });
+
+  test("produces at most one bounded chunk per pull and supports cancellation", async () => {
+    const root = makeDir("media-bounded-body-");
+    const path = join(root, "large.bin");
+    writeFileSync(path, Buffer.alloc(2 * 1024 * 1024, 3));
+
+    const reader = rawFileBody(path).getReader();
+    const first = await reader.read();
+    expect(first.done).toBe(false);
+    expect(first.value?.byteLength).toBe(64 * 1024);
+    await reader.cancel("test disconnect");
+  });
+
+  test("an already-aborted request closes before opening the file", async () => {
+    const root = makeDir("media-pre-abort-");
+    const path = join(root, "asset.bin");
+    writeFileSync(path, "unused");
+    const requestAbort = new AbortController();
+    requestAbort.abort(new DOMException("request ended", "AbortError"));
+
+    const response = new Response(
+      rawFileBody(path, undefined, requestAbort.signal),
+    );
+
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
+  });
+
+  test("request abort stops a partially consumed body", async () => {
+    const root = makeDir("media-mid-abort-");
+    const path = join(root, "large.bin");
+    writeFileSync(path, Buffer.alloc(2 * 1024 * 1024, 3));
+    const requestAbort = new AbortController();
+    const reader = rawFileBody(
+      path,
+      undefined,
+      requestAbort.signal,
+    ).getReader();
+
+    const first = await reader.read();
+    expect(first.done).toBe(false);
+    requestAbort.abort(new DOMException("request ended", "AbortError"));
+
+    expect(await reader.read()).toEqual({ done: true, value: undefined });
+  });
+
+  test("a real HTTP disconnect closes the source before EOF", async () => {
+    const root = makeDir("media-http-disconnect-");
+    const path = join(root, "large.bin");
+    const fileSize = 32 * 1024 * 1024;
+    writeFileSync(path, Buffer.alloc(fileSize, 3));
+
+    type InstrumentedFileHandle = {
+      read: (
+        buffer: Uint8Array,
+        offset: number,
+        length: number,
+        position: number,
+      ) => Promise<{ bytesRead: number; buffer: Uint8Array }>;
+      close: () => Promise<void>;
+    };
+
+    const probe = await open(path, "r");
+    const prototype = Object.getPrototypeOf(probe) as InstrumentedFileHandle;
+    await probe.close();
+    const originalRead = prototype.read;
+    const originalClose = prototype.close;
+    let source: InstrumentedFileHandle | undefined;
+    let bytesRead = 0;
+    let sourceClosed = false;
+    let requestAborted = false;
+
+    prototype.read = async function (buffer, offset, length, position) {
+      const result = await originalRead.call(
+        this,
+        buffer,
+        offset,
+        length,
+        position,
+      );
+      source ??= this;
+      if (source === this) bytesRead += result.bytesRead;
+      return result;
+    };
+    prototype.close = async function () {
+      if (source === this) sourceClosed = true;
+      return originalClose.call(this);
+    };
+
+    let server: ReturnType<typeof Bun.serve> | undefined;
+    try {
+      const activeServer = Bun.serve({
+        hostname: "127.0.0.1",
+        port: await availablePort(),
+        fetch: (request) => {
+          request.signal.addEventListener(
+            "abort",
+            () => {
+              requestAborted = true;
+            },
+            { once: true },
+          );
+          return new Response(rawFileBody(path, undefined, request.signal), {
+            headers: { "Content-Length": String(fileSize) },
+          });
+        },
+      });
+      server = activeServer;
+      const serverPort = activeServer.port;
+      if (!serverPort) throw new Error("test server did not bind a port");
+
+      await new Promise<void>((resolve, reject) => {
+        let received = Buffer.alloc(0);
+        const socket = createConnection(
+          { host: "127.0.0.1", port: serverPort },
+          () => {
+            socket.write(
+              "GET /asset HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+            );
+          },
+        );
+        socket.once("error", reject);
+        socket.on("data", (chunk) => {
+          received = Buffer.concat([received, chunk]);
+          const bodyStart = received.indexOf("\r\n\r\n");
+          if (bodyStart !== -1 && received.length > bodyStart + 4) {
+            socket.destroy();
+          }
+        });
+        socket.once("close", () => resolve());
+      });
+
+      await waitFor(() => sourceClosed);
+      expect(requestAborted).toBe(true);
+      expect(bytesRead).toBeLessThan(fileSize);
+    } finally {
+      prototype.read = originalRead;
+      prototype.close = originalClose;
+      server?.stop(true);
+    }
+  });
+
   test("forwards an asynchronous open error to the response consumer", async () => {
     const root = makeDir("media-open-error-");
     const response = new Response(rawFileBody(join(root, "missing.epub")));
@@ -238,6 +403,32 @@ describe("rawFileBody", () => {
     await expect(response.arrayBuffer()).rejects.toThrow();
   });
 });
+
+async function waitFor(predicate: () => boolean): Promise<void> {
+  const deadline = performance.now() + 2000;
+  while (!predicate()) {
+    if (performance.now() >= deadline) {
+      throw new Error("timed out waiting for file handle cleanup");
+    }
+    await Bun.sleep(10);
+  }
+}
+
+async function availablePort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("failed to allocate a test port");
+  }
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
+  return address.port;
+}
 
 describe("BOOK_ID_RE", () => {
   test("accepts only 12 lowercase hex chars", () => {

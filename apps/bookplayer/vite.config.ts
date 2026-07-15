@@ -33,6 +33,7 @@ const config = defineConfig({
         route: "/api/locate-sweep/:bookId",
         handler: "./server/handlers/locate-sweep.ts",
       },
+      { route: "/api/dev/memory", handler: "./server/handlers/memory.ts" },
       { route: "/api/vtt/:bookId", handler: "./server/handlers/vtt.ts" },
     ],
   },
