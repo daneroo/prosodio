@@ -13,11 +13,6 @@ matching-quality experiments over the accepted design baseline.
 
 ## player-ux
 
-- [x] bookplayer-epub-serve-oom — fixed whole-file copies plus unsafe/split raw
-      delivery, stale client requests, and file-size-proportional dev-adapter
-      churn with one bounded/cancellable raw-file primitive and a 1 MiB audio
-      range cap. Accepted in dev and production; plan:
-      [bookplayer-epub-serve-oom](plans/bookplayer-epub-serve-oom.md).
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
       emitting warnings. Separate from the resolved OOM and locate-sweep console
@@ -145,6 +140,11 @@ matching-quality experiments over the accepted design baseline.
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
+- 2026-07-15 bookplayer-epub-serve-oom — fixed whole-file copies, unsafe/split
+  raw delivery, stale client requests, and file-size-proportional dev-adapter
+  churn with one bounded/cancellable raw-file primitive and a 1 MiB audio range
+  cap. Accepted in dev and production.
+  [plans/archive/bookplayer-epub-serve-oom.md](plans/archive/bookplayer-epub-serve-oom.md)
 - 2026-07-12 sync-repository-workflow — `docs/` renamed to lowercase kebab-case
   (reversed the earlier UPPERCASE decision; verified two-hop `git mv` procedure
   for macOS case-insensitive filesystems), all 20 referencing files fixed,
