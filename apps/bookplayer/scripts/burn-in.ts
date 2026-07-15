@@ -23,6 +23,13 @@ type BurnInOptions = {
   memoryUrl: string | null;
   headless: boolean;
   mute: boolean;
+  json: boolean;
+};
+
+type OutputEvent = { type: string } & Record<string, unknown>;
+
+type Reporter = {
+  report: (event: OutputEvent) => void;
 };
 
 type RequestRecord = {
@@ -63,7 +70,157 @@ const DEFAULT_ARGS: BurnInOptions = {
   memoryUrl: null,
   headless: false,
   mute: true,
+  json: false,
 };
+
+function createReporter(json: boolean): Reporter {
+  let unexpectedFailures = 0;
+
+  return {
+    report(event) {
+      if (json) {
+        console.log(JSON.stringify(event));
+        return;
+      }
+
+      switch (event.type) {
+        case "configuration": {
+          const durationMs = numberValue(
+            event.playTimeMs === 0 ? event.silentTimeMs : event.playTimeMs,
+          );
+          const mode = event.playTimeMs === 0 ? "silent" : "playback";
+          console.log(
+            `# bookplayer burn-in\n\n- Server: ${String(event.serverUrl)}\n- Mode: ${mode} (${formatDuration(durationMs)})`,
+          );
+          break;
+        }
+        case "selection": {
+          const count = Array.isArray(event.links) ? event.links.length : 0;
+          const order = event.randomized ? "shuffled" : "fixed order";
+          console.log(
+            `- Selected: ${count} books (${order}; seed: ${event.seed}; navigation: ${event.navigation}; endpoint: ${event.endpoint})`,
+          );
+          break;
+        }
+        case "book":
+          console.log(
+            `\n## Book ${event.iteration} of ${event.total}\n\n- URL: ${event.url}`,
+          );
+          break;
+        case "playback": {
+          const duration = formatDuration(numberValue(event.durationMs));
+          if (event.mode === "play") {
+            const position = event.seekMiddle ? " from the middle" : "";
+            console.log(`- Playing${position} for ${duration}`);
+          } else {
+            const reason = event.audioFound
+              ? ""
+              : " (audio element unavailable)";
+            console.log(`- Silent settle for ${duration}${reason}`);
+          }
+          break;
+        }
+        case "raw-vtt":
+          console.log(`- Raw VTT: ${formatBytes(numberValue(event.bytes))}`);
+          break;
+        case "request-summary":
+          console.log(`- Requests: ${formatRequestSummary(event.endpoints)}`);
+          break;
+        case "memory": {
+          const label =
+            event.phase === "baseline" ? "Baseline memory" : "Memory";
+          console.log(`- ${label}: ${formatMemory(event)}`);
+          break;
+        }
+        case "request-failure": {
+          const failure = String(event.failure ?? "unknown request failure");
+          if (isExpectedAbort(failure)) break;
+          unexpectedFailures++;
+          console.log(
+            `- Request failed: ${event.endpoint} ${event.url} — ${failure}`,
+          );
+          break;
+        }
+        case "browser-console-error": {
+          const text = String(event.text ?? "unknown browser console error");
+          if (isExpectedAbort(text)) break;
+          unexpectedFailures++;
+          console.log(`- Browser error: ${text}`);
+          break;
+        }
+        case "browser-page-error":
+        case "telemetry-error":
+          unexpectedFailures++;
+          console.log(`- ${event.type}: ${event.text}`);
+          break;
+        case "complete": {
+          const books = numberValue(event.books);
+          console.log("\n## Done\n");
+          console.log(
+            unexpectedFailures === 0
+              ? `- Success: completed ${books} books.`
+              : `- Completed ${books} books with ${unexpectedFailures} unexpected errors reported above.`,
+          );
+          break;
+        }
+        case "request":
+          // Full per-request records are intentionally reserved for JSONL output.
+          break;
+      }
+    },
+  };
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function formatDuration(durationMs: number) {
+  return durationMs >= 1000
+    ? `${(durationMs / 1000).toFixed(durationMs % 1000 === 0 ? 0 : 1)}s`
+    : `${durationMs}ms`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / 1024 ** 2).toFixed(1)} MiB`;
+}
+
+function formatRequestSummary(value: unknown) {
+  if (!isRecord(value)) return "none observed";
+  const summaries: Array<string> = [];
+  for (const endpoint of ["epub", "audio", "vtt", "alignment"]) {
+    const counts = value[endpoint];
+    if (!isRecord(counts)) continue;
+    const started = numberValue(counts.started);
+    const finished = numberValue(counts.finished);
+    const failed = numberValue(counts.failed);
+    const failureText = failed > 0 ? `, ${failed} failed` : "";
+    summaries.push(
+      `${endpoint} ${finished}/${started}${failureText}, ${formatBytes(numberValue(counts.bytes))}`,
+    );
+  }
+  return summaries.length > 0 ? summaries.join("; ") : "none observed";
+}
+
+function formatMemory(event: OutputEvent) {
+  const fields: Array<string> = [];
+  if (typeof event.rssBytes === "number") {
+    fields.push(`RSS ${formatBytes(event.rssBytes)}`);
+  }
+  if (typeof event.heapUsedBytes === "number") {
+    fields.push(`heap used ${formatBytes(event.heapUsedBytes)}`);
+  }
+  if (typeof event.heapTotalBytes === "number") {
+    fields.push(`heap total ${formatBytes(event.heapTotalBytes)}`);
+  }
+  return fields.join("; ") || "unavailable";
+}
+
+function isExpectedAbort(text: string) {
+  return /ERR_(ABORTED|BLOCKED_BY_CLIENT)|NS_BINDING_ABORTED/i.test(text);
+}
 
 if (import.meta.main) {
   await main();
@@ -71,21 +228,20 @@ if (import.meta.main) {
 
 async function main() {
   const options = parseArguments();
+  const reporter = createReporter(options.json);
   let browser: Browser | null = null;
 
-  console.log(
-    JSON.stringify({
-      type: "configuration",
-      ...options,
-      books: options.books.length > 0 ? options.books : undefined,
-    }),
-  );
+  reporter.report({
+    type: "configuration",
+    ...options,
+    books: options.books.length > 0 ? options.books : undefined,
+  });
 
   try {
     await ensureServerRunning(options.serverUrl);
     browser = await chromium.launch({ headless: options.headless });
     const page = await browser.newPage();
-    const telemetry = await attachTelemetry(page, options.endpoint);
+    const telemetry = await attachTelemetry(page, options.endpoint, reporter);
 
     const links =
       options.books.length > 0
@@ -95,31 +251,38 @@ async function main() {
           )
         : await gatherBookLinks(page, options);
 
-    console.log(
-      JSON.stringify({
-        type: "selection",
-        seed: options.seed,
-        randomized: options.books.length === 0 && options.randomizeOrder,
-        links,
-      }),
-    );
+    reporter.report({
+      type: "selection",
+      seed: options.seed,
+      randomized: options.books.length === 0 && options.randomizeOrder,
+      links,
+      navigation: options.navigation,
+      endpoint: options.endpoint,
+    });
 
-    await sampleMemory(options, 0, "baseline");
+    await sampleMemory(options, 0, "baseline", reporter);
 
     for (let i = 0; i < links.length; i++) {
       const iteration = i + 1;
       telemetry.setIteration(iteration);
-      await burnInBook(page, links[i] as string, options);
+      await burnInBook(
+        page,
+        links[i] as string,
+        options,
+        iteration,
+        links.length,
+        reporter,
+      );
       await returnToLibrary(page, options);
       await page.waitForTimeout(50);
       await telemetry.flush();
       telemetry.reportIteration(iteration);
-      await sampleMemory(options, iteration, "after-book");
+      await sampleMemory(options, iteration, "after-book", reporter);
     }
 
     await telemetry.flush();
     telemetry.reportFinal();
-    console.log(JSON.stringify({ type: "complete", books: links.length }));
+    reporter.report({ type: "complete", books: links.length });
   } finally {
     await browser?.close();
   }
@@ -143,6 +306,7 @@ function parseArguments(): BurnInOptions {
       "memory-url": { type: "string" },
       headless: { type: "boolean" },
       "no-mute": { type: "boolean" },
+      json: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -171,10 +335,11 @@ Options:
                         heapTotal/heapTotalBytes, optionally nested under memory.
   --headless            Run Chromium headless
   --no-mute             Do not mute audio during playback
+  --json                Emit JSONL only (default output is human-readable)
   --help, -h            Show this help
 
-Telemetry is emitted as JSON lines. Request byte counts come from Playwright's
-responseBodySize and do not require buffering response bodies in this process.
+In --json mode, request byte counts come from Playwright's responseBodySize and
+do not require buffering response bodies in this process.
 `);
     process.exit(0);
   }
@@ -233,6 +398,7 @@ responseBodySize and do not require buffering response bodies in this process.
       : null,
     headless: values.headless ?? DEFAULT_ARGS.headless,
     mute: !values["no-mute"],
+    json: values.json ?? DEFAULT_ARGS.json,
   };
 }
 
@@ -337,8 +503,15 @@ function seededRandom(seed: number) {
   };
 }
 
-async function burnInBook(page: Page, url: string, options: BurnInOptions) {
-  console.log(JSON.stringify({ type: "book", url }));
+async function burnInBook(
+  page: Page,
+  url: string,
+  options: BurnInOptions,
+  iteration: number,
+  total: number,
+  reporter: Reporter,
+) {
+  reporter.report({ type: "book", url, iteration, total });
   if (options.navigation === "hard") {
     await page.goto(url);
   } else {
@@ -366,13 +539,19 @@ async function burnInBook(page: Page, url: string, options: BurnInOptions) {
         }
         return { bytes, status: response.status };
       }, assetUrl);
-      console.log(
-        JSON.stringify({ type: "raw-vtt", url: assetUrl, ...result }),
-      );
+      reporter.report({ type: "raw-vtt", url: assetUrl, ...result });
     }
   }
 
   if (options.playTimeMs > 0 && audio) {
+    reporter.report({
+      type: "playback",
+      iteration,
+      mode: "play",
+      durationMs: options.playTimeMs,
+      seekMiddle: options.seekMiddle,
+      mute: options.mute,
+    });
     await audio.evaluate(
       (node, evaluateOptions) => {
         node.muted = evaluateOptions.mute;
@@ -391,6 +570,13 @@ async function burnInBook(page: Page, url: string, options: BurnInOptions) {
     );
     await page.waitForTimeout(options.playTimeMs);
   } else {
+    reporter.report({
+      type: "playback",
+      iteration,
+      mode: "silent",
+      durationMs: options.silentTimeMs,
+      audioFound: audio !== null,
+    });
     await page.waitForTimeout(options.silentTimeMs);
   }
 }
@@ -440,7 +626,11 @@ async function waitForLibrary(page: Page) {
   await page.waitForSelector('a[href^="/player/"]', { timeout: 10_000 });
 }
 
-async function attachTelemetry(page: Page, selection: EndpointSelection) {
+async function attachTelemetry(
+  page: Page,
+  selection: EndpointSelection,
+  reporter: Reporter,
+) {
   const records = new Map<PlaywrightRequest, RequestRecord>();
   const pending = new Set<Promise<void>>();
   let iteration = 0;
@@ -473,6 +663,7 @@ async function attachTelemetry(page: Page, selection: EndpointSelection) {
         record.status = response.status();
         record.headers = selectHeaders(await response.allHeaders());
       })(),
+      reporter,
     );
   });
 
@@ -489,6 +680,7 @@ async function attachTelemetry(page: Page, selection: EndpointSelection) {
           // Some aborted or cached requests have no transfer-size record.
         }
       })(),
+      reporter,
     );
   });
 
@@ -497,29 +689,25 @@ async function attachTelemetry(page: Page, selection: EndpointSelection) {
     if (!record) return;
     record.finished = true;
     record.failure = request.failure()?.errorText ?? "unknown request failure";
-    console.log(JSON.stringify({ type: "request-failure", ...record }));
+    reporter.report({ type: "request-failure", ...record });
   });
 
   page.on("console", (message) => {
     if (message.type() === "error") {
-      console.log(
-        JSON.stringify({
-          type: "browser-console-error",
-          iteration,
-          text: message.text(),
-        }),
-      );
+      reporter.report({
+        type: "browser-console-error",
+        iteration,
+        text: message.text(),
+      });
     }
   });
 
   page.on("pageerror", (error) => {
-    console.log(
-      JSON.stringify({
-        type: "browser-page-error",
-        iteration,
-        text: error.message,
-      }),
-    );
+    reporter.report({
+      type: "browser-page-error",
+      iteration,
+      text: error.message,
+    });
   });
 
   return {
@@ -533,37 +721,37 @@ async function attachTelemetry(page: Page, selection: EndpointSelection) {
       const current = [...records.values()].filter(
         (record) => record.iteration === value && record.endpoint !== "other",
       );
-      console.log(
-        JSON.stringify({
-          type: "request-summary",
-          iteration: value,
-          endpoints: summarizeRequests(current),
-        }),
-      );
+      reporter.report({
+        type: "request-summary",
+        iteration: value,
+        endpoints: summarizeRequests(current),
+      });
     },
     reportFinal() {
       const relevant = [...records.values()].filter(
         (record) => record.endpoint !== "other" || record.failure,
       );
       for (const record of relevant) {
-        console.log(JSON.stringify({ type: "request", ...record }));
+        reporter.report({ type: "request", ...record });
       }
     },
   };
 }
 
-function track(pending: Set<Promise<void>>, promise: Promise<void>) {
+function track(
+  pending: Set<Promise<void>>,
+  promise: Promise<void>,
+  reporter: Reporter,
+) {
   pending.add(promise);
   void promise.then(
     () => pending.delete(promise),
     (error: unknown) => {
       pending.delete(promise);
-      console.log(
-        JSON.stringify({
-          type: "telemetry-error",
-          text: error instanceof Error ? error.message : String(error),
-        }),
-      );
+      reporter.report({
+        type: "telemetry-error",
+        text: error instanceof Error ? error.message : String(error),
+      });
     },
   );
 }
@@ -617,6 +805,7 @@ async function sampleMemory(
   options: BurnInOptions,
   iteration: number,
   phase: MemorySample["phase"],
+  reporter: Reporter,
 ) {
   if (options.serverPid === null && options.memoryUrl === null) return;
 
@@ -666,7 +855,7 @@ async function sampleMemory(
     sample.heapTotalBytes = heapTotalBytes;
   }
 
-  console.log(JSON.stringify({ type: "memory", ...sample }));
+  reporter.report({ type: "memory", ...sample });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
