@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import {
   mkdtempSync,
   mkdirSync,
+  ReadStream,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -12,6 +13,7 @@ import { join } from "node:path";
 import {
   BOOK_ID_RE,
   parseRangeHeader,
+  rawFileBody,
   safeResolve,
   serveBuffered,
   serveStreamedWithRange,
@@ -182,6 +184,58 @@ describe("serveBuffered", () => {
     expect(res.headers.get("Content-Type")).toBe("application/epub+zip");
     expect(res.headers.get("Content-Length")).toBe("2222");
     expect((await res.arrayBuffer()).byteLength).toBe(2222);
+  });
+
+  test("cancelling the response body stops its file stream before EOF", async () => {
+    const root = makeDir("media-cancel-");
+    const path = join(root, "large.epub");
+    const fileSize = 8 * 1024 * 1024;
+    writeFileSync(path, Buffer.alloc(fileSize, 3));
+
+    let bytesProduced = 0;
+    let observedSource: ReadStream | undefined;
+    const originalPush = ReadStream.prototype.push;
+
+    ReadStream.prototype.push = function (chunk, encoding) {
+      if (this.path === path) {
+        observedSource = this;
+        if (chunk !== null) bytesProduced += chunk.byteLength;
+      }
+      return originalPush.call(this, chunk, encoding);
+    };
+
+    try {
+      const response = serveBuffered(path);
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("response has no readable body");
+
+      const first = await reader.read();
+      expect(first.done).toBe(false);
+      expect(first.value?.byteLength).toBeGreaterThan(0);
+
+      await reader.cancel("test stopped after the first chunk");
+
+      const source = observedSource;
+      if (!source) throw new Error("file stream did not produce a chunk");
+      if (!source.closed) {
+        await new Promise<void>((resolve) => source.once("close", resolve));
+      }
+
+      expect(source.destroyed).toBe(true);
+      expect(source.readableEnded).toBe(false);
+      expect(bytesProduced).toBeLessThan(fileSize);
+    } finally {
+      ReadStream.prototype.push = originalPush;
+    }
+  });
+});
+
+describe("rawFileBody", () => {
+  test("forwards an asynchronous open error to the response consumer", async () => {
+    const root = makeDir("media-open-error-");
+    const response = new Response(rawFileBody(join(root, "missing.epub")));
+
+    await expect(response.arrayBuffer()).rejects.toThrow();
   });
 });
 

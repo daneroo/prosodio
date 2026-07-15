@@ -7,7 +7,7 @@
  * big private books) intentionally holds the request open — same UX as the
  * old fetchAlignment path.
  */
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 
 import { defineHandler } from "nitro/h3";
 
@@ -15,7 +15,7 @@ import { loadOrComputeArtifact } from "#/lib/artifact-cache";
 import { artifactEtag, isNotModified, pickEncoding } from "#/lib/artifact-http";
 import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
-import { BOOK_ID_RE, assetPath, jsonError } from "#/lib/media";
+import { BOOK_ID_RE, assetPath, jsonError, rawFileBody } from "#/lib/media";
 
 async function serveAlignment(
   bookId: string,
@@ -73,7 +73,7 @@ async function serveAlignment(
     return jsonError(404, "ASSET_MISSING", "Artifact file is missing.");
   }
 
-  return new Response(createReadStream(path) as unknown as ReadableStream, {
+  return new Response(rawFileBody(path), {
     status: 200,
     headers: {
       "Content-Type": "application/json",

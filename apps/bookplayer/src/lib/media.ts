@@ -9,6 +9,7 @@
  */
 import { createReadStream, realpathSync, statSync } from "node:fs";
 import { extname, resolve, sep } from "node:path";
+import { Readable } from "node:stream";
 
 import type { BookplayerConfig } from "./config.ts";
 import type { BookRecord } from "./types.ts";
@@ -87,6 +88,22 @@ export function mimeType(filePath: string): string {
   );
 }
 
+/**
+ * Open a raw file as a web Response body. The Node adapter forwards source
+ * errors to the web stream and destroys the file stream when its consumer
+ * cancels, so every raw-file endpoint shares the same lifecycle behavior.
+ */
+export function rawFileBody(
+  absPath: string,
+  range?: { start: number; end: number },
+): ReadableStream {
+  const source = createReadStream(absPath, range);
+  // @types/node and Bun currently declare separate structural Web Stream
+  // types even though this is the same runtime object Response consumes.
+  // @ts-expect-error -- Node's stream/web type is Bun's Web Stream at runtime.
+  return Readable.toWeb(source);
+}
+
 /** Streamed 200: Content-Length is the actual payload length, always. */
 export function serveBuffered(absPath: string): Response {
   const started = performance.now();
@@ -96,7 +113,7 @@ export function serveBuffered(absPath: string): Response {
   } catch {
     return jsonError(404, "ASSET_MISSING", "Asset file is missing.");
   }
-  return new Response(createReadStream(absPath) as unknown as ReadableStream, {
+  return new Response(rawFileBody(absPath), {
     status: 200,
     headers: {
       "Content-Type": mimeType(absPath),
@@ -130,36 +147,30 @@ export function serveStreamedWithRange(
   }
 
   if (range === null) {
-    return new Response(
-      createReadStream(absPath) as unknown as ReadableStream,
-      {
-        status: 200,
-        headers: {
-          "Content-Type": mime,
-          "Content-Length": String(size),
-          "Accept-Ranges": "bytes",
-          "Cache-Control": "public, max-age=3600",
-          "Server-Timing": timing(started),
-        },
-      },
-    );
-  }
-
-  const { start, end } = range;
-  return new Response(
-    createReadStream(absPath, { start, end }) as unknown as ReadableStream,
-    {
-      status: 206,
+    return new Response(rawFileBody(absPath), {
+      status: 200,
       headers: {
         "Content-Type": mime,
-        "Content-Length": String(end - start + 1),
-        "Content-Range": `bytes ${start}-${end}/${size}`,
+        "Content-Length": String(size),
         "Accept-Ranges": "bytes",
         "Cache-Control": "public, max-age=3600",
         "Server-Timing": timing(started),
       },
+    });
+  }
+
+  const { start, end } = range;
+  return new Response(rawFileBody(absPath, { start, end }), {
+    status: 206,
+    headers: {
+      "Content-Type": mime,
+      "Content-Length": String(end - start + 1),
+      "Content-Range": `bytes ${start}-${end}/${size}`,
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "public, max-age=3600",
+      "Server-Timing": timing(started),
     },
-  );
+  });
 }
 
 /**
