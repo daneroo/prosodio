@@ -60,9 +60,10 @@ export function usePlayerSync(
       setState({ status: "unavailable" });
       return;
     }
+    const controller = new AbortController();
     let cancelled = false;
     setState({ status: "loading" });
-    fetchArtifact(bookId)
+    fetchArtifact(bookId, controller.signal)
       .then((result) => {
         if (cancelled) return;
         if (result.status === "unavailable") {
@@ -74,11 +75,14 @@ export function usePlayerSync(
           prepared: prepareAlignment(result.artifact),
         });
       })
-      .catch(() => {
-        if (!cancelled) setState({ status: "error" });
+      .catch((error: unknown) => {
+        if (!cancelled && !controller.signal.aborted && !isAbortError(error)) {
+          setState({ status: "error" });
+        }
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [bookId, enabled]);
 
@@ -123,6 +127,15 @@ export function usePlayerSync(
     activeCueIndex,
     activeToken,
   };
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
+  );
 }
 
 /** A book-side DOM point reported by EpubReader's `onWordActivate` (plan S4):

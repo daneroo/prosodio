@@ -25,25 +25,44 @@ type LoadState =
   | { status: "none" }
   | { status: "ready"; cues: Array<TranscriptCue> };
 
-export function Transcript({ bookId, currentTime, onSeek }: TranscriptProps) {
+type TranscriptRequest = (options: {
+  data: string;
+  signal?: AbortSignal;
+}) => Promise<{ cues: Array<TranscriptCue> | null }>;
+
+/** Owns one transcript server-function request for the current book. */
+export function useTranscriptLoad(
+  bookId: string,
+  request: TranscriptRequest = fetchTranscript,
+): LoadState {
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     setState({ status: "loading" });
-    fetchTranscript({ data: bookId })
+    request({ data: bookId, signal: controller.signal })
       .then(({ cues }) => {
         if (cancelled) return;
         setState(cues ? { status: "ready", cues } : { status: "none" });
       })
-      .catch(() => {
-        if (!cancelled) setState({ status: "error" });
+      .catch((error: unknown) => {
+        if (!cancelled && !controller.signal.aborted && !isAbortError(error)) {
+          setState({ status: "error" });
+        }
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [bookId]);
+  }, [bookId, request]);
+
+  return state;
+}
+
+export function Transcript({ bookId, currentTime, onSeek }: TranscriptProps) {
+  const state = useTranscriptLoad(bookId);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   const activeIndex = useMemo(
     () =>
@@ -123,5 +142,14 @@ export function Transcript({ bookId, currentTime, onSeek }: TranscriptProps) {
         })}
       </div>
     </div>
+  );
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
   );
 }

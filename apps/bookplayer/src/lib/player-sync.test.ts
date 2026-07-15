@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
 import { JSDOM } from "jsdom";
 import { projectVisibleText } from "@prosodio/align";
 import { prepareAlignment } from "./alignment-client.ts";
-import { seekTargetForBookPoint } from "./player-sync.ts";
+import { seekTargetForBookPoint, usePlayerSync } from "./player-sync.ts";
+import type { PlayerSync } from "./player-sync.ts";
 import type { AlignmentArtifact } from "@prosodio/align/browser";
 
 /**
@@ -227,5 +230,107 @@ describe("seekTargetForBookPoint", () => {
     });
 
     expect(result).toEqual({ error: "no-match-forward" });
+  });
+});
+
+describe("usePlayerSync request lifecycle", () => {
+  const originalFetch = globalThis.fetch;
+  const originalGlobals = new Map<string, PropertyDescriptor | undefined>();
+  let dom: JSDOM;
+  let requests: Array<{ signal: AbortSignal }>;
+  let observed: PlayerSync | undefined;
+
+  function Probe({ bookId }: { bookId: string }) {
+    observed = usePlayerSync(bookId, 0, true);
+    return null;
+  }
+
+  beforeEach(() => {
+    dom = new JSDOM('<main id="root"></main>', {
+      url: "http://localhost",
+    });
+    for (const [key, value] of [
+      ["window", dom.window],
+      ["document", dom.window.document],
+      ["navigator", dom.window.navigator],
+      ["HTMLElement", dom.window.HTMLElement],
+    ] as const) {
+      originalGlobals.set(
+        key,
+        Object.getOwnPropertyDescriptor(globalThis, key),
+      );
+      Object.defineProperty(globalThis, key, {
+        configurable: true,
+        value,
+      });
+    }
+    Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", {
+      configurable: true,
+      value: true,
+    });
+
+    observed = undefined;
+    requests = [];
+    globalThis.fetch = ((_url: string | URL | Request, init?: RequestInit) => {
+      const signal = init?.signal;
+      if (!signal) throw new Error("expected an abort signal");
+      requests.push({ signal });
+      return new Promise<Response>((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason), {
+          once: true,
+        });
+      });
+    }) as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    for (const [key, descriptor] of originalGlobals) {
+      if (descriptor) {
+        Object.defineProperty(globalThis, key, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, key);
+      }
+    }
+    Reflect.deleteProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT");
+    originalGlobals.clear();
+    dom.window.close();
+  });
+
+  test("book changes abort the stale artifact request and retain loading state", async () => {
+    const container = dom.window.document.querySelector("#root")!;
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(createElement(Probe, { bookId: "book-one" }));
+    });
+    expect(requests).toHaveLength(1);
+    const staleRequest = requests[0]!;
+    expect(staleRequest.signal.aborted).toBeFalse();
+
+    await act(async () => {
+      root.render(createElement(Probe, { bookId: "book-two" }));
+    });
+    expect(staleRequest.signal.aborted).toBeTrue();
+    expect(requests).toHaveLength(2);
+    expect(requests[1]!.signal.aborted).toBeFalse();
+    expect(observed?.status).toBe("loading");
+
+    await act(async () => root.unmount());
+  });
+
+  test("unmount aborts the active request without surfacing an error", async () => {
+    const container = dom.window.document.querySelector("#root")!;
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(createElement(Probe, { bookId: "book-one" }));
+    });
+    const activeRequest = requests[0]!;
+    expect(observed?.status).toBe("loading");
+
+    await act(async () => root.unmount());
+    expect(activeRequest.signal.aborted).toBeTrue();
+    expect(observed?.status).toBe("loading");
   });
 });
