@@ -1,7 +1,7 @@
 /**
  * Shared handler behind the four /api/<kind>/$bookId routes: validate the
  * id, resolve the book and asset inside the active root, serve with the
- * right semantics (audio streams with ranges; the rest are buffered).
+ * right semantics over the shared bounded raw-file delivery primitive.
  */
 import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
@@ -9,7 +9,7 @@ import {
   BOOK_ID_RE,
   assetPath,
   jsonError,
-  serveBuffered,
+  serveFile,
   serveStreamedWithRange,
 } from "#/lib/media";
 import type { AssetKind } from "#/lib/media";
@@ -35,5 +35,5 @@ export function serveAsset(
   }
   return kind === "audio"
     ? serveStreamedWithRange(absPath, request)
-    : serveBuffered(absPath, request.signal);
+    : serveFile(absPath, request.signal);
 }

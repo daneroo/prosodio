@@ -13,12 +13,15 @@ matching-quality experiments over the accepted design baseline.
 
 ## player-ux
 
-- [ ] bookplayer-epub-serve-oom — `GET /api/epub/:bookId` can throw
-      `RangeError: Out of memory` at `serveBuffered` (`src/lib/media.ts`, the
-      whole-file `readFileSync` + `new Uint8Array(bytes)` copy) after opening
-      many books in a row; sometimes kills the dev server. Candidate: stream (or
-      at least not double-buffer) large assets; check what holds the old buffers
-      live. Observed by Daniel 2026-07-12; not urgent.
+- [x] bookplayer-epub-serve-oom — fixed whole-file copies plus unsafe/split raw
+      delivery, stale client requests, and file-size-proportional dev-adapter
+      churn with one bounded/cancellable raw-file primitive and a 1 MiB audio
+      range cap. Accepted in dev and production; plan:
+      [bookplayer-epub-serve-oom](plans/bookplayer-epub-serve-oom.md).
+- [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
+      epub.js while async `Rendition.start`/`replaceCss` work is still running,
+      emitting warnings. Separate from the resolved OOM and locate-sweep console
+      noise.
 - [ ] bookplayer-ebook-renderer — keep the EPUB renderer swappable; evaluate
       epub.js alternatives when search/highlight or theming becomes a real
       limitation. ticket:
@@ -91,7 +94,9 @@ matching-quality experiments over the accepted design baseline.
 - [ ] e2e-testing-harness — we need a full e2e test harness which will include a
       "real" server start, and run tests (including a burn-in equivalent on it
       to catch server-lifecycle memory leaks, but surely many other tests when
-      we have a good setup).
+      we have a good setup). Long-running/private-corpus cases should use a
+      targeted `*.e2e.test.ts` filename and explicit E2E command lane rather
+      than joining the default unit-test run.
 - [ ] sanity-reconcilers — desired -> actual convergence validators
       (`sanity:<thing>`); editor settings + package.json invariants first.
       ticket: [sanity-reconcilers](tickets/sanity-reconcilers.md)

@@ -229,8 +229,8 @@ export function rawFileBody(
   );
 }
 
-/** Streamed 200: Content-Length is the actual payload length, always. */
-export function serveBuffered(absPath: string, signal?: AbortSignal): Response {
+/** Shared bounded raw-file 200; Content-Length is the exact payload length. */
+export function serveFile(absPath: string, signal?: AbortSignal): Response {
   const started = performance.now();
   let size: number;
   try {

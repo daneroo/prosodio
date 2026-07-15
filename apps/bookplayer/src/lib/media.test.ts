@@ -17,7 +17,7 @@ import {
   parseRangeHeader,
   rawFileBody,
   safeResolve,
-  serveBuffered,
+  serveFile,
   serveStreamedWithRange,
 } from "./media.ts";
 
@@ -191,12 +191,12 @@ describe("serveStreamedWithRange", () => {
   });
 });
 
-describe("serveBuffered", () => {
+describe("serveFile", () => {
   test("Content-Length matches the payload byte for byte", async () => {
     const root = makeDir("media-root-");
     const path = join(root, "book.epub");
     writeFileSync(path, Buffer.alloc(2222, 3));
-    const res = serveBuffered(path);
+    const res = serveFile(path);
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("application/epub+zip");
     expect(res.headers.get("Content-Length")).toBe("2222");

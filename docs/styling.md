@@ -1,6 +1,5 @@
 # Styling
 
-- Do not use emojis in UI — use UTF-8 characters instead if necessary.
 - Tailwind v4 ignores `node_modules`; scan workspace UI with
   `@source "../../../components"`. (Why `components/` is separate from
   `packages/`.)

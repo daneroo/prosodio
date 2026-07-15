@@ -1,7 +1,6 @@
 # Bookplayer EPUB Serve Memory Leak (OOM)
 
-**Status:** Active — the whole-file copy was removed, but abort handling still
-leaks and the fix is not yet accepted.
+**Status:** Done — accepted in dev and production on 2026-07-15.
 
 ## Goal
 
@@ -9,49 +8,60 @@ Document the reproduction, diagnosis, and fix for the
 `RangeError: Out of memory` crash that occurs when repeatedly serving large
 media assets in the `bookplayer` dev server.
 
-## Tasks Completed
+## Final diagnosis
 
-- [x] **The Fix**: Replaced the `readFileSync` buffering approach in **both**
-      `apps/bookplayer/server/handlers/alignment.ts` and
-      `apps/bookplayer/src/lib/media.ts` with `createReadStream` to properly
-      stream large media to the client.
-- [x] **Burn-in Script**: Created a headed Playwright load-testing script
-      (`apps/bookplayer/scripts/burn-in.ts`) to programmatically navigate the
-      library, render the audio player, and simulate playback/seeking.
-- [x] **Backlog - E2E Testing**: Abandoned "fake" offline unit tests in favor of
-      adding a backlog ticket (`e2e-testing-harness`) to build a robust E2E
-      testing framework capable of tracking actual server lifecycle memory
-      leaks.
+The original OOM had two layers:
 
-## Diagnosis & Fix
+- `GET /api/alignment/:bookId` and the non-audio raw asset paths copied whole
+  files with `readFileSync` plus `new Uint8Array(bytes)`, retaining a second
+  large V8 allocation.
+- Raw-file delivery was split across EPUB, cover, VTT, audio, and alignment. The
+  first streaming replacement used unsafe Node-to-Web casts. During rapid
+  navigation, the dev adapter could continue draining a large selected audio
+  range after the browser disconnected. Later diagnostics showed collectible JS
+  heap but rising RSS, identifying native allocation churn rather than a
+  retained parsed transcript or alignment object.
 
-Both the `GET /api/align/:bookId` endpoint and the EPUB media server
-(`serveBuffered` in `media.ts`) were reading large media files entirely into
-memory using `readFileSync`. They then returned the results as a `Uint8Array`.
-Passing a Node `Buffer` to the `Uint8Array` constructor caused a **full memory
-copy** in the V8 heap. For large audio files and EPUBs, this double-buffering
-rapidly exhausted the heap, leading to a `RangeError: Out of memory` crash in
-the dev server.
+Production plateaued once whole-file copies and unsafe adapters were removed.
+Vite dev did not reliably preserve response cancellation or the incoming
+`Request.signal`, so cancellation alone was not a sufficient defensive bound.
 
-The fix involved returning `createReadStream(path) as unknown as ReadableStream`
-to stream the payload natively in Nitro, bypassing the V8 heap entirely.
+## Final implementation
 
-## The Aborted Stream Leak (Secondary Discovery)
+- All raw EPUB, cover, VTT, full/ranged audio, and alignment bodies use the
+  centralized `rawFileBody` primitive. It lazily opens the file and performs
+  demand-driven 64 KiB positional reads with one cleanup path for EOF, errors,
+  stream cancellation, and incoming `Request.signal` aborts.
+- The byte stream honors BYOB requests to avoid a backing-buffer allocation when
+  the adapter supports them, with a bounded allocate/enqueue fallback when it
+  does not.
+- Audio `206` responses select at most 1 MiB from broad requested ranges.
+  MediaElement follows with subsequent ranges, while abandoned dev-adapter work
+  and native allocation churn remain bounded.
+- `usePlayerSync` and transcript loading own `AbortController`s, forward their
+  signals, and abort stale book requests on route/effect cleanup.
+- The deterministic burn-in covers hard and in-app navigation, endpoint
+  isolation, request outcomes, fixed seeds/book lists, server RSS, and a
+  dev-only `/api/dev/memory` diagnostic for heap/external/array-buffer fields.
+  Private-corpus evidence remains under `data/bookplayer/evidence/`.
 
-While verifying the fix with the burn-in script in "fast mode" (navigating
-rapidly between pages without waiting for playback), we uncovered a second
-memory leak.
+## Acceptance evidence
 
-When a client aborts a media stream mid-flight, the underlying Nitro/Node HTTP
-framework fails to properly destroy the source `createReadStream`. This causes
-`internal:webstreams_adapters` to silently pump the entire file from disk into a
-"dead" memory queue until the V8 heap explodes.
+Warmed fixed-order repeats plateaued after the final 1 MiB bound:
 
-We concluded that isolating this deep framework bug using synthetic unit tests
-(`bun:test` without a server) is impossible. We deferred fixing this second leak
-until we have a dedicated E2E testing harness (tracked in `BACKLOG.md`) capable
-of booting a real dev server and accurately observing request/response lifecycle
-memory usage.
+- dev playback repeat: final five iterations approximately +0.41 MB RSS;
+- dev hard-navigation all endpoints: approximately +4.3 MB;
+- dev in-app-navigation all endpoints: approximately +0.6 MB;
+- production warmed audio repeat: final five approximately +0.64 MB.
+
+No acceptance run reported `ERR_INVALID_CHUNKED_ENCODING`. Dev diagnostics
+showed heap usage continuing to oscillate and fall, with negligible retained
+array buffers; the remaining small RSS movement is allocator/runtime behavior,
+not file-size-proportional retention.
+
+Aggressive epub.js teardown can still emit renderer warnings during rapid
+navigation. That is a separate EPUB lifecycle/noise follow-up, not evidence of
+this memory leak.
 
 ## Review agy-opus-4.6
 
@@ -61,10 +71,9 @@ The double-buffering OOM diagnosis is solid. `readFileSync` -> `Buffer` ->
 `new Uint8Array(bytes)` is a textbook V8 heap copy. The `createReadStream` fix
 is the right call.
 
-The function is still called `serveBuffered` in `src/lib/media.ts` and the
-module-level comment (lines 5-8) still says "small assets (cover, epub, vtt) are
-buffered." Neither is true any more. Consider renaming to `serveFile` or
-`serveWithContentLength` and updating the comment block.
+At review time the function was still called `serveBuffered` and its comment
+still described buffering. T6 resolved both by renaming it to `serveFile` and
+documenting the shared bounded delivery primitive.
 
 ### Secondary leak: the analysis is incomplete
 
@@ -189,12 +198,11 @@ loading is unnecessary unless acceptance still shows retained memory there.
 
 ### Other review notes
 
-- The diagnosis names `/api/align/:bookId`, but the implemented route is
-  `/api/alignment/:bookId`. The original whole-file reads affected the alignment
-  artifact and non-audio assets; audio was already streamed and is implicated
-  here by its unsafe adapter, not by `readFileSync`.
-- `serveBuffered` and the media policy comment still describe buffering after
-  the implementation switched to streaming.
+- The route is `/api/alignment/:bookId`. The original whole-file reads affected
+  the alignment artifact and non-audio assets; audio was already streamed and is
+  implicated here by its unsafe adapter, not by `readFileSync`.
+- The old `serveBuffered` name and buffering policy comment needed
+  reconciliation after the implementation switched to bounded delivery.
 - `statSync` is caught but the later `createReadStream` open is not. A file that
   disappears or becomes unreadable between those operations no longer follows
   the intended structured-404 path.
@@ -207,7 +215,7 @@ loading is unnecessary unless acceptance still shows retained memory there.
 
 ## Amended plan
 
-- [ ] **T1 — Add a focused cancellation regression.** Use a lower-power coding
+- [x] **T1 — Add a focused cancellation regression.** Use a lower-power coding
       model with medium reasoning. Exercise the same response-body construction
       used by bookplayer with a controllable Node readable, consume one chunk,
       cancel, and assert that the source is destroyed before EOF and stops
@@ -216,7 +224,7 @@ loading is unnecessary unless acceptance still shows retained memory there.
       `ERR_INVALID_CHUNKED_ENCODING`-equivalent client failure. Do not wait for
       the general E2E harness. Boundary: test infrastructure and observability
       only, no serving behavior change.
-- [ ] **T2 — Remove every Node-to-Web cast.** Use a lower-power coding model
+- [x] **T2 — Remove every Node-to-Web cast.** Use a lower-power coding model
       with low-to-medium reasoning after T1. Convert `createReadStream` through
       `Readable.toWeb()` explicitly and centralize raw-file open, conversion,
       cancellation, and error handling in one helper used by EPUB/cover/raw VTT,
@@ -227,7 +235,7 @@ loading is unnecessary unless acceptance still shows retained memory there.
       HTTP-level test still fails. Acceptance: no `as unknown as ReadableStream`
       remains in bookplayer, all raw-file routes use the shared primitive, and
       T1 fails on the old implementation/passes on the new one.
-- [ ] **T3 — Abort client-owned data fetches on route cleanup.** Use a
+- [x] **T3 — Abort client-owned data fetches on route cleanup.** Use a
       lower-power coding model with low-to-medium reasoning; independent of T2.
       Give each enabled `usePlayerSync` effect an `AbortController`, pass its
       signal to `fetchArtifact`, abort on cleanup, and do not surface aborts as
@@ -237,7 +245,7 @@ loading is unnecessary unless acceptance still shows retained memory there.
       stale results are promptly released. Extend signal-forwarding tests with
       lifecycle coverage. Boundary: request ownership only; do not redesign
       alignment state or transcript parsing.
-- [ ] **T4 — Make the burn-in diagnostic and repeatable.** Use a lower-power
+- [x] **T4 — Make the burn-in diagnostic and repeatable.** Use a lower-power
       coding model with medium reasoning; may proceed beside T2/T3. Retain hard
       navigation as an HTTP-abort mode and add an in-app navigation mode for
       component cleanup. Add a fixed seed or explicit book list, endpoint
@@ -247,7 +255,7 @@ loading is unnecessary unless acceptance still shows retained memory there.
       traffic. Record server RSS/heap (by owning the server process or a
       diagnostic channel) at each iteration. Boundary: this remains a
       private-corpus burn-in tool, not the general E2E framework.
-- [ ] **T5 — Run acceptance as a memory trend, not a survival check.** Use a
+- [x] **T5 — Run acceptance as a memory trend, not a survival check.** Use a
       lower-power coding model with medium-to-high reasoning after T2–T4. Run a
       fixed corpus/order in both hard- and in-app-navigation modes, include
       forced mid-response aborts, and save iteration-by-iteration memory plus
@@ -255,8 +263,8 @@ loading is unnecessary unless acceptance still shows retained memory there.
       threshold before running; investigate any monotonic retained-memory slope
       rather than accepting a non-crash. Verify production build/runtime as well
       as dev, since adapter stacks may differ.
-- [ ] **T6 — Reconcile names, scope, and records.** Use a lower-power coding
-      model with low reasoning after acceptance. Rename `serveBuffered` and
+- [x] **T6 — Reconcile names, scope, and records.** Use a lower-power coding
+      model with low reasoning after acceptance. Rename the obsolete helper and
       update media comments, keep or revert the unrelated style-policy edits by
       explicit decision, update the backlog entry to the actual resolved cause,
       and run `bun run ci`. Mark this plan done only after T5 passes; the
