@@ -99,7 +99,7 @@ async function main() {
       JSON.stringify({
         type: "selection",
         seed: options.seed,
-        randomized: options.randomizeOrder,
+        randomized: options.books.length === 0 && options.randomizeOrder,
         links,
       }),
     );
@@ -158,7 +158,7 @@ Options:
   --no-seek             Do not seek to the middle before playing
   --num-books N         Maximum books to visit (default: ${DEFAULT_ARGS.numBooks})
   --seed N              Deterministic shuffle seed (default: ${DEFAULT_ARGS.seed})
-  --no-randomize        Keep library or explicit-list order
+  --no-randomize        Keep discovered library order (explicit lists stay exact)
   --books LIST          Comma-separated book IDs, /player paths, or absolute URLs
   --navigation MODE     hard or in-app (default: ${DEFAULT_ARGS.navigation})
   --endpoint ENDPOINT   all, epub, audio, vtt, or alignment (default: ${DEFAULT_ARGS.endpoint})
@@ -352,23 +352,23 @@ async function burnInBook(page: Page, url: string, options: BurnInOptions) {
   if (options.endpoint === "vtt") {
     const bookId = new URL(url).pathname.split("/").at(-1);
     if (bookId) {
-      const result = await page.evaluate(
-        async (assetUrl) => {
-          const response = await fetch(assetUrl);
-          if (!response.ok)
-            throw new Error(`Raw VTT returned ${response.status}`);
-          const reader = response.body?.getReader();
-          let bytes = 0;
-          while (reader) {
-            const chunk = await reader.read();
-            if (chunk.done) break;
-            bytes += chunk.value.byteLength;
-          }
-          return { bytes, status: response.status };
-        },
-        new URL(`/api/vtt/${bookId}`, options.serverUrl).href,
+      const assetUrl = new URL(`/api/vtt/${bookId}`, options.serverUrl).href;
+      const result = await page.evaluate(async (requestUrl) => {
+        const response = await fetch(requestUrl);
+        if (!response.ok)
+          throw new Error(`Raw VTT returned ${response.status}`);
+        const reader = response.body?.getReader();
+        let bytes = 0;
+        while (reader) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          bytes += chunk.value.byteLength;
+        }
+        return { bytes, status: response.status };
+      }, assetUrl);
+      console.log(
+        JSON.stringify({ type: "raw-vtt", url: assetUrl, ...result }),
       );
-      console.log(JSON.stringify({ type: "raw-vtt", url, ...result }));
     }
   }
 
@@ -647,18 +647,23 @@ async function sampleMemory(
     }
     const body = (await response.json()) as Record<string, unknown>;
     const memory = isRecord(body.memory) ? body.memory : body;
-    sample.rssBytes =
-      readMemoryNumber(memory, "rssBytes", "rss") ?? sample.rssBytes;
-    sample.heapUsedBytes = readMemoryNumber(
-      memory,
-      "heapUsedBytes",
-      "heapUsed",
-    );
-    sample.heapTotalBytes = readMemoryNumber(
+    const rssBytes = readMemoryNumber(memory, "rssBytes", "rss");
+    const heapUsedBytes = readMemoryNumber(memory, "heapUsedBytes", "heapUsed");
+    const heapTotalBytes = readMemoryNumber(
       memory,
       "heapTotalBytes",
       "heapTotal",
     );
+    if (
+      rssBytes === undefined &&
+      heapUsedBytes === undefined &&
+      heapTotalBytes === undefined
+    ) {
+      throw new Error("Memory diagnostic JSON has no supported numeric fields");
+    }
+    sample.rssBytes = rssBytes ?? sample.rssBytes;
+    sample.heapUsedBytes = heapUsedBytes;
+    sample.heapTotalBytes = heapTotalBytes;
   }
 
   console.log(JSON.stringify({ type: "memory", ...sample }));
