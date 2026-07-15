@@ -4,61 +4,10 @@ import { parseArgs, promisify } from "node:util";
 import { chromium } from "playwright";
 import type { Browser, Page, Request as PlaywrightRequest } from "playwright";
 
-type NavigationMode = "hard" | "in-app";
-type Endpoint = "epub" | "audio" | "vtt" | "alignment";
-type EndpointSelection = Endpoint | "all";
-
-type BurnInOptions = {
-  serverUrl: string;
-  playTimeMs: number;
-  silentTimeMs: number;
-  seekMiddle: boolean;
-  numBooks: number;
-  randomizeOrder: boolean;
-  seed: number;
-  books: Array<string>;
-  navigation: NavigationMode;
-  endpoint: EndpointSelection;
-  serverPid: number | null;
-  memoryUrl: string | null;
-  headless: boolean;
-  mute: boolean;
-  json: boolean;
-};
-
-type OutputEvent = { type: string } & Record<string, unknown>;
-
-type Reporter = {
-  report: (event: OutputEvent) => void;
-};
-
-type RequestRecord = {
-  iteration: number;
-  endpoint: Endpoint | "other";
-  method: string;
-  url: string;
-  status?: number;
-  headers?: Record<string, string>;
-  responseBodyBytes?: number;
-  failure?: string;
-  finished: boolean;
-};
-
-type MemorySample = {
-  iteration: number;
-  phase: "baseline" | "after-book";
-  timestamp: string;
-  rssBytes?: number;
-  heapUsedBytes?: number;
-  heapTotalBytes?: number;
-};
-
-const execFileAsync = promisify(execFile);
-
 const DEFAULT_ARGS: BurnInOptions = {
   serverUrl: "http://localhost:3000/",
-  playTimeMs: 0,
-  silentTimeMs: 1000,
+  playTimeMs: 10_000,
+  silentTimeMs: 1_000,
   seekMiddle: true,
   numBooks: 100,
   randomizeOrder: true,
@@ -73,155 +22,9 @@ const DEFAULT_ARGS: BurnInOptions = {
   json: false,
 };
 
-function createReporter(json: boolean): Reporter {
-  let unexpectedFailures = 0;
+const execFileAsync = promisify(execFile);
 
-  return {
-    report(event) {
-      if (json) {
-        console.log(JSON.stringify(event));
-        return;
-      }
-
-      switch (event.type) {
-        case "configuration": {
-          const durationMs = numberValue(
-            event.playTimeMs === 0 ? event.silentTimeMs : event.playTimeMs,
-          );
-          const mode = event.playTimeMs === 0 ? "silent" : "playback";
-          console.log(
-            `# bookplayer burn-in\n\n- Server: ${String(event.serverUrl)}\n- Mode: ${mode} (${formatDuration(durationMs)})`,
-          );
-          break;
-        }
-        case "selection": {
-          const count = Array.isArray(event.links) ? event.links.length : 0;
-          const order = event.randomized ? "shuffled" : "fixed order";
-          console.log(
-            `- Selected: ${count} books (${order}; seed: ${event.seed}; navigation: ${event.navigation}; endpoint: ${event.endpoint})`,
-          );
-          break;
-        }
-        case "book":
-          console.log(
-            `\n## Book ${event.iteration} of ${event.total}\n\n- URL: ${event.url}`,
-          );
-          break;
-        case "playback": {
-          const duration = formatDuration(numberValue(event.durationMs));
-          if (event.mode === "play") {
-            const position = event.seekMiddle ? " from the middle" : "";
-            console.log(`- Playing${position} for ${duration}`);
-          } else {
-            const reason = event.audioFound
-              ? ""
-              : " (audio element unavailable)";
-            console.log(`- Silent settle for ${duration}${reason}`);
-          }
-          break;
-        }
-        case "raw-vtt":
-          console.log(`- Raw VTT: ${formatBytes(numberValue(event.bytes))}`);
-          break;
-        case "request-summary":
-          console.log(`- Requests: ${formatRequestSummary(event.endpoints)}`);
-          break;
-        case "memory": {
-          const label =
-            event.phase === "baseline" ? "Baseline memory" : "Memory";
-          console.log(`- ${label}: ${formatMemory(event)}`);
-          break;
-        }
-        case "request-failure": {
-          const failure = String(event.failure ?? "unknown request failure");
-          if (isExpectedAbort(failure)) break;
-          unexpectedFailures++;
-          console.log(
-            `- Request failed: ${event.endpoint} ${event.url} — ${failure}`,
-          );
-          break;
-        }
-        case "browser-console-error": {
-          const text = String(event.text ?? "unknown browser console error");
-          if (isExpectedAbort(text)) break;
-          unexpectedFailures++;
-          console.log(`- Browser error: ${text}`);
-          break;
-        }
-        case "browser-page-error":
-        case "telemetry-error":
-          unexpectedFailures++;
-          console.log(`- ${event.type}: ${event.text}`);
-          break;
-        case "complete": {
-          const books = numberValue(event.books);
-          console.log("\n## Done\n");
-          console.log(
-            unexpectedFailures === 0
-              ? `- Success: completed ${books} books.`
-              : `- Completed ${books} books with ${unexpectedFailures} unexpected errors reported above.`,
-          );
-          break;
-        }
-        case "request":
-          // Full per-request records are intentionally reserved for JSONL output.
-          break;
-      }
-    },
-  };
-}
-
-function numberValue(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function formatDuration(durationMs: number) {
-  return durationMs >= 1000
-    ? `${(durationMs / 1000).toFixed(durationMs % 1000 === 0 ? 0 : 1)}s`
-    : `${durationMs}ms`;
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KiB`;
-  return `${(bytes / 1024 ** 2).toFixed(1)} MiB`;
-}
-
-function formatRequestSummary(value: unknown) {
-  if (!isRecord(value)) return "none observed";
-  const summaries: Array<string> = [];
-  for (const endpoint of ["epub", "audio", "vtt", "alignment"]) {
-    const counts = value[endpoint];
-    if (!isRecord(counts)) continue;
-    const started = numberValue(counts.started);
-    const finished = numberValue(counts.finished);
-    const failed = numberValue(counts.failed);
-    const failureText = failed > 0 ? `, ${failed} failed` : "";
-    summaries.push(
-      `${endpoint} ${finished}/${started}${failureText}, ${formatBytes(numberValue(counts.bytes))}`,
-    );
-  }
-  return summaries.length > 0 ? summaries.join("; ") : "none observed";
-}
-
-function formatMemory(event: OutputEvent) {
-  const fields: Array<string> = [];
-  if (typeof event.rssBytes === "number") {
-    fields.push(`RSS ${formatBytes(event.rssBytes)}`);
-  }
-  if (typeof event.heapUsedBytes === "number") {
-    fields.push(`heap used ${formatBytes(event.heapUsedBytes)}`);
-  }
-  if (typeof event.heapTotalBytes === "number") {
-    fields.push(`heap total ${formatBytes(event.heapTotalBytes)}`);
-  }
-  return fields.join("; ") || "unavailable";
-}
-
-function isExpectedAbort(text: string) {
-  return /ERR_(ABORTED|BLOCKED_BY_CLIENT)|NS_BINDING_ABORTED/i.test(text);
-}
-
+// ENTRY POINT
 if (import.meta.main) {
   await main();
 }
@@ -286,156 +89,6 @@ async function main() {
   } finally {
     await browser?.close();
   }
-}
-
-function parseArguments(): BurnInOptions {
-  const { values } = parseArgs({
-    args: process.argv.slice(2),
-    options: {
-      url: { type: "string" },
-      "play-time": { type: "string" },
-      "silent-time": { type: "string" },
-      "no-seek": { type: "boolean" },
-      "num-books": { type: "string" },
-      "no-randomize": { type: "boolean" },
-      seed: { type: "string" },
-      books: { type: "string" },
-      navigation: { type: "string" },
-      endpoint: { type: "string" },
-      "server-pid": { type: "string" },
-      "memory-url": { type: "string" },
-      headless: { type: "boolean" },
-      "no-mute": { type: "boolean" },
-      json: { type: "boolean" },
-      help: { type: "boolean", short: "h" },
-    },
-  });
-
-  if (values.help) {
-    console.log(`
-bookplayer burn-in
-
-Options:
-  --url URL             Server URL (default: ${DEFAULT_ARGS.serverUrl})
-  --play-time MS        Time to play each book; 0 uses silent mode (default: ${DEFAULT_ARGS.playTimeMs})
-  --silent-time MS      Settle time in silent mode (default: ${DEFAULT_ARGS.silentTimeMs})
-  --no-seek             Do not seek to the middle before playing
-  --num-books N         Maximum books to visit (default: ${DEFAULT_ARGS.numBooks})
-  --seed N              Deterministic shuffle seed (default: ${DEFAULT_ARGS.seed})
-  --no-randomize        Keep discovered library order (explicit lists stay exact)
-  --books LIST          Comma-separated book IDs, /player paths, or absolute URLs
-  --navigation MODE     hard or in-app (default: ${DEFAULT_ARGS.navigation})
-  --endpoint ENDPOINT   all, epub, audio, vtt, or alignment (default: ${DEFAULT_ARGS.endpoint})
-                        A selection aborts the other three raw-asset endpoint groups.
-                        vtt covers raw VTT; parsed transcript server-function traffic
-                        remains visible as "other" because its URL is framework-opaque.
-  --server-pid PID      Sample server RSS with ps after each iteration
-  --memory-url URL      GET a diagnostic JSON object after each iteration. Supported
-                        fields: rss/rssBytes, heapUsed/heapUsedBytes,
-                        heapTotal/heapTotalBytes, optionally nested under memory.
-  --headless            Run Chromium headless
-  --no-mute             Do not mute audio during playback
-  --json                Emit JSONL only (default output is human-readable)
-  --help, -h            Show this help
-
-In --json mode, request byte counts come from Playwright's responseBodySize and
-do not require buffering response bodies in this process.
-`);
-    process.exit(0);
-  }
-
-  const serverUrl = normalizeHttpUrl(
-    values.url ?? DEFAULT_ARGS.serverUrl,
-    "url",
-  );
-  const navigation = parseChoice(
-    values.navigation ?? DEFAULT_ARGS.navigation,
-    ["hard", "in-app"] as const,
-    "navigation",
-  );
-  const endpoint = parseChoice(
-    values.endpoint ?? DEFAULT_ARGS.endpoint,
-    ["all", "epub", "audio", "vtt", "alignment"] as const,
-    "endpoint",
-  );
-
-  return {
-    serverUrl,
-    playTimeMs: parseInteger(
-      values["play-time"],
-      DEFAULT_ARGS.playTimeMs,
-      "play-time",
-      0,
-    ),
-    silentTimeMs: parseInteger(
-      values["silent-time"],
-      DEFAULT_ARGS.silentTimeMs,
-      "silent-time",
-      0,
-    ),
-    seekMiddle: !values["no-seek"],
-    numBooks: parseInteger(
-      values["num-books"],
-      DEFAULT_ARGS.numBooks,
-      "num-books",
-      1,
-    ),
-    randomizeOrder: !values["no-randomize"],
-    seed: parseInteger(values.seed, DEFAULT_ARGS.seed, "seed", 0),
-    books: values.books
-      ? values.books
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean)
-      : [],
-    navigation,
-    endpoint,
-    serverPid: values["server-pid"]
-      ? parseInteger(values["server-pid"], 0, "server-pid", 1)
-      : null,
-    memoryUrl: values["memory-url"]
-      ? normalizeHttpUrl(values["memory-url"], "memory-url")
-      : null,
-    headless: values.headless ?? DEFAULT_ARGS.headless,
-    mute: !values["no-mute"],
-    json: values.json ?? DEFAULT_ARGS.json,
-  };
-}
-
-function parseInteger(
-  value: string | undefined,
-  fallback: number,
-  name: string,
-  minimum: number,
-) {
-  if (value === undefined) return fallback;
-  if (!/^\d+$/.test(value)) {
-    throw new Error(`--${name} must be an integer`);
-  }
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < minimum) {
-    throw new Error(`--${name} must be at least ${minimum}`);
-  }
-  return parsed;
-}
-
-function parseChoice<const T extends readonly string[]>(
-  value: string,
-  choices: T,
-  name: string,
-): T[number] {
-  if (!choices.includes(value)) {
-    throw new Error(`--${name} must be one of: ${choices.join(", ")}`);
-  }
-  return value;
-}
-
-function normalizeHttpUrl(value: string, name: string) {
-  const url = new URL(value);
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error(`--${name} must use http or https`);
-  }
-  return url.href;
 }
 
 async function ensureServerRunning(url: string) {
@@ -626,6 +279,221 @@ async function waitForLibrary(page: Page) {
   await page.waitForSelector('a[href^="/player/"]', { timeout: 10_000 });
 }
 
+async function sampleMemory(
+  options: BurnInOptions,
+  iteration: number,
+  phase: MemorySample["phase"],
+  reporter: Reporter,
+) {
+  if (options.serverPid === null && options.memoryUrl === null) return;
+
+  const sample: MemorySample = {
+    iteration,
+    phase,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (options.serverPid !== null) {
+    const { stdout } = await execFileAsync("ps", [
+      "-o",
+      "rss=",
+      "-p",
+      String(options.serverPid),
+    ]);
+    const rssKiB = Number(stdout.trim());
+    if (!Number.isFinite(rssKiB)) {
+      throw new Error(`Could not read RSS for server PID ${options.serverPid}`);
+    }
+    sample.rssBytes = rssKiB * 1024;
+  }
+
+  if (options.memoryUrl !== null) {
+    const response = await fetch(options.memoryUrl);
+    if (!response.ok) {
+      throw new Error(`Memory diagnostic returned HTTP ${response.status}`);
+    }
+    const body = (await response.json()) as Record<string, unknown>;
+    const memory = isRecord(body.memory) ? body.memory : body;
+    const rssBytes = readMemoryNumber(memory, "rssBytes", "rss");
+    const heapUsedBytes = readMemoryNumber(memory, "heapUsedBytes", "heapUsed");
+    const heapTotalBytes = readMemoryNumber(
+      memory,
+      "heapTotalBytes",
+      "heapTotal",
+    );
+    if (
+      rssBytes === undefined &&
+      heapUsedBytes === undefined &&
+      heapTotalBytes === undefined
+    ) {
+      throw new Error("Memory diagnostic JSON has no supported numeric fields");
+    }
+    sample.rssBytes = rssBytes ?? sample.rssBytes;
+    sample.heapUsedBytes = heapUsedBytes;
+    sample.heapTotalBytes = heapTotalBytes;
+  }
+
+  reporter.report({ type: "memory", ...sample });
+}
+
+function readMemoryNumber(
+  memory: Record<string, unknown>,
+  preferred: string,
+  fallback: string,
+) {
+  const value = memory[preferred] ?? memory[fallback];
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+// REPORTING
+function createReporter(json: boolean): Reporter {
+  let unexpectedFailures = 0;
+
+  return {
+    report(event) {
+      if (json) {
+        console.log(JSON.stringify(event));
+        return;
+      }
+
+      switch (event.type) {
+        case "configuration": {
+          const durationMs = numberValue(
+            event.playTimeMs === 0 ? event.silentTimeMs : event.playTimeMs,
+          );
+          const mode = event.playTimeMs === 0 ? "silent" : "playback";
+          console.log(
+            `# bookplayer burn-in\n\n- Server: ${String(event.serverUrl)}\n- Mode: ${mode} (${formatDuration(durationMs)})`,
+          );
+          break;
+        }
+        case "selection": {
+          const count = Array.isArray(event.links) ? event.links.length : 0;
+          const order = event.randomized ? "shuffled" : "fixed order";
+          console.log(
+            `- Selected: ${count} books (${order}; seed: ${event.seed}; navigation: ${event.navigation}; endpoint: ${event.endpoint})`,
+          );
+          break;
+        }
+        case "book":
+          console.log(
+            `\n## Book ${event.iteration} of ${event.total}\n\n- URL: ${event.url}`,
+          );
+          break;
+        case "playback": {
+          const duration = formatDuration(numberValue(event.durationMs));
+          if (event.mode === "play") {
+            const position = event.seekMiddle ? " from the middle" : "";
+            console.log(`- Playing${position} for ${duration}`);
+          } else {
+            const reason = event.audioFound
+              ? ""
+              : " (audio element unavailable)";
+            console.log(`- Silent settle for ${duration}${reason}`);
+          }
+          break;
+        }
+        case "raw-vtt":
+          console.log(`- Raw VTT: ${formatBytes(numberValue(event.bytes))}`);
+          break;
+        case "request-summary":
+          console.log(`- Requests: ${formatRequestSummary(event.endpoints)}`);
+          break;
+        case "memory": {
+          const label =
+            event.phase === "baseline" ? "Baseline memory" : "Memory";
+          console.log(`- ${label}: ${formatMemory(event)}`);
+          break;
+        }
+        case "request-failure": {
+          const failure = String(event.failure ?? "unknown request failure");
+          if (isExpectedAbort(failure)) break;
+          unexpectedFailures++;
+          console.log(
+            `- Request failed: ${event.endpoint} ${event.url} — ${failure}`,
+          );
+          break;
+        }
+        case "browser-console-error": {
+          const text = String(event.text ?? "unknown browser console error");
+          if (isExpectedAbort(text)) break;
+          unexpectedFailures++;
+          console.log(`- Browser error: ${text}`);
+          break;
+        }
+        case "browser-page-error":
+        case "telemetry-error":
+          unexpectedFailures++;
+          console.log(`- ${event.type}: ${event.text}`);
+          break;
+        case "complete": {
+          const books = numberValue(event.books);
+          console.log("\n## Done\n");
+          console.log(
+            unexpectedFailures === 0
+              ? `- Success: completed ${books} books.`
+              : `- Completed ${books} books with ${unexpectedFailures} unexpected errors reported above.`,
+          );
+          break;
+        }
+        case "request":
+          // Full per-request records are intentionally reserved for JSONL output.
+          break;
+      }
+    },
+  };
+}
+
+function formatRequestSummary(value: unknown) {
+  if (!isRecord(value)) return "none observed";
+  const summaries: Array<string> = [];
+  for (const endpoint of ["epub", "audio", "vtt", "alignment"]) {
+    const counts = value[endpoint];
+    if (!isRecord(counts)) continue;
+    const started = numberValue(counts.started);
+    const finished = numberValue(counts.finished);
+    const failed = numberValue(counts.failed);
+    const failureText = failed > 0 ? `, ${failed} failed` : "";
+    summaries.push(
+      `${endpoint} ${finished}/${started}${failureText}, ${formatBytes(numberValue(counts.bytes))}`,
+    );
+  }
+  return summaries.length > 0 ? summaries.join("; ") : "none observed";
+}
+
+function formatMemory(event: OutputEvent) {
+  const fields: Array<string> = [];
+  if (typeof event.rssBytes === "number") {
+    fields.push(`RSS ${formatBytes(event.rssBytes)}`);
+  }
+  if (typeof event.heapUsedBytes === "number") {
+    fields.push(`heap used ${formatBytes(event.heapUsedBytes)}`);
+  }
+  if (typeof event.heapTotalBytes === "number") {
+    fields.push(`heap total ${formatBytes(event.heapTotalBytes)}`);
+  }
+  return fields.join("; ") || "unavailable";
+}
+
+function formatDuration(durationMs: number) {
+  return durationMs >= 1000
+    ? `${(durationMs / 1000).toFixed(durationMs % 1000 === 0 ? 0 : 1)}s`
+    : `${durationMs}ms`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / 1024 ** 2).toFixed(1)} MiB`;
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+// TELEMETRY
 async function attachTelemetry(
   page: Page,
   selection: EndpointSelection,
@@ -782,93 +650,239 @@ function selectHeaders(headers: Record<string, string>) {
 }
 
 function summarizeRequests(records: Array<RequestRecord>) {
-  const summary: Record<
-    string,
-    { started: number; finished: number; failed: number; bytes: number }
-  > = {};
+  const summary: Record<string, RequestCounts> = {};
   for (const record of records) {
     const endpoint = (summary[record.endpoint] ??= {
       started: 0,
       finished: 0,
       failed: 0,
+      expectedAborts: 0,
       bytes: 0,
     });
     endpoint.started++;
     if (record.finished) endpoint.finished++;
-    if (record.failure) endpoint.failed++;
+    if (record.failure) {
+      if (isExpectedAbort(record.failure)) endpoint.expectedAborts++;
+      else endpoint.failed++;
+    }
     endpoint.bytes += record.responseBodyBytes ?? 0;
   }
   return summary;
 }
 
-async function sampleMemory(
-  options: BurnInOptions,
-  iteration: number,
-  phase: MemorySample["phase"],
-  reporter: Reporter,
-) {
-  if (options.serverPid === null && options.memoryUrl === null) return;
+function isExpectedAbort(text: string) {
+  return /ERR_(ABORTED|BLOCKED_BY_CLIENT)|NS_BINDING_ABORTED/i.test(text);
+}
 
-  const sample: MemorySample = {
-    iteration,
-    phase,
-    timestamp: new Date().toISOString(),
+// ARGUMENTS
+function parseArguments(): BurnInOptions {
+  const { values } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+      url: { type: "string" },
+      "play-time": { type: "string" },
+      "silent-time": { type: "string" },
+      "no-seek": { type: "boolean" },
+      "num-books": { type: "string" },
+      "no-randomize": { type: "boolean" },
+      seed: { type: "string" },
+      books: { type: "string" },
+      navigation: { type: "string" },
+      endpoint: { type: "string" },
+      "server-pid": { type: "string" },
+      "memory-url": { type: "string" },
+      headless: { type: "boolean" },
+      "no-mute": { type: "boolean" },
+      json: { type: "boolean" },
+      help: { type: "boolean", short: "h" },
+    },
+  });
+
+  if (values.help) {
+    console.log(`
+bookplayer burn-in
+
+Options:
+  --url URL             Server URL (default: ${DEFAULT_ARGS.serverUrl})
+  --play-time MS        Time to play each book; 0 uses silent mode (default: ${DEFAULT_ARGS.playTimeMs})
+  --silent-time MS      Settle time in silent mode (default: ${DEFAULT_ARGS.silentTimeMs})
+  --no-seek             Do not seek to the middle before playing
+  --num-books N         Maximum books to visit (default: ${DEFAULT_ARGS.numBooks})
+  --seed N              Deterministic shuffle seed (default: ${DEFAULT_ARGS.seed})
+  --no-randomize        Keep discovered library order (explicit lists stay exact)
+  --books LIST          Comma-separated book IDs, /player paths, or absolute URLs
+  --navigation MODE     hard or in-app (default: ${DEFAULT_ARGS.navigation})
+  --endpoint ENDPOINT   all, epub, audio, vtt, or alignment (default: ${DEFAULT_ARGS.endpoint})
+                        A selection aborts the other three raw-asset endpoint groups.
+                        vtt covers raw VTT; parsed transcript server-function traffic
+                        remains visible as "other" because its URL is framework-opaque.
+  --server-pid PID      Sample server RSS with ps after each iteration
+  --memory-url URL      GET a diagnostic JSON object after each iteration. Supported
+                        fields: rss/rssBytes, heapUsed/heapUsedBytes,
+                        heapTotal/heapTotalBytes, optionally nested under memory.
+  --headless            Run Chromium headless
+  --no-mute             Do not mute audio during playback
+  --json                Emit JSONL only (default output is human-readable)
+  --help, -h            Show this help
+
+In --json mode, request byte counts come from Playwright's responseBodySize and
+do not require buffering response bodies in this process.
+`);
+    process.exit(0);
+  }
+
+  const serverUrl = normalizeHttpUrl(
+    values.url ?? DEFAULT_ARGS.serverUrl,
+    "url",
+  );
+  const navigation = parseChoice(
+    values.navigation ?? DEFAULT_ARGS.navigation,
+    ["hard", "in-app"] as const,
+    "navigation",
+  );
+  const endpoint = parseChoice(
+    values.endpoint ?? DEFAULT_ARGS.endpoint,
+    ["all", "epub", "audio", "vtt", "alignment"] as const,
+    "endpoint",
+  );
+
+  return {
+    serverUrl,
+    playTimeMs: parseInteger(
+      values["play-time"],
+      DEFAULT_ARGS.playTimeMs,
+      "play-time",
+      0,
+    ),
+    silentTimeMs: parseInteger(
+      values["silent-time"],
+      DEFAULT_ARGS.silentTimeMs,
+      "silent-time",
+      0,
+    ),
+    seekMiddle: !values["no-seek"],
+    numBooks: parseInteger(
+      values["num-books"],
+      DEFAULT_ARGS.numBooks,
+      "num-books",
+      1,
+    ),
+    randomizeOrder: !values["no-randomize"],
+    seed: parseInteger(values.seed, DEFAULT_ARGS.seed, "seed", 0),
+    books: values.books
+      ? values.books
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : [],
+    navigation,
+    endpoint,
+    serverPid: values["server-pid"]
+      ? parseInteger(values["server-pid"], 0, "server-pid", 1)
+      : null,
+    memoryUrl: values["memory-url"]
+      ? normalizeHttpUrl(values["memory-url"], "memory-url")
+      : null,
+    headless: values.headless ?? DEFAULT_ARGS.headless,
+    mute: !values["no-mute"],
+    json: values.json ?? DEFAULT_ARGS.json,
   };
+}
 
-  if (options.serverPid !== null) {
-    const { stdout } = await execFileAsync("ps", [
-      "-o",
-      "rss=",
-      "-p",
-      String(options.serverPid),
-    ]);
-    const rssKiB = Number(stdout.trim());
-    if (!Number.isFinite(rssKiB)) {
-      throw new Error(`Could not read RSS for server PID ${options.serverPid}`);
-    }
-    sample.rssBytes = rssKiB * 1024;
+function parseInteger(
+  value: string | undefined,
+  fallback: number,
+  name: string,
+  minimum: number,
+) {
+  if (value === undefined) return fallback;
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`--${name} must be an integer`);
   }
-
-  if (options.memoryUrl !== null) {
-    const response = await fetch(options.memoryUrl);
-    if (!response.ok) {
-      throw new Error(`Memory diagnostic returned HTTP ${response.status}`);
-    }
-    const body = (await response.json()) as Record<string, unknown>;
-    const memory = isRecord(body.memory) ? body.memory : body;
-    const rssBytes = readMemoryNumber(memory, "rssBytes", "rss");
-    const heapUsedBytes = readMemoryNumber(memory, "heapUsedBytes", "heapUsed");
-    const heapTotalBytes = readMemoryNumber(
-      memory,
-      "heapTotalBytes",
-      "heapTotal",
-    );
-    if (
-      rssBytes === undefined &&
-      heapUsedBytes === undefined &&
-      heapTotalBytes === undefined
-    ) {
-      throw new Error("Memory diagnostic JSON has no supported numeric fields");
-    }
-    sample.rssBytes = rssBytes ?? sample.rssBytes;
-    sample.heapUsedBytes = heapUsedBytes;
-    sample.heapTotalBytes = heapTotalBytes;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum) {
+    throw new Error(`--${name} must be at least ${minimum}`);
   }
+  return parsed;
+}
 
-  reporter.report({ type: "memory", ...sample });
+function parseChoice<const T extends readonly string[]>(
+  value: string,
+  choices: T,
+  name: string,
+): T[number] {
+  if (!choices.includes(value)) {
+    throw new Error(`--${name} must be one of: ${choices.join(", ")}`);
+  }
+  return value;
+}
+
+function normalizeHttpUrl(value: string, name: string) {
+  const url = new URL(value);
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`--${name} must use http or https`);
+  }
+  return url.href;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function readMemoryNumber(
-  memory: Record<string, unknown>,
-  preferred: string,
-  fallback: string,
-) {
-  const value = memory[preferred] ?? memory[fallback];
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : undefined;
-}
+// TYPES
+type NavigationMode = "hard" | "in-app";
+type Endpoint = "epub" | "audio" | "vtt" | "alignment";
+type EndpointSelection = Endpoint | "all";
+
+type BurnInOptions = {
+  serverUrl: string;
+  playTimeMs: number;
+  silentTimeMs: number;
+  seekMiddle: boolean;
+  numBooks: number;
+  randomizeOrder: boolean;
+  seed: number;
+  books: Array<string>;
+  navigation: NavigationMode;
+  endpoint: EndpointSelection;
+  serverPid: number | null;
+  memoryUrl: string | null;
+  headless: boolean;
+  mute: boolean;
+  json: boolean;
+};
+
+type Reporter = {
+  report: (event: OutputEvent) => void;
+};
+
+type OutputEvent = { type: string } & Record<string, unknown>;
+
+type RequestRecord = {
+  iteration: number;
+  endpoint: Endpoint | "other";
+  method: string;
+  url: string;
+  status?: number;
+  headers?: Record<string, string>;
+  responseBodyBytes?: number;
+  failure?: string;
+  finished: boolean;
+};
+
+type RequestCounts = {
+  started: number;
+  finished: number;
+  failed: number;
+  expectedAborts: number;
+  bytes: number;
+};
+
+type MemorySample = {
+  iteration: number;
+  phase: "baseline" | "after-book";
+  timestamp: string;
+  rssBytes?: number;
+  heapUsedBytes?: number;
+  heapTotalBytes?: number;
+};
