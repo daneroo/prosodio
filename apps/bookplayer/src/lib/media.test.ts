@@ -4,6 +4,7 @@ import {
   mkdirSync,
   rmSync,
   symlinkSync,
+  truncateSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -129,8 +130,15 @@ describe("serveStreamedWithRange", () => {
   function makeAudio(bytes: number): string {
     const root = makeDir("media-audio-");
     const path = join(root, "book.m4b");
-    writeFileSync(path, Buffer.alloc(bytes, 7));
+    writeFileSync(
+      path,
+      Uint8Array.from({ length: bytes }, (_, index) => index % 251),
+    );
     return path;
+  }
+
+  async function responseBytes(response: Response): Promise<Array<number>> {
+    return Array.from(new Uint8Array(await response.arrayBuffer()));
   }
 
   test("full response has exact Content-Length and Accept-Ranges", async () => {
@@ -140,28 +148,53 @@ describe("serveStreamedWithRange", () => {
     expect(res.headers.get("Content-Length")).toBe("4096");
     expect(res.headers.get("Accept-Ranges")).toBe("bytes");
     expect(res.headers.get("Server-Timing")).toContain("file;dur=");
-    expect((await res.arrayBuffer()).byteLength).toBe(4096);
+    expect(await responseBytes(res)).toEqual(
+      Array.from({ length: 4096 }, (_, index) => index % 251),
+    );
   });
 
-  test("bounded range returns 206 with matching Content-Range and body", async () => {
-    const path = makeAudio(4096);
-    const res = serveStreamedWithRange(path, rangeRequest("bytes=0-1023"));
+  test.each([
+    {
+      name: "bounded",
+      range: "bytes=5-12",
+      contentRange: "bytes 5-12/64",
+      expected: Array.from({ length: 8 }, (_, index) => index + 5),
+    },
+    {
+      name: "open-ended",
+      range: "bytes=56-",
+      contentRange: "bytes 56-63/64",
+      expected: Array.from({ length: 8 }, (_, index) => index + 56),
+    },
+    {
+      name: "suffix",
+      range: "bytes=-8",
+      contentRange: "bytes 56-63/64",
+      expected: Array.from({ length: 8 }, (_, index) => index + 56),
+    },
+    {
+      name: "overlong end clamped to EOF",
+      range: "bytes=60-999",
+      contentRange: "bytes 60-63/64",
+      expected: [60, 61, 62, 63],
+    },
+  ])("$name range pins headers and exact body bytes", async (fixture) => {
+    const path = makeAudio(64);
+    const res = serveStreamedWithRange(path, rangeRequest(fixture.range));
     expect(res.status).toBe(206);
-    expect(res.headers.get("Content-Range")).toBe("bytes 0-1023/4096");
-    expect(res.headers.get("Content-Length")).toBe("1024");
-    expect((await res.arrayBuffer()).byteLength).toBe(1024);
+    expect(res.headers.get("Content-Range")).toBe(fixture.contentRange);
+    expect(res.headers.get("Content-Length")).toBe(
+      String(fixture.expected.length),
+    );
+    expect(res.headers.get("Accept-Ranges")).toBe("bytes");
+    expect(await responseBytes(res)).toEqual([...fixture.expected]);
   });
 
-  test("suffix range returns the tail", async () => {
-    const path = makeAudio(4096);
-    const res = serveStreamedWithRange(path, rangeRequest("bytes=-100"));
-    expect(res.status).toBe(206);
-    expect(res.headers.get("Content-Range")).toBe("bytes 3996-4095/4096");
-    expect((await res.arrayBuffer()).byteLength).toBe(100);
-  });
-
-  test("caps a broad range while preserving 206 response semantics", async () => {
-    const path = makeAudio(AUDIO_RANGE_RESPONSE_MAX_BYTES + 4096);
+  test("caps a broad range without allocating a matching fixture", async () => {
+    const root = makeDir("media-audio-sparse-");
+    const path = join(root, "book.m4b");
+    writeFileSync(path, "fixture");
+    truncateSync(path, AUDIO_RANGE_RESPONSE_MAX_BYTES + 4096);
     const res = serveStreamedWithRange(path, rangeRequest("bytes=0-"));
     expect(res.status).toBe(206);
     expect(res.headers.get("Content-Range")).toBe(
@@ -170,16 +203,33 @@ describe("serveStreamedWithRange", () => {
     expect(res.headers.get("Content-Length")).toBe(
       String(AUDIO_RANGE_RESPONSE_MAX_BYTES),
     );
-    expect((await res.arrayBuffer()).byteLength).toBe(
-      AUDIO_RANGE_RESPONSE_MAX_BYTES,
-    );
+    await res.body?.cancel();
   });
 
-  test("unsatisfiable range returns 416 with Content-Range */size", () => {
+  test.each(["bytes=abc", "bytes=99999-"])(
+    "malformed or unsatisfiable range %s returns a structured 416",
+    async (range) => {
+      const path = makeAudio(64);
+      const res = serveStreamedWithRange(path, rangeRequest(range));
+      expect(res.status).toBe(416);
+      expect(res.headers.get("Content-Range")).toBe("bytes */64");
+      expect(res.headers.get("Cache-Control")).toBe("no-store");
+      expect(await res.json()).toEqual({
+        error: {
+          code: "RANGE_NOT_SATISFIABLE",
+          message: "Range not satisfiable.",
+        },
+      });
+    },
+  );
+
+  test("a non-bytes range is ignored as a full response", async () => {
     const path = makeAudio(4096);
-    const res = serveStreamedWithRange(path, rangeRequest("bytes=99999-"));
-    expect(res.status).toBe(416);
-    expect(res.headers.get("Content-Range")).toBe("bytes */4096");
+    const res = serveStreamedWithRange(path, rangeRequest("items=0-7"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Range")).toBeNull();
+    expect(res.headers.get("Content-Length")).toBe("4096");
+    expect((await res.arrayBuffer()).byteLength).toBe(4096);
   });
 
   test("missing file returns structured 404", async () => {

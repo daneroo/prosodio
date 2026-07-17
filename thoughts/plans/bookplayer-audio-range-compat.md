@@ -1,6 +1,6 @@
 # bookplayer-audio-range-compat — exact ranges without dev OOM
 
-Status: planned
+Status: active
 
 Goal: honor every satisfiable browser-requested audio byte range exactly while
 keeping raw-file delivery bounded, cancellation-safe, and RSS-stable in the real
@@ -109,17 +109,23 @@ Define the verdict before comparing implementations:
 
 ### P0 — preserve and measure the workaround baseline
 
-- [ ] Confirm Daniel has finished the current iPad experiment and approved
+Execution started on `codex/bookplayer-audio-range-compat` from plan commit
+`d67fd9d`. Daniel reset the temporary 4000 MiB workaround before the branch, so
+the branch begins from the committed 1 MiB implementation; the established
+manual A/B remains the compatibility baseline.
+
+- [x] Confirm Daniel has finished the current iPad experiment and approved
       branch execution. Record the starting commit and whether the 4000 MiB
       workaround is committed or an intentional worktree change; preserve it
       exactly while creating the branch.
-- [ ] Record the manual A/B already established: 1 MiB failed for the selected
+- [x] Record the manual A/B already established: 1 MiB failed for the selected
       large book; 4000 MiB played on Brave/iPad. Do not spend time repeating the
       failing 1 MiB case unless a later result contradicts it.
-- [ ] On the 4000 MiB baseline, run the dev hard-navigation audio playback
-      burn-in twice on the same process using the commands below. This reveals
-      whether effectively exact ranges already reintroduce the old dev RSS trend
-      and supplies before/after evidence for the transport task.
+- [ ] On T2's first exact-range implementation, before adding a transport
+      fallback, run the dev hard-navigation audio playback burn-in twice on the
+      same process using the commands below. For the present corpus this is
+      protocol-equivalent to the reset 4000 MiB workaround and supplies the
+      required current before/after evidence without restoring temporary code.
 - [ ] Inspect request failures and all memory fields, not only the final RSS.
       Record the baseline verdict in this plan before T2 selects a transport.
 
@@ -128,38 +134,48 @@ Define the verdict before comparing implementations:
 Boundary: tests and diagnostics only; do not remove or reduce the 4000 MiB
 workaround in this task.
 
-- [ ] Extend media response unit coverage so bounded, open-ended, suffix,
+- [x] Extend media response unit coverage so bounded, open-ended, suffix,
       overlong-end, absent, malformed, and unsatisfiable ranges pin exact
       status, headers, and body bytes without allocating a corpus-sized buffer.
-- [ ] Replace cap-coupled test fixtures with small or sparse deterministic files
+- [x] Replace cap-coupled test fixtures with small or sparse deterministic files
       where appropriate. The eventual tests must describe the protocol contract,
       not a particular maximum constant.
-- [ ] Preserve regressions for demand-driven 64 KiB pulls, BYOB behavior,
+- [x] Preserve regressions for demand-driven 64 KiB pulls, BYOB behavior,
       pre-abort, mid-body abort, asynchronous open failure, handle close, and a
       real socket disconnect stopping before EOF. Adapt them to the chosen body
       mechanism later rather than deleting cancellation coverage.
-- [ ] Make burn-in JSONL capture the request `Range` header alongside response
+- [x] Make burn-in JSONL capture the request `Range` header alongside response
       `Content-Range`/`Content-Length`, and capture the media element's error
       code/message, `networkState`, `readyState`, duration, and seek result.
-- [ ] Add a focused analyzer/assertion command for a pair of fixed-order JSONL
+- [x] Add a focused analyzer/assertion command for a pair of fixed-order JSONL
       runs. It must report request failures, exact-range mismatches,
       baseline/end RSS, warmed RSS delta, final-five trend,
       heap/external/array-buffer trends, and pass/fail against the declared 16
       MiB threshold. Keep it usable on evidence produced by both dev and
       production (production may lack the dev-only heap endpoint).
-- [ ] Unit-test range comparison and memory-verdict calculations with synthetic
+- [x] Unit-test range comparison and memory-verdict calculations with synthetic
       JSONL/events, including missing telemetry, expected aborts, a plateau, a
       monotonic leak, and a range mismatch.
 
 Acceptance: diagnostics introduce no serving behavior change; focused tests and
-`bun run ci` pass; the analyzer produces a deterministic verdict for the prior
-OOM evidence and the new 4000 MiB baseline.
+`bun run ci` pass; the analyzer deterministically covers the prior OOM failure
+shape and is ready to judge T2's exact-range baseline.
 
 ### T2 — exact ranges plus cancellation-safe delivery `[coding, tier: med-high]`
 
 Depends on P0 and T1. This is the behavior change. The subagent gets the
 archived OOM diagnosis, P0 evidence, protocol decisions above, and the focused
 tests; it must not infer a player rewrite.
+
+T2 transport research found that the outer Vite `NodeRequest.signal` follows the
+real client connection, but Nitro's development env-runner proxies the request
+through `httpxy`, whose `toInit(Request)` does not forward that signal. The
+handler therefore sees only the internal proxy connection. Historical
+native-file, signal, and BYOB experiments still grew by roughly 0.8–1.7 GiB, so
+retrying those shapes is not justified. If the first exact-range baseline fails,
+the leading smallest fix is to register the existing audio handler as a Nitro
+`devHandler`, bypassing env-runner for this route in development while retaining
+the normal Nitro handler for production.
 
 - [ ] Remove the arbitrary audio response maximum and its cap-specific comment,
       export, and tests. A satisfiable range response uses the parsed requested
@@ -305,12 +321,14 @@ The executing branch must make these concrete and keep them documented:
 ```sh
 bun run ci
 RUN_E2E_TESTS=1 bun test apps/bookplayer --test-name-pattern audio
+cd apps/bookplayer
+bun run analyze-burn-in -- <first.jsonl> <repeat.jsonl>
 ```
 
 If the focused real-server test receives its own file or script, replace the
-second provisional command above with its exact stable command here. Likewise,
-record the T1 analyzer command here once named; it must accept the first and
-repeat JSONL paths and exit nonzero on an acceptance failure.
+second provisional command above with its exact stable command here. The T1
+analyzer accepts the first and repeat JSONL paths and exits nonzero on an
+acceptance failure.
 
 ## Completion checklist
 

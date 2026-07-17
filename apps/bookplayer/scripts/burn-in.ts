@@ -174,6 +174,9 @@ async function burnInBook(
   const audio = await page
     .waitForSelector("audio", { state: "attached", timeout: 5000 })
     .catch(() => null);
+  await audio?.evaluate((node) => {
+    delete node.dataset.burnInSeekTarget;
+  });
 
   if (options.endpoint === "vtt") {
     const bookId = new URL(url).pathname.split("/").at(-1);
@@ -211,7 +214,9 @@ async function burnInBook(
         if (evaluateOptions.seekMiddle) {
           const seek = () => {
             if (Number.isFinite(node.duration) && node.duration > 0) {
-              node.currentTime = node.duration / 2;
+              const targetSeconds = node.duration / 2;
+              node.currentTime = targetSeconds;
+              node.dataset.burnInSeekTarget = String(targetSeconds);
             }
           };
           if (Number.isFinite(node.duration)) seek();
@@ -232,6 +237,68 @@ async function burnInBook(
     });
     await page.waitForTimeout(options.silentTimeMs);
   }
+
+  reporter.report({
+    type: "media-element",
+    iteration,
+    ...(audio
+      ? await audio.evaluate(
+          (node, diagnosticsOptions) => {
+            const duration = Number.isFinite(node.duration)
+              ? node.duration
+              : null;
+            const recordedTarget = Number(node.dataset.burnInSeekTarget);
+            const targetSeconds =
+              diagnosticsOptions.seekRequested &&
+              Number.isFinite(recordedTarget)
+                ? recordedTarget
+                : null;
+            const deltaSeconds =
+              targetSeconds === null
+                ? null
+                : Math.abs(node.currentTime - targetSeconds);
+            return {
+              audioFound: true,
+              error: node.error
+                ? { code: node.error.code, message: node.error.message }
+                : null,
+              networkState: node.networkState,
+              readyState: node.readyState,
+              durationSeconds: duration,
+              currentTimeSeconds: node.currentTime,
+              seekResult: {
+                requested: diagnosticsOptions.seekRequested,
+                attempted: targetSeconds !== null,
+                targetSeconds,
+                deltaSeconds,
+                succeeded:
+                  targetSeconds !== null &&
+                  deltaSeconds !== null &&
+                  deltaSeconds <= diagnosticsOptions.playTimeMs / 1000 + 2,
+              },
+            };
+          },
+          {
+            seekRequested: options.playTimeMs > 0 && options.seekMiddle,
+            playTimeMs: options.playTimeMs,
+          },
+        )
+      : {
+          audioFound: false,
+          error: null,
+          networkState: null,
+          readyState: null,
+          durationSeconds: null,
+          currentTimeSeconds: null,
+          seekResult: {
+            requested: options.playTimeMs > 0 && options.seekMiddle,
+            attempted: false,
+            targetSeconds: null,
+            deltaSeconds: null,
+            succeeded: false,
+          },
+        }),
+  });
 }
 
 async function navigateInApp(page: Page, targetUrl: string, serverUrl: string) {
@@ -321,6 +388,12 @@ async function sampleMemory(
       "heapTotalBytes",
       "heapTotal",
     );
+    const externalBytes = readMemoryNumber(memory, "externalBytes", "external");
+    const arrayBuffersBytes = readMemoryNumber(
+      memory,
+      "arrayBuffersBytes",
+      "arrayBuffers",
+    );
     if (
       rssBytes === undefined &&
       heapUsedBytes === undefined &&
@@ -331,6 +404,8 @@ async function sampleMemory(
     sample.rssBytes = rssBytes ?? sample.rssBytes;
     sample.heapUsedBytes = heapUsedBytes;
     sample.heapTotalBytes = heapTotalBytes;
+    sample.externalBytes = externalBytes;
+    sample.arrayBuffersBytes = arrayBuffersBytes;
   }
 
   reporter.report({ type: "memory", ...sample });
@@ -474,6 +549,12 @@ function formatMemory(event: OutputEvent) {
   if (typeof event.heapTotalBytes === "number") {
     fields.push(`heap total ${formatBytes(event.heapTotalBytes)}`);
   }
+  if (typeof event.externalBytes === "number") {
+    fields.push(`external ${formatBytes(event.externalBytes)}`);
+  }
+  if (typeof event.arrayBuffersBytes === "number") {
+    fields.push(`array buffers ${formatBytes(event.arrayBuffersBytes)}`);
+  }
   return fields.join("; ") || "unavailable";
 }
 
@@ -518,6 +599,7 @@ async function attachTelemetry(
       endpoint: classifyEndpoint(request.url()),
       method: request.method(),
       url: request.url(),
+      requestHeaders: selectRequestHeaders(request.headers()),
       finished: false,
     });
   });
@@ -649,6 +731,15 @@ function selectHeaders(headers: Record<string, string>) {
   return selected;
 }
 
+function selectRequestHeaders(
+  headers: Record<string, string>,
+): Record<string, string> {
+  const range = headers.range;
+  const selected: Record<string, string> = {};
+  if (range !== undefined) selected.range = range;
+  return selected;
+}
+
 function summarizeRequests(records: Array<RequestRecord>) {
   const summary: Record<string, RequestCounts> = {};
   for (const record of records) {
@@ -719,7 +810,8 @@ Options:
   --server-pid PID      Sample server RSS with ps after each iteration
   --memory-url URL      GET a diagnostic JSON object after each iteration. Supported
                         fields: rss/rssBytes, heapUsed/heapUsedBytes,
-                        heapTotal/heapTotalBytes, optionally nested under memory.
+                        heapTotal/heapTotalBytes, external/externalBytes, and
+                        arrayBuffers/arrayBuffersBytes, optionally nested under memory.
   --headless            Run Chromium headless
   --no-mute             Do not mute audio during playback
   --json                Emit JSONL only (default output is human-readable)
@@ -865,6 +957,7 @@ type RequestRecord = {
   url: string;
   status?: number;
   headers?: Record<string, string>;
+  requestHeaders: Record<string, string>;
   responseBodyBytes?: number;
   failure?: string;
   finished: boolean;
@@ -885,4 +978,6 @@ type MemorySample = {
   rssBytes?: number;
   heapUsedBytes?: number;
   heapTotalBytes?: number;
+  externalBytes?: number;
+  arrayBuffersBytes?: number;
 };

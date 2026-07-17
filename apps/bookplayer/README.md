@@ -21,6 +21,12 @@ and
 
 - `bun run dev` — dev server on port 3000 (run from this directory)
 - `bun run build` then `bun run start` — production build + serve
+- `bun scripts/burn-in.ts --help` — deterministic private-corpus browser and
+  memory probe; use `--json` to produce analyzer input
+- `bun run analyze-burn-in -- <first.jsonl> <repeat.jsonl>` — assert a repeated
+  burn-in pair against exact audio ranges, request/media failures, the default
+  16 MiB warmed-RSS limit, and final-five memory trends (nonzero exit on
+  failure)
 - Quality gates are root-level: `bun run ci` from the repo root
 - Volatile state: `data/bookplayer/{cache,evidence}` (gitignored); `cache/`
   holds the metadata index (`index.json`) and per-book alignment artifacts
