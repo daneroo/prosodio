@@ -182,10 +182,10 @@ real client connection, but Nitro's development env-runner proxies the request
 through `httpxy`, whose `toInit(Request)` does not forward that signal. The
 handler therefore sees only the internal proxy connection. Historical
 native-file, signal, and BYOB experiments still grew by roughly 0.8–1.7 GiB, so
-retrying those shapes is not justified. If the first exact-range baseline fails,
-the leading smallest fix is to register the existing audio handler as a Nitro
-`devHandler`, bypassing env-runner for this route in development while retaining
-the normal Nitro handler for production.
+retrying those shapes was not justified. A Nitro `devHandler` initially looked
+stable at 20+20 books, but a genuine repeated-list soak still ratcheted; the
+final development path therefore bypasses Nitro for audio at Vite middleware
+level.
 
 - [x] Remove the arbitrary audio response maximum and its cap-specific comment,
       export, and tests. A satisfiable range response uses the parsed requested
@@ -210,22 +210,43 @@ the normal Nitro handler for production.
       plan. Update comments to explain the transport invariant rather than the
       superseded response cap.
 
-Final mechanism: audio responses now use the parser's exact EOF-clamped range
-with the existing lazy 64 KiB `rawFileBody`. Production keeps its normal Nitro
-handler. Development additionally registers that same handler as a Nitro
-`devHandler`, so it runs on Vite's outer request and receives the real
-client-close signal instead of crossing the env-runner proxy that drops it. No
-other asset route changed.
+Final mechanism: audio responses use one shared descriptor for the parser's
+exact EOF-clamped range, headers, size, MIME type, and file-version fingerprint.
+In development an `apply: serve`, `enforce: pre` Vite middleware handles only
+GET/HEAD `/api/audio/:bookId` before Nitro. Successful bodies use one positional
+`FileHandle` read and one `ServerResponse` write at a time; the next read waits
+for the write callback and, when required, `drain`. Request abort and premature
+response close share an idempotent stop/handle-close path. A module-level pool
+retains at most four idle 64 KiB buffers, leases a distinct buffer to each
+active pump, and returns it only after the write/pump finishes. HEAD and 416
+responses never open the file.
 
-The uncapped pre-transport 5+5 probe failed at +421.34 MiB warmed RSS. After the
-dev-handler bypass, a fresh fixed-order 20+20 run passed: the repeat moved from
-1066.23 MiB to 828.36 MiB (-237.88 MiB), its final-five RSS slope was -1.19
-MiB/sample, heap/external/array buffers settled, and every observed `206`
-matched its requested range. Historical Bun-file/native, BYOB, and inner-signal
-experiments were rejected because they still traversed the signal-dropping proxy
-and grew roughly 0.8–1.7 GiB. Modifying `httpxy` or reconstructing an outer
-close signal inside the worker would be broader and more fragile than the
-route-local development bypass.
+Built production keeps the normal Nitro audio handler and returns an exact
+native `Bun.file(...).slice(start, end + 1)` body, so Bun owns backpressure and
+abandoned responses without relying on a keep-alive TCP-close signal. A bounded
+32-entry LRU reuses only BunFile source objects; every request still creates its
+own exact slice. Cache keys include path plus device, inode, size, mtime and
+ctime, so replacement or edit invalidates the source, including same-path,
+same-size replacement. No other asset route changed.
+
+The uncapped pre-transport 5+5 probe failed at +421.34 MiB warmed RSS. A Nitro
+`devHandler` appeared to pass a 20+20 sample but continued growing in longer
+100-visit repeats, so it was rejected. A direct `createReadStream` path proved
+that all handles closed yet still caused browser-path allocator churn. The
+serialized FileHandle pump made an endpoint-only 100+100 pair stable, but the
+real browser path still added +37.44 MiB and then +76.98 MiB across successive
+100-visit sequences because 437 audio requests per sequence each allocated a
+fresh native buffer. With the bounded buffer pool, a fresh browser 100+100 pair
+passed at +10.14 MiB warmed RSS (16 MiB limit), exact ranges, clean media
+diagnostics, and no OOM, crash, or restart.
+
+Production's custom stream was rejected after growing 2294.34 MiB on warm-up and
+877.03 MiB on repeat. Native Bun slices fixed that failure, but a later fresh
+run exposed +34.34 MiB and then +16.98 MiB from repeated BunFile source
+creation. The bounded, versioned source LRU passed the final fresh 20+20 pair at
++9.02 MiB warmed RSS with a +0.01 MiB/sample final-five slope, exact ranges, and
+no browser/media/request failures. A raw Bun socket-close test remains useful
+cleanup coverage but cannot model keep-alive media abandonment.
 
 Acceptance: all unit and focused disconnect tests pass; exact-range assertions
 pass; the short dev run has no unexpected failures; `bun run ci` passes.
@@ -235,27 +256,41 @@ pass; the short dev run has no unexpected failures; `bun run ci` passes.
 Boundary: small harness corrections exposed by real use only. Do not build the
 general E2E framework.
 
-The first real T2 runs exposed and corrected two probe-owned races: seek state
-is no longer written as a pre-hydration DOM attribute, and response telemetry is
-drained before Chromium closes. The analyzer now sees real application errors
-without those harness-generated hydration/teardown failures.
+The real T2 runs exposed and corrected probe-owned races: seek state is no
+longer written as a pre-hydration DOM attribute, response telemetry is drained
+before Chromium closes, and media diagnostics reacquire the audio element after
+hard-navigation context replacement. Only known navigation/detachment errors are
+retried; persistent races emit an explicit failing diagnostic and unrelated
+errors still throw. `--repeat` replays an explicit fixed list without
+deduplication. Optional heap/external/array-buffer tail checks now recognize
+meaningful GC resets while RSS remains strict.
 
-- [ ] Run the full matrix below with fixed seed 7 and the same 20 selected books
+- [x] Run the full matrix below with fixed seed 7 and the same 20 selected books
       on one warmed process per runtime. Save JSONL under the private evidence
       directory and run the T1 analyzer after each pair.
-- [ ] If the harness cannot make the two runs comparable, minimally add an
+- [x] If the harness cannot make the two runs comparable, minimally add an
       explicit captured `--books` replay or `--repeat` option; unit-test
       argument parsing/order. Do not accept shuffled-but-different inputs.
-- [ ] Dev primary: hard navigation, audio endpoint, 500 ms playback, middle
+- [x] Dev primary: hard navigation, audio endpoint, 500 ms playback, middle
       seek, two consecutive runs. This is the old abort/native-allocation
       stress.
-- [ ] Dev lifecycle: in-app navigation, all endpoints, 250 ms silent settle, two
+- [x] Dev lifecycle: in-app navigation, all endpoints, 250 ms silent settle, two
       consecutive runs. This guards React cleanup and non-audio regressions.
-- [ ] Production primary: built server, hard navigation, audio endpoint, 500 ms
+- [x] Production primary: built server, hard navigation, audio endpoint, 500 ms
       playback, middle seek, two consecutive runs, sampling the server PID.
-- [ ] Run a longer dev audio soak (at least 100 book visits, by repeating the
+- [x] Run a longer dev audio soak (at least 100 book visits, by repeating the
       fixed list) after the short matrix passes. It must satisfy the same warmed
       threshold and complete without OOM or server restart.
+
+Final audio rows pass: development completed a fresh 100+100 at +10.14 MiB and
+built production completed a fresh 20+20 at +9.02 MiB, both with exact ranges,
+clean diagnostics, and no OOM/restart. The in-app/all-endpoint row fell 101.84
+MiB overall and showed no audio-range failure, but the strict analyzer correctly
+reported EPUB-reader errors (`replaceCss`, `package`, duplicate spine keys, and
+a `res://` font) plus a rising final-five tail. Archived pre-change in-app
+evidence contains the same book-specific EPUB failures, so this is a known
+non-audio baseline rather than a regression from this branch; it remains visible
+and is not analyzer-suppressed or pulled into the audio transport scope.
 
 Acceptance: every automated matrix row and the soak passes the thresholds; the
 evidence names the commit, runtime, Bun/Nitro versions, command, fixed book IDs,

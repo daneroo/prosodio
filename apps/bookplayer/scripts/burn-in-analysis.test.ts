@@ -83,7 +83,56 @@ describe("memory verdicts", () => {
       finalFiveDelta: 8,
       finalFiveSlope: 2,
       monotonicFinalFive: true,
+      meaningfulResetThresholdBytes: MiB,
+      meaningfulResetCount: 0,
     });
+  });
+
+  test("optional sawtooth metrics pass despite a rising final-five tail", () => {
+    const optionalValues = [
+      10, 12, 14, 4, 6, 8, 10, 3, 5, 7, 9, 2, 4, 6, 8, 3, 4, 5, 6, 7, 8,
+    ];
+    const first = runWithMemory(optionalValues.map(() => 100));
+    const repeat = withMetric(
+      runWithMemory(optionalValues.map(() => 100)),
+      "externalBytes",
+      optionalValues,
+    );
+
+    const verdict = analyzeBurnInPair(first, repeat);
+    expect(verdict.repeat.externalBytes.monotonicFinalFive).toBe(true);
+    expect(verdict.repeat.externalBytes.meaningfulResetCount).toBe(4);
+    expect(verdict.passed).toBe(true);
+  });
+
+  test("a truly monotonic optional metric still fails", () => {
+    const values = [10, 11, 12, 13, 14, 15];
+    const first = runWithMemory(values.map(() => 100));
+    const repeat = withMetric(
+      runWithMemory(values.map(() => 100)),
+      "heapUsedBytes",
+      values,
+    );
+
+    const verdict = analyzeBurnInPair(first, repeat);
+    expect(verdict.passed).toBe(false);
+    expect(verdict.failures).toContain(
+      "repeat: heapUsedBytes increased across every final-five step without a meaningful full-run reset",
+    );
+  });
+
+  test("tiny downward noise does not mask an optional leak", () => {
+    const values = [10, 11, 10.5, 11, 12, 13, 14, 15];
+    const first = runWithMemory(values.map(() => 100));
+    const repeat = withMetric(
+      runWithMemory(values.map(() => 100)),
+      "arrayBuffersBytes",
+      values,
+    );
+
+    const verdict = analyzeBurnInPair(first, repeat);
+    expect(verdict.repeat.arrayBuffersBytes.meaningfulResetCount).toBe(0);
+    expect(verdict.passed).toBe(false);
   });
 
   test("a range mismatch fails the pair verdict", () => {
@@ -142,4 +191,16 @@ function runWithMemory(
     })),
     { type: "complete", books: Math.max(0, values.length - 1) },
   ];
+}
+
+function withMetric(
+  events: Array<BurnInEvent>,
+  metric: string,
+  values: Array<number>,
+): Array<BurnInEvent> {
+  let index = 0;
+  return events.map((event) => {
+    if (event.type !== "memory") return event;
+    return { ...event, [metric]: (values[index++] as number) * MiB };
+  });
 }

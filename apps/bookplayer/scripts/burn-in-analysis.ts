@@ -13,6 +13,8 @@ export type MetricTrend = {
   finalFiveDelta: number | null;
   finalFiveSlope: number | null;
   monotonicFinalFive: boolean;
+  meaningfulResetThresholdBytes: number | null;
+  meaningfulResetCount: number;
 };
 
 export type BurnInVerdict = {
@@ -64,9 +66,15 @@ export function analyzeBurnInPair(
     );
   }
 
-  for (const metric of METRICS) {
-    if (repeat[metric].monotonicFinalFive) {
-      failures.push(`repeat: ${metric} increased across every final-five step`);
+  if (repeat.rssBytes.monotonicFinalFive) {
+    failures.push("repeat: rssBytes increased across every final-five step");
+  }
+  for (const metric of METRICS.slice(1)) {
+    const trend = repeat[metric];
+    if (trend.monotonicFinalFive && trend.meaningfulResetCount === 0) {
+      failures.push(
+        `repeat: ${metric} increased across every final-five step without a meaningful full-run reset`,
+      );
     }
   }
 
@@ -97,6 +105,24 @@ export function analyzeMetric(
         typeof value === "number" && Number.isFinite(value),
     );
   const finalFive = values.slice(-5);
+  // Heap-family counters commonly form a sawtooth: allocation rises for a few
+  // samples, then GC releases a substantial amount. Count a reset only when a
+  // downward step is at least 1 MiB and at least 20% of the full observed
+  // range, so sub-MiB jitter cannot disguise a genuinely retained trend.
+  const observedRange =
+    values.length > 0 ? Math.max(...values) - Math.min(...values) : null;
+  const meaningfulResetThresholdBytes =
+    observedRange === null ? null : Math.max(1024 * 1024, observedRange * 0.2);
+  const meaningfulResetCount =
+    meaningfulResetThresholdBytes === null
+      ? 0
+      : values
+          .slice(1)
+          .filter(
+            (value, index) =>
+              (values[index] as number) - value >=
+              meaningfulResetThresholdBytes,
+          ).length;
   return {
     samples: values.length,
     baseline: values[0] ?? null,
@@ -113,6 +139,8 @@ export function analyzeMetric(
     monotonicFinalFive:
       finalFive.length === 5 &&
       finalFive.slice(1).every((value, index) => value > finalFive[index]!),
+    meaningfulResetThresholdBytes,
+    meaningfulResetCount,
   };
 }
 

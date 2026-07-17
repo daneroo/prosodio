@@ -55,8 +55,12 @@ for (const label of ["first", "repeat"] as const) {
     "arrayBuffersBytes",
   ] satisfies Array<MetricName>) {
     const trend = verdict[label][metric];
+    const resets =
+      metric === "rssBytes"
+        ? ""
+        : `; meaningful resets ${trend.meaningfulResetCount} (threshold ${formatOptionalBytes(trend.meaningfulResetThresholdBytes)})`;
     console.log(
-      `  - ${metric}: ${formatOptionalBytes(trend.baseline)} -> ${formatOptionalBytes(trend.end)}; delta ${formatSignedBytes(trend.delta)}; final-five slope ${formatSlope(trend.finalFiveSlope)}${trend.monotonicFinalFive ? " (monotonic)" : ""}`,
+      `  - ${metric}: ${formatOptionalBytes(trend.baseline)} -> ${formatOptionalBytes(trend.end)}; delta ${formatSignedBytes(trend.delta)}; final-five slope ${formatSlope(trend.finalFiveSlope)}${trend.monotonicFinalFive ? " (monotonic)" : ""}${resets}`,
     );
   }
 }

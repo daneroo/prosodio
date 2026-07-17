@@ -19,6 +19,7 @@ const DEFAULT_ARGS: BurnInOptions = {
   randomizeOrder: true,
   seed: 1,
   books: [],
+  repeat: 1,
   navigation: "hard",
   endpoint: "all",
   serverPid: null,
@@ -53,19 +54,21 @@ async function main() {
     const page = await browser.newPage();
     telemetry = await attachTelemetry(page, options.endpoint, reporter);
 
-    const links =
+    const selectedLinks =
       options.books.length > 0
         ? normalizeBookList(options.books, options.serverUrl).slice(
             0,
             options.numBooks,
           )
         : await gatherBookLinks(page, options);
+    const links = repeatLinks(selectedLinks, options.repeat);
 
     reporter.report({
       type: "selection",
       seed: options.seed,
       randomized: options.books.length === 0 && options.randomizeOrder,
       links,
+      repeat: options.repeat,
       navigation: options.navigation,
       endpoint: options.endpoint,
     });
@@ -245,62 +248,128 @@ async function burnInBook(
   reporter.report({
     type: "media-element",
     iteration,
-    ...(audio
-      ? await audio.evaluate(
-          (node, diagnosticsOptions) => {
-            const duration = Number.isFinite(node.duration)
-              ? node.duration
-              : null;
-            const targetSeconds =
-              diagnosticsOptions.seekRequested && duration !== null
-                ? duration / 2
-                : null;
-            const deltaSeconds =
-              targetSeconds === null
-                ? null
-                : Math.abs(node.currentTime - targetSeconds);
-            return {
-              audioFound: true,
-              error: node.error
-                ? { code: node.error.code, message: node.error.message }
-                : null,
-              networkState: node.networkState,
-              readyState: node.readyState,
-              durationSeconds: duration,
-              currentTimeSeconds: node.currentTime,
-              seekResult: {
-                requested: diagnosticsOptions.seekRequested,
-                attempted: targetSeconds !== null,
-                targetSeconds,
-                deltaSeconds,
-                succeeded:
-                  targetSeconds !== null &&
-                  deltaSeconds !== null &&
-                  deltaSeconds <= diagnosticsOptions.playTimeMs / 1000 + 2,
-              },
-            };
-          },
-          {
-            seekRequested: options.playTimeMs > 0 && options.seekMiddle,
-            playTimeMs: options.playTimeMs,
-          },
-        )
-      : {
-          audioFound: false,
-          error: null,
-          networkState: null,
-          readyState: null,
-          durationSeconds: null,
-          currentTimeSeconds: null,
-          seekResult: {
-            requested: options.playTimeMs > 0 && options.seekMiddle,
-            attempted: false,
-            targetSeconds: null,
-            deltaSeconds: null,
-            succeeded: false,
-          },
-        }),
+    ...(await captureMediaDiagnostics(page, {
+      seekRequested: options.playTimeMs > 0 && options.seekMiddle,
+      playTimeMs: options.playTimeMs,
+    })),
   });
+}
+
+async function captureMediaDiagnostics(
+  page: Page,
+  options: { seekRequested: boolean; playTimeMs: number },
+) {
+  const maxAttempts = 3;
+  let transientError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const audio = await page
+      .waitForSelector("audio", { state: "attached", timeout: 2000 })
+      .catch((error: unknown) => {
+        if (isPlaywrightTimeoutError(error)) return null;
+        throw error;
+      });
+    if (!audio) {
+      return unavailableMediaDiagnostics(options.seekRequested, transientError);
+    }
+
+    try {
+      return await audio.evaluate((node, diagnosticsOptions) => {
+        const duration = Number.isFinite(node.duration) ? node.duration : null;
+        const targetSeconds =
+          diagnosticsOptions.seekRequested && duration !== null
+            ? duration / 2
+            : null;
+        const deltaSeconds =
+          targetSeconds === null
+            ? null
+            : Math.abs(node.currentTime - targetSeconds);
+        return {
+          audioFound: true,
+          error: node.error
+            ? { code: node.error.code, message: node.error.message }
+            : null,
+          networkState: node.networkState,
+          readyState: node.readyState,
+          durationSeconds: duration,
+          currentTimeSeconds: node.currentTime,
+          seekResult: {
+            requested: diagnosticsOptions.seekRequested,
+            attempted: targetSeconds !== null,
+            targetSeconds,
+            deltaSeconds,
+            succeeded:
+              targetSeconds !== null &&
+              deltaSeconds !== null &&
+              deltaSeconds <= diagnosticsOptions.playTimeMs / 1000 + 2,
+          },
+        };
+      }, options);
+    } catch (error) {
+      if (!isTransientMediaDiagnosticError(error)) throw error;
+      transientError = error;
+      if (attempt < maxAttempts) {
+        await settleAfterNavigation(page);
+      }
+    }
+  }
+
+  return unavailableMediaDiagnostics(options.seekRequested, transientError);
+}
+
+function unavailableMediaDiagnostics(
+  seekRequested: boolean,
+  transientError: unknown,
+) {
+  return {
+    audioFound: false,
+    error: null,
+    networkState: null,
+    readyState: null,
+    durationSeconds: null,
+    currentTimeSeconds: null,
+    diagnosticUnavailable:
+      transientError === null
+        ? { reason: "audio-element-missing" }
+        : {
+            reason: "navigation-race",
+            message: errorText(transientError),
+          },
+    seekResult: {
+      requested: seekRequested,
+      attempted: false,
+      targetSeconds: null,
+      deltaSeconds: null,
+      succeeded: false,
+    },
+  };
+}
+
+async function settleAfterNavigation(page: Page) {
+  await page
+    .waitForLoadState("domcontentloaded", { timeout: 2000 })
+    .catch((error: unknown) => {
+      if (!isPlaywrightTimeoutError(error)) throw error;
+    });
+  await page.waitForTimeout(50);
+}
+
+export function isTransientMediaDiagnosticError(error: unknown) {
+  return /execution context was destroyed|cannot find context with specified id|element is not attached to the dom|node is detached from document|jshandle is disposed|cannot adopt element handle from a different document/i.test(
+    errorText(error),
+  );
+}
+
+function isPlaywrightTimeoutError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.name === "TimeoutError" ||
+      /timeout .* exceeded/i.test(error.message))
+  );
+}
+
+function errorText(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function navigateInApp(page: Page, targetUrl: string, serverUrl: string) {
@@ -805,6 +874,7 @@ function parseArguments(): BurnInOptions {
       "no-randomize": { type: "boolean" },
       seed: { type: "string" },
       books: { type: "string" },
+      repeat: { type: "string" },
       navigation: { type: "string" },
       endpoint: { type: "string" },
       "server-pid": { type: "string" },
@@ -829,6 +899,7 @@ Options:
   --seed N              Deterministic shuffle seed (default: ${DEFAULT_ARGS.seed})
   --no-randomize        Keep discovered library order (explicit lists stay exact)
   --books LIST          Comma-separated book IDs, /player paths, or absolute URLs
+  --repeat N            Repeat the final selected list in exact order (default: ${DEFAULT_ARGS.repeat})
   --navigation MODE     hard or in-app (default: ${DEFAULT_ARGS.navigation})
   --endpoint ENDPOINT   all, epub, audio, vtt, or alignment (default: ${DEFAULT_ARGS.endpoint})
                         A selection aborts the other three raw-asset endpoint groups.
@@ -894,6 +965,7 @@ do not require buffering response bodies in this process.
           .map((value) => value.trim())
           .filter(Boolean)
       : [],
+    repeat: parseRepeat(values.repeat),
     navigation,
     endpoint,
     serverPid: values["server-pid"]
@@ -906,6 +978,14 @@ do not require buffering response bodies in this process.
     mute: !values["no-mute"],
     json: values.json ?? DEFAULT_ARGS.json,
   };
+}
+
+export function parseRepeat(value: string | undefined) {
+  return parseInteger(value, DEFAULT_ARGS.repeat, "repeat", 1);
+}
+
+export function repeatLinks<T>(links: ReadonlyArray<T>, repeat: number) {
+  return Array.from({ length: repeat }, () => links).flat();
 }
 
 function parseInteger(
@@ -962,6 +1042,7 @@ type BurnInOptions = {
   randomizeOrder: boolean;
   seed: number;
   books: Array<string>;
+  repeat: number;
   navigation: NavigationMode;
   endpoint: EndpointSelection;
   serverPid: number | null;
