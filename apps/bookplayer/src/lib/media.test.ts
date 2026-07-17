@@ -5,6 +5,7 @@ import {
   rmSync,
   symlinkSync,
   truncateSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +15,8 @@ import { createConnection, createServer } from "node:net";
 
 import {
   BOOK_ID_RE,
+  createAudioSourceCache,
+  describeAudioResponse,
   parseRangeHeader,
   rawFileBody,
   safeResolve,
@@ -41,6 +44,49 @@ function rangeRequest(range?: string): Request {
     range ? { headers: { Range: range } } : undefined,
   );
 }
+
+describe("audio source cache", () => {
+  test("reuses one source until the file version changes", () => {
+    let creations = 0;
+    const cache = createAudioSourceCache(2, (path) => {
+      creations += 1;
+      return new Blob([path]);
+    });
+
+    const first = cache.get("/audio/a.m4b", "version-1");
+    expect(cache.get("/audio/a.m4b", "version-1")).toBe(first);
+    expect(creations).toBe(1);
+
+    const replaced = cache.get("/audio/a.m4b", "version-2");
+    expect(replaced).not.toBe(first);
+    expect(creations).toBe(2);
+    expect(cache.size).toBe(1);
+  });
+
+  test("keeps only the most recently used bounded set", () => {
+    const creations: Array<string> = [];
+    const cache = createAudioSourceCache(2, (path) => {
+      creations.push(path);
+      return new Blob([path]);
+    });
+
+    const a = cache.get("a", "1");
+    cache.get("b", "1");
+    expect(cache.get("a", "1")).toBe(a);
+    cache.get("c", "1");
+    cache.get("b", "1");
+
+    expect(cache.size).toBe(2);
+    expect(creations).toEqual(["a", "b", "c", "b"]);
+  });
+
+  test("rejects an unbounded or empty configuration", () => {
+    expect(() => createAudioSourceCache(0)).toThrow(RangeError);
+    expect(() => createAudioSourceCache(Number.POSITIVE_INFINITY)).toThrow(
+      RangeError,
+    );
+  });
+});
 
 describe("safeResolve", () => {
   test("resolves a real file inside the root", () => {
@@ -140,6 +186,61 @@ describe("serveStreamedWithRange", () => {
     return Array.from(new Uint8Array(await response.arrayBuffer()));
   }
 
+  test.each([
+    {
+      name: "absent",
+      range: null,
+      status: 200,
+      contentRange: undefined,
+      contentLength: 64,
+      parsedRange: undefined,
+    },
+    {
+      name: "bounded",
+      range: "bytes=5-12",
+      status: 206,
+      contentRange: "bytes 5-12/64",
+      contentLength: 8,
+      parsedRange: { start: 5, end: 12 },
+    },
+    {
+      name: "open-ended",
+      range: "bytes=56-",
+      status: 206,
+      contentRange: "bytes 56-63/64",
+      contentLength: 8,
+      parsedRange: { start: 56, end: 63 },
+    },
+    {
+      name: "suffix",
+      range: "bytes=-8",
+      status: 206,
+      contentRange: "bytes 56-63/64",
+      contentLength: 8,
+      parsedRange: { start: 56, end: 63 },
+    },
+    {
+      name: "overlong end",
+      range: "bytes=60-999",
+      status: 206,
+      contentRange: "bytes 60-63/64",
+      contentLength: 4,
+      parsedRange: { start: 60, end: 63 },
+    },
+  ])("$name descriptor pins protocol without a body", (fixture) => {
+    const descriptor = describeAudioResponse(makeAudio(64), fixture.range);
+    if (descriptor instanceof Response) {
+      throw new Error(`unexpected descriptor error: ${descriptor.status}`);
+    }
+    expect(descriptor.status).toBe(fixture.status);
+    expect(descriptor.headers["Content-Range"]).toBe(fixture.contentRange);
+    expect(descriptor.headers["Content-Length"]).toBe(
+      String(fixture.contentLength),
+    );
+    expect(descriptor.headers["Accept-Ranges"]).toBe("bytes");
+    expect(descriptor.range).toEqual(fixture.parsedRange);
+  });
+
   test("full response has exact Content-Length and Accept-Ranges", async () => {
     const path = makeAudio(4096);
     const res = serveStreamedWithRange(path, rangeRequest());
@@ -150,6 +251,50 @@ describe("serveStreamedWithRange", () => {
     expect(await responseBytes(res)).toEqual(
       Array.from({ length: 4096 }, (_, index) => index % 251),
     );
+  });
+
+  test("Bun file bodies preserve full and end-exclusive sliced bytes", async () => {
+    const path = makeAudio(64);
+    const full = serveStreamedWithRange(path, rangeRequest(), "bun-file");
+    expect(full.status).toBe(200);
+    expect(full.headers.get("Content-Length")).toBe("64");
+    expect(await responseBytes(full)).toEqual(
+      Array.from({ length: 64 }, (_, index) => index),
+    );
+
+    const sliced = serveStreamedWithRange(
+      path,
+      rangeRequest("bytes=5-12"),
+      "bun-file",
+    );
+    expect(sliced.status).toBe(206);
+    expect(sliced.headers.get("Content-Range")).toBe("bytes 5-12/64");
+    expect(sliced.headers.get("Content-Length")).toBe("8");
+    expect(await responseBytes(sliced)).toEqual([5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  test("Bun source reuse invalidates after a same-path file replacement", async () => {
+    const path = makeAudio(64);
+    const firstDescriptor = describeAudioResponse(path, null);
+    if (firstDescriptor instanceof Response) {
+      throw new Error(`unexpected descriptor error: ${firstDescriptor.status}`);
+    }
+    const first = serveStreamedWithRange(path, rangeRequest(), "bun-file");
+    expect((await first.arrayBuffer()).byteLength).toBe(64);
+
+    writeFileSync(path, Buffer.alloc(64, 7));
+    const future = new Date(Date.now() + 10_000);
+    utimesSync(path, future, future);
+    const secondDescriptor = describeAudioResponse(path, null);
+    if (secondDescriptor instanceof Response) {
+      throw new Error(
+        `unexpected descriptor error: ${secondDescriptor.status}`,
+      );
+    }
+    expect(secondDescriptor.fileVersion).not.toBe(firstDescriptor.fileVersion);
+
+    const second = serveStreamedWithRange(path, rangeRequest(), "bun-file");
+    expect(await responseBytes(second)).toEqual(Array(64).fill(7));
   });
 
   test.each([
@@ -179,7 +324,11 @@ describe("serveStreamedWithRange", () => {
     },
   ])("$name range pins headers and exact body bytes", async (fixture) => {
     const path = makeAudio(64);
-    const res = serveStreamedWithRange(path, rangeRequest(fixture.range));
+    const res = serveStreamedWithRange(
+      path,
+      rangeRequest(fixture.range),
+      "bounded-stream",
+    );
     expect(res.status).toBe(206);
     expect(res.headers.get("Content-Range")).toBe(fixture.contentRange);
     expect(res.headers.get("Content-Length")).toBe(

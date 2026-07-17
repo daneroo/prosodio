@@ -6,7 +6,7 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
-import audioHandler from "./server/handlers/audio.ts";
+import { devAudioMiddleware } from "./server/dev-audio-middleware.ts";
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
@@ -19,9 +19,6 @@ const config = defineConfig({
   nitro: {
     preset: "bun",
     rollupConfig: { external: [/^@sentry\//] },
-    // Keep development audio on the outer client connection so request aborts
-    // stop its bounded file body instead of being lost across the dev proxy.
-    devHandlers: [{ route: "/api/audio/:bookId", handler: audioHandler }],
     handlers: [
       {
         route: "/api/alignment/:bookId",
@@ -42,7 +39,13 @@ const config = defineConfig({
       { route: "/api/vtt/:bookId", handler: "./server/handlers/vtt.ts" },
     ],
   },
-  plugins: [nitro(), tailwindcss(), tanstackStart(), viteReact()],
+  plugins: [
+    devAudioMiddleware(),
+    nitro(),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
 });
 
 export default config;
