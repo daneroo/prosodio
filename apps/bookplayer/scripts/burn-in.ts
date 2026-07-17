@@ -2,7 +2,13 @@ import { execFile } from "node:child_process";
 import { parseArgs, promisify } from "node:util";
 
 import { chromium } from "playwright";
-import type { Browser, Page, Request as PlaywrightRequest } from "playwright";
+import type {
+  Browser,
+  ConsoleMessage,
+  Page,
+  Request as PlaywrightRequest,
+  Response as PlaywrightResponse,
+} from "playwright";
 
 const DEFAULT_ARGS: BurnInOptions = {
   serverUrl: "http://localhost:3000/",
@@ -33,6 +39,7 @@ async function main() {
   const options = parseArguments();
   const reporter = createReporter(options.json);
   let browser: Browser | null = null;
+  let telemetry: Awaited<ReturnType<typeof attachTelemetry>> | null = null;
 
   reporter.report({
     type: "configuration",
@@ -44,7 +51,7 @@ async function main() {
     await ensureServerRunning(options.serverUrl);
     browser = await chromium.launch({ headless: options.headless });
     const page = await browser.newPage();
-    const telemetry = await attachTelemetry(page, options.endpoint, reporter);
+    telemetry = await attachTelemetry(page, options.endpoint, reporter);
 
     const links =
       options.books.length > 0
@@ -83,10 +90,11 @@ async function main() {
       await sampleMemory(options, iteration, "after-book", reporter);
     }
 
-    await telemetry.flush();
+    await telemetry.finish();
     telemetry.reportFinal();
     reporter.report({ type: "complete", books: links.length });
   } finally {
+    await telemetry?.finish();
     await browser?.close();
   }
 }
@@ -174,9 +182,6 @@ async function burnInBook(
   const audio = await page
     .waitForSelector("audio", { state: "attached", timeout: 5000 })
     .catch(() => null);
-  await audio?.evaluate((node) => {
-    delete node.dataset.burnInSeekTarget;
-  });
 
   if (options.endpoint === "vtt") {
     const bookId = new URL(url).pathname.split("/").at(-1);
@@ -216,7 +221,6 @@ async function burnInBook(
             if (Number.isFinite(node.duration) && node.duration > 0) {
               const targetSeconds = node.duration / 2;
               node.currentTime = targetSeconds;
-              node.dataset.burnInSeekTarget = String(targetSeconds);
             }
           };
           if (Number.isFinite(node.duration)) seek();
@@ -247,11 +251,9 @@ async function burnInBook(
             const duration = Number.isFinite(node.duration)
               ? node.duration
               : null;
-            const recordedTarget = Number(node.dataset.burnInSeekTarget);
             const targetSeconds =
-              diagnosticsOptions.seekRequested &&
-              Number.isFinite(recordedTarget)
-                ? recordedTarget
+              diagnosticsOptions.seekRequested && duration !== null
+                ? duration / 2
                 : null;
             const deltaSeconds =
               targetSeconds === null
@@ -583,6 +585,7 @@ async function attachTelemetry(
   const records = new Map<PlaywrightRequest, RequestRecord>();
   const pending = new Set<Promise<void>>();
   let iteration = 0;
+  let finished = false;
 
   await page.route("**/*", async (route) => {
     const endpoint = classifyEndpoint(route.request().url());
@@ -593,7 +596,7 @@ async function attachTelemetry(
     }
   });
 
-  page.on("request", (request) => {
+  const onRequest = (request: PlaywrightRequest) => {
     records.set(request, {
       iteration,
       endpoint: classifyEndpoint(request.url()),
@@ -602,9 +605,9 @@ async function attachTelemetry(
       requestHeaders: selectRequestHeaders(request.headers()),
       finished: false,
     });
-  });
+  };
 
-  page.on("response", (response) => {
+  const onResponse = (response: PlaywrightResponse) => {
     track(
       pending,
       (async () => {
@@ -615,9 +618,9 @@ async function attachTelemetry(
       })(),
       reporter,
     );
-  });
+  };
 
-  page.on("requestfinished", (request) => {
+  const onRequestFinished = (request: PlaywrightRequest) => {
     track(
       pending,
       (async () => {
@@ -632,17 +635,17 @@ async function attachTelemetry(
       })(),
       reporter,
     );
-  });
+  };
 
-  page.on("requestfailed", (request) => {
+  const onRequestFailed = (request: PlaywrightRequest) => {
     const record = records.get(request);
     if (!record) return;
     record.finished = true;
     record.failure = request.failure()?.errorText ?? "unknown request failure";
     reporter.report({ type: "request-failure", ...record });
-  });
+  };
 
-  page.on("console", (message) => {
+  const onConsole = (message: ConsoleMessage) => {
     if (message.type() === "error") {
       reporter.report({
         type: "browser-console-error",
@@ -650,22 +653,40 @@ async function attachTelemetry(
         text: message.text(),
       });
     }
-  });
+  };
 
-  page.on("pageerror", (error) => {
+  const onPageError = (error: Error) => {
     reporter.report({
       type: "browser-page-error",
       iteration,
       text: error.message,
     });
-  });
+  };
+
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+  page.on("requestfinished", onRequestFinished);
+  page.on("requestfailed", onRequestFailed);
+  page.on("console", onConsole);
+  page.on("pageerror", onPageError);
 
   return {
     setIteration(value: number) {
       iteration = value;
     },
     async flush() {
-      await Promise.allSettled([...pending]);
+      await drainPending(pending);
+    },
+    async finish() {
+      if (finished) return;
+      finished = true;
+      page.off("request", onRequest);
+      page.off("response", onResponse);
+      page.off("requestfinished", onRequestFinished);
+      page.off("requestfailed", onRequestFailed);
+      page.off("console", onConsole);
+      page.off("pageerror", onPageError);
+      await drainPending(pending);
     },
     reportIteration(value: number) {
       const current = [...records.values()].filter(
@@ -686,6 +707,12 @@ async function attachTelemetry(
       }
     },
   };
+}
+
+async function drainPending(pending: Set<Promise<void>>) {
+  while (pending.size > 0) {
+    await Promise.allSettled([...pending]);
+  }
 }
 
 function track(
