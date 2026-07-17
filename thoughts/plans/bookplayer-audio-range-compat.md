@@ -1,0 +1,325 @@
+# bookplayer-audio-range-compat — exact ranges without dev OOM
+
+Status: planned
+
+Goal: honor every satisfiable browser-requested audio byte range exactly while
+keeping raw-file delivery bounded, cancellation-safe, and RSS-stable in the real
+development and production server stacks.
+
+## Scheduling and dispatch
+
+This plan starts only after Daniel finishes testing the current 4000 MiB
+workaround and explicitly asks to execute it on a branch. Until then, do not
+alter, remove, commit around, or otherwise disturb that workaround.
+
+At execution Daniel will provide this directive:
+
+> For all coding tasks use your judgement to decide an appropriate lower power
+> model and run that in a subagent.
+
+Apply it to every task marked `[coding]`: the orchestrator writes the bounded
+subtask prompt, chooses an appropriate lower-power model and effort, delegates
+the implementation, reviews the result and diff, runs the required verification,
+and commits only with `bun run ci` green. Prefer one small commit per coding
+task. Investigation, acceptance runs, manual handoff, and plan maintenance stay
+with the orchestrator unless delegation is clearly useful.
+
+## Established evidence
+
+- Bookplayer uses a native hidden `<audio>` with `/api/audio/:bookId`; React
+  owns controls and synchronization but the browser owns media requests and
+  byte-range selection.
+- The original server shortened every broad satisfiable range to at most 1 MiB.
+  Chromium burn-in passed, but large M4B files failed immediately in Brave on
+  iPad with the generic media-element error.
+- Raising the limit to 4000 MiB made the same large book work on the same iPad.
+  The current private corpus has no file that large, so this is equivalent to
+  honoring its requested range for present data. This A/B identifies the
+  server-imposed shortening as the compatibility failure; it does not identify a
+  universal safe smaller cap.
+- WebKit supports and requires byte ranges for media. The incompatible shape is
+  the server selecting less than the media loader requested, not range delivery
+  itself.
+- The 1 MiB cap was introduced by
+  [bookplayer-epub-serve-oom](archive/bookplayer-epub-serve-oom.md) after Vite's
+  development adapter could continue draining selected audio after a browser
+  disconnect. Production had already plateaued after whole-file copies and
+  unsafe Node-to-Web adapters were removed; dev cancellation remained unreliable
+  enough that the cap bounded native allocation churn.
+- `rawFileBody` is already demand-driven in 64 KiB reads with file-handle
+  cleanup on completion, cancellation, request abort, and errors. Its direct
+  `Bun.serve` disconnect regression passes. That test does not traverse the
+  Vite/Nitro development adapter implicated by the OOM.
+- The existing private-corpus burn-in already supports deterministic book order,
+  hard and in-app navigation, endpoint isolation, playback/seeking, request
+  headers/outcomes, process RSS, and `/api/dev/memory` telemetry.
+
+## Decisions and boundaries
+
+1. **Exact range semantics are non-negotiable.** For a valid single range, the
+   response's inclusive start/end must be the parsed requested interval after
+   only the normal file-size clamp. No application maximum may silently shorten
+   it. Keep correct `206`, `Content-Range`, `Content-Length`, `Accept-Ranges`,
+   MIME, cache, `200`, and `416` behavior.
+2. **Response length is not memory residency.** A response may describe hundreds
+   of MiB while the server holds only a bounded chunk. Solve memory at the
+   body/cancellation/adapter layer, never by changing the selected HTTP range.
+3. **Keep native audio.** Media Chrome remains a controls/UI evaluation and
+   would still wrap the native media loader for an M4B URL. MSE, HLS, M4B
+   conversion/fragmentation, Blob loading, a custom JavaScript buffering engine,
+   and user-agent sniffing are out of scope.
+4. **Prove the real stacks.** A direct `Response` or `Bun.serve` unit test is
+   necessary but not sufficient. Acceptance must exercise `bun run dev` through
+   Vite/Nitro and the built production server.
+5. **Prefer the smallest transport fix.** First test exact ranges with the
+   current `rawFileBody`. If dev RSS is stable, do not replace it. If it is not,
+   evaluate a native bounded file/blob slice or reliable low-level connection
+   close signal. If Vite still drains after disconnect, bypass that adapter for
+   audio in development rather than weakening HTTP semantics. Record the chosen
+   mechanism and rejected alternatives in this plan before productizing it.
+6. **No broad harness project.** Add only the focused real-server probe or
+   burn-in assertions needed here. The general `e2e-testing-harness` backlog
+   item stays separate.
+7. **Private evidence stays private.** Store JSONL and analysis under
+   `data/bookplayer/evidence/audio-range-compat/`; do not commit corpus paths,
+   book titles, process identifiers, or evidence files.
+
+## Acceptance thresholds
+
+Define the verdict before comparing implementations:
+
+- all relevant requests finish or have only expected navigation aborts; no
+  media, browser-console, framing, or unexpected request failures;
+- no `RangeError: Out of memory`, server crash, restart, hung response, file
+  descriptor growth, or file-size-proportional RSS step;
+- use the first fixed-order run as warm-up, then repeat the identical run on the
+  same server process; warmed RSS growth across the repeat must be at most 16
+  MiB, with no monotonic final-five slope suggesting retained work;
+- `heapUsed`, `external`, and `arrayBuffers` must oscillate/settle rather than
+  grow once per book; investigate a disagreement between RSS and heap fields
+  rather than averaging it away;
+- do not relax the 16 MiB guard after seeing a failure. Explain environmental
+  noise or fix the retention, then record any deliberately revised threshold in
+  this plan before rerunning;
+- every satisfiable audio `206` observed by the focused probe must describe and
+  send the exact requested interval (apart from clamping an end beyond EOF);
+- `bun run ci` passes at each implementation commit and at final acceptance.
+
+## Execution
+
+### P0 — preserve and measure the workaround baseline
+
+- [ ] Confirm Daniel has finished the current iPad experiment and approved
+      branch execution. Record the starting commit and whether the 4000 MiB
+      workaround is committed or an intentional worktree change; preserve it
+      exactly while creating the branch.
+- [ ] Record the manual A/B already established: 1 MiB failed for the selected
+      large book; 4000 MiB played on Brave/iPad. Do not spend time repeating the
+      failing 1 MiB case unless a later result contradicts it.
+- [ ] On the 4000 MiB baseline, run the dev hard-navigation audio playback
+      burn-in twice on the same process using the commands below. This reveals
+      whether effectively exact ranges already reintroduce the old dev RSS trend
+      and supplies before/after evidence for the transport task.
+- [ ] Inspect request failures and all memory fields, not only the final RSS.
+      Record the baseline verdict in this plan before T2 selects a transport.
+
+### T1 — strengthen protocol and burn-in observability `[coding, tier: med]`
+
+Boundary: tests and diagnostics only; do not remove or reduce the 4000 MiB
+workaround in this task.
+
+- [ ] Extend media response unit coverage so bounded, open-ended, suffix,
+      overlong-end, absent, malformed, and unsatisfiable ranges pin exact
+      status, headers, and body bytes without allocating a corpus-sized buffer.
+- [ ] Replace cap-coupled test fixtures with small or sparse deterministic files
+      where appropriate. The eventual tests must describe the protocol contract,
+      not a particular maximum constant.
+- [ ] Preserve regressions for demand-driven 64 KiB pulls, BYOB behavior,
+      pre-abort, mid-body abort, asynchronous open failure, handle close, and a
+      real socket disconnect stopping before EOF. Adapt them to the chosen body
+      mechanism later rather than deleting cancellation coverage.
+- [ ] Make burn-in JSONL capture the request `Range` header alongside response
+      `Content-Range`/`Content-Length`, and capture the media element's error
+      code/message, `networkState`, `readyState`, duration, and seek result.
+- [ ] Add a focused analyzer/assertion command for a pair of fixed-order JSONL
+      runs. It must report request failures, exact-range mismatches,
+      baseline/end RSS, warmed RSS delta, final-five trend,
+      heap/external/array-buffer trends, and pass/fail against the declared 16
+      MiB threshold. Keep it usable on evidence produced by both dev and
+      production (production may lack the dev-only heap endpoint).
+- [ ] Unit-test range comparison and memory-verdict calculations with synthetic
+      JSONL/events, including missing telemetry, expected aborts, a plateau, a
+      monotonic leak, and a range mismatch.
+
+Acceptance: diagnostics introduce no serving behavior change; focused tests and
+`bun run ci` pass; the analyzer produces a deterministic verdict for the prior
+OOM evidence and the new 4000 MiB baseline.
+
+### T2 — exact ranges plus cancellation-safe delivery `[coding, tier: med-high]`
+
+Depends on P0 and T1. This is the behavior change. The subagent gets the
+archived OOM diagnosis, P0 evidence, protocol decisions above, and the focused
+tests; it must not infer a player rewrite.
+
+- [ ] Remove the arbitrary audio response maximum and its cap-specific comment,
+      export, and tests. A satisfiable range response uses the parsed requested
+      end after the ordinary EOF clamp.
+- [ ] Run the unit/socket suite and a short real-dev probe with the existing
+      `rawFileBody` first. If P0/T1 evidence meets the threshold, retain it and
+      stop—do not redesign a passing transport.
+- [ ] If the actual dev stack still drains or grows, evaluate the smallest
+      cancellation-safe body in this order: a native Bun file/blob slice with
+      exact range headers; an actual connection-close signal wired to owned
+      cleanup; then an audio-only development path that bypasses the draining
+      adapter. Validate each candidate through the real Vite/Nitro route, not a
+      direct-`Response` microbenchmark alone.
+- [ ] Keep file open lazy, memory bounded independently of selected range size,
+      and cleanup idempotent on EOF, exact range completion, cancellation,
+      disconnect, and read/open error. Preserve structured missing-asset errors
+      and do not expose paths.
+- [ ] Do not change EPUB, cover, VTT, or alignment delivery merely for symmetry.
+      Generalize the transport only when the same proven mechanism safely
+      improves those paths without enlarging this task.
+- [ ] Record the final mechanism, evidence, and rejected alternatives in this
+      plan. Update comments to explain the transport invariant rather than the
+      superseded response cap.
+
+Acceptance: all unit and focused disconnect tests pass; exact-range assertions
+pass; the short dev run has no unexpected failures; `bun run ci` passes.
+
+### T3 — automated dev and production burn-in acceptance `[coding, tier: low-med]`
+
+Boundary: small harness corrections exposed by real use only. Do not build the
+general E2E framework.
+
+- [ ] Run the full matrix below with fixed seed 7 and the same 20 selected books
+      on one warmed process per runtime. Save JSONL under the private evidence
+      directory and run the T1 analyzer after each pair.
+- [ ] If the harness cannot make the two runs comparable, minimally add an
+      explicit captured `--books` replay or `--repeat` option; unit-test
+      argument parsing/order. Do not accept shuffled-but-different inputs.
+- [ ] Dev primary: hard navigation, audio endpoint, 500 ms playback, middle
+      seek, two consecutive runs. This is the old abort/native-allocation
+      stress.
+- [ ] Dev lifecycle: in-app navigation, all endpoints, 250 ms silent settle, two
+      consecutive runs. This guards React cleanup and non-audio regressions.
+- [ ] Production primary: built server, hard navigation, audio endpoint, 500 ms
+      playback, middle seek, two consecutive runs, sampling the server PID.
+- [ ] Run a longer dev audio soak (at least 100 book visits, by repeating the
+      fixed list) after the short matrix passes. It must satisfy the same warmed
+      threshold and complete without OOM or server restart.
+
+Acceptance: every automated matrix row and the soak passes the thresholds; the
+evidence names the commit, runtime, Bun/Nitro versions, command, fixed book IDs,
+and analyzer verdict without being committed.
+
+### P4 — Daniel's iPad Brave acceptance
+
+The orchestrator supplies the URLs and a short checklist; Daniel performs and
+reports this gate. Automated Chromium burn-in cannot substitute for it.
+
+- [ ] Use the same large book that failed under 1 MiB, with a cold/reloaded page
+      so an hour-cached partial response cannot mask behavior.
+- [ ] In Brave on iPad: metadata/duration appears without an Audio unavailable
+      error; play for at least 60 seconds; seek near the middle, near the end,
+      and back near the start; pause/resume; background/foreground once.
+- [ ] Open at least two other large books, including one near the top of the
+      corpus size range, and verify initial play plus a middle seek.
+- [ ] Rapidly switch among at least five books and return to the first; verify
+      the server stays responsive and the first book resumes/plays.
+- [ ] Perform the checklist against the runtime Daniel actually uses on iPad
+      (dev is mandatory if that is the workflow). Also smoke the production
+      build once so both accepted server stacks have a real WebKit result.
+- [ ] Record iPadOS and Brave versions, runtime, pass/fail, and any media error
+      details in this plan. No device identifiers or private titles are needed.
+
+### T5 — reconcile records and close `[coding, tier: low]`
+
+- [ ] Update `apps/bookplayer/README.md` and durable TanStack/media notes with
+      the exact-range and bounded-delivery invariants plus the runnable focused
+      checks. Do not claim Media Chrome changes transport behavior.
+- [ ] Preserve the archived OOM plan as historical evidence; add only a concise
+      supersession pointer if readers could otherwise implement the 1 MiB cap
+      again. Update the old Closed outcome only if needed to say the cap was
+      later superseded by this plan, without rewriting history.
+- [ ] Run `bun run ci`, review the full diff for unrelated changes or private
+      data, and obtain Daniel's P4 result.
+- [ ] Mark this plan done, move it to `plans/archive/`, and move the backlog
+      item from `Now` to Closed with the exact-range mechanism, OOM verdict, and
+      iPad acceptance summarized in one line.
+
+## Runnable acceptance commands
+
+Run from the repository root unless the command starts with `cd`. Use a fresh
+server process for each dev/production matrix, but keep that process alive for
+the two repeated runs within a matrix.
+
+### Development server
+
+```sh
+cd apps/bookplayer
+BOOKPLAYER_ROOT=private bun run dev
+```
+
+Primary dev run and immediate repeat:
+
+```sh
+mkdir -p data/bookplayer/evidence/audio-range-compat
+bun apps/bookplayer/scripts/burn-in.ts --url http://localhost:3000 \
+  --play-time 500 --num-books 20 --seed 7 --navigation hard \
+  --endpoint audio --headless \
+  --memory-url http://localhost:3000/api/dev/memory --json \
+  > data/bookplayer/evidence/audio-range-compat/dev-hard-audio-seed7.jsonl
+bun apps/bookplayer/scripts/burn-in.ts --url http://localhost:3000 \
+  --play-time 500 --num-books 20 --seed 7 --navigation hard \
+  --endpoint audio --headless \
+  --memory-url http://localhost:3000/api/dev/memory --json \
+  > data/bookplayer/evidence/audio-range-compat/dev-hard-audio-seed7-repeat.jsonl
+```
+
+Dev in-app/all-endpoint run: use the same two commands/output naming pattern,
+changing the burn-in arguments to:
+
+```text
+--play-time 0 --silent-time 250 --num-books 20 --seed 7
+--navigation in-app --endpoint all --headless
+--memory-url http://localhost:3000/api/dev/memory --json
+```
+
+### Production server
+
+```sh
+cd apps/bookplayer
+bun run build
+BOOKPLAYER_ROOT=private bun run start
+```
+
+Run the primary pair against production with the dev `--memory-url` omitted and
+`--server-pid <PID>` added. Capture the exact PID of the built server, not a
+parent shell. Use `prod-hard-audio-seed7{,-repeat}.jsonl` output names.
+
+### Verification lanes
+
+The executing branch must make these concrete and keep them documented:
+
+```sh
+bun run ci
+RUN_E2E_TESTS=1 bun test apps/bookplayer --test-name-pattern audio
+```
+
+If the focused real-server test receives its own file or script, replace the
+second provisional command above with its exact stable command here. Likewise,
+record the T1 analyzer command here once named; it must accept the first and
+repeat JSONL paths and exit nonzero on an acceptance failure.
+
+## Completion checklist
+
+- [ ] Browser-requested audio ranges are honored exactly; no response cap or
+      user-agent exception remains.
+- [ ] Unit, socket-disconnect, actual-dev, production, and full CI checks pass.
+- [ ] Warmed dev and production RSS pass the declared threshold, including the
+      100-visit dev soak.
+- [ ] Daniel passes the large-book play/seek/switch checklist in Brave on iPad.
+- [ ] Media Chrome/MSE/HLS remain outside the transport fix.
+- [ ] Private evidence is saved under `data/` and absent from git.
+- [ ] Durable docs and backlog/plan lifecycle are reconciled.

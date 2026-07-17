@@ -7,9 +7,11 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 ## Now
 
-Empty — refill at the next take-stock. Leading candidates (Daniel, 2026-07-12):
-the docs-taxonomy harvest (fold settled design docs into docs/), and the first
-matching-quality experiments over the accepted design baseline.
+- [ ] bookplayer-audio-range-compat — honor browser-requested audio ranges
+      exactly without restoring dev-server OOM behavior; retain native audio
+      playback and prove cancellation, warmed RSS, and iPad Brave playback.
+      plan:
+      [bookplayer-audio-range-compat](plans/bookplayer-audio-range-compat.md)
 
 ## player-ux
 
