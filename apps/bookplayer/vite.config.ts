@@ -6,6 +6,8 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
+import audioHandler from "./server/handlers/audio.ts";
+
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   // Bun preset per https://bun.com/docs/guides/ecosystem/tanstack-start.
@@ -17,6 +19,9 @@ const config = defineConfig({
   nitro: {
     preset: "bun",
     rollupConfig: { external: [/^@sentry\//] },
+    // Keep development audio on the outer client connection so request aborts
+    // stop its bounded file body instead of being lost across the dev proxy.
+    devHandlers: [{ route: "/api/audio/:bookId", handler: audioHandler }],
     handlers: [
       {
         route: "/api/alignment/:bookId",

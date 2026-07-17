@@ -13,7 +13,6 @@ import { open } from "node:fs/promises";
 import { createConnection, createServer } from "node:net";
 
 import {
-  AUDIO_RANGE_RESPONSE_MAX_BYTES,
   BOOK_ID_RE,
   parseRangeHeader,
   rawFileBody,
@@ -190,19 +189,23 @@ describe("serveStreamedWithRange", () => {
     expect(await responseBytes(res)).toEqual([...fixture.expected]);
   });
 
-  test("caps a broad range without allocating a matching fixture", async () => {
+  test("describes a broad requested interval exactly without materializing it", async () => {
     const root = makeDir("media-audio-sparse-");
     const path = join(root, "book.m4b");
+    const fileSize = 3_145_829;
+    const start = 4_096;
+    const end = 2_500_123;
     writeFileSync(path, "fixture");
-    truncateSync(path, AUDIO_RANGE_RESPONSE_MAX_BYTES + 4096);
-    const res = serveStreamedWithRange(path, rangeRequest("bytes=0-"));
+    truncateSync(path, fileSize);
+    const res = serveStreamedWithRange(
+      path,
+      rangeRequest(`bytes=${start}-${end}`),
+    );
     expect(res.status).toBe(206);
     expect(res.headers.get("Content-Range")).toBe(
-      `bytes 0-${AUDIO_RANGE_RESPONSE_MAX_BYTES - 1}/${AUDIO_RANGE_RESPONSE_MAX_BYTES + 4096}`,
+      `bytes ${start}-${end}/${fileSize}`,
     );
-    expect(res.headers.get("Content-Length")).toBe(
-      String(AUDIO_RANGE_RESPONSE_MAX_BYTES),
-    );
+    expect(res.headers.get("Content-Length")).toBe(String(end - start + 1));
     await res.body?.cancel();
   });
 

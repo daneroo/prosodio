@@ -121,13 +121,23 @@ manual A/B remains the compatibility baseline.
 - [x] Record the manual A/B already established: 1 MiB failed for the selected
       large book; 4000 MiB played on Brave/iPad. Do not spend time repeating the
       failing 1 MiB case unless a later result contradicts it.
-- [ ] On T2's first exact-range implementation, before adding a transport
+- [x] On T2's first exact-range implementation, before adding a transport
       fallback, run the dev hard-navigation audio playback burn-in twice on the
       same process using the commands below. For the present corpus this is
       protocol-equivalent to the reset 4000 MiB workaround and supplies the
       required current before/after evidence without restoring temporary code.
-- [ ] Inspect request failures and all memory fields, not only the final RSS.
+- [x] Inspect request failures and all memory fields, not only the final RSS.
       Record the baseline verdict in this plan before T2 selects a transport.
+
+The 2026-07-16 pre-transport probe stopped after the minimum useful 5+5 books
+rather than intentionally recreating a multi-gigabyte OOM. Exact range
+comparisons passed, but warmed RSS grew 421.34 MiB (16 MiB limit) and the repeat
+final-five slope was +322.67 MiB/sample. Repeat heap grew only 6.83 MiB,
+external 7.91 MiB, and array buffers fell 3.21 MiB, confirming unexplained
+native retention in the development adapter. T2 therefore proceeds to the
+audio-only Nitro `devHandler` bypass. The same run also exposed a harness-owned
+React hydration warning from its pre-hydration seek attribute; T3 will remove
+that false positive before final acceptance.
 
 ### T1 — strengthen protocol and burn-in observability `[coding, tier: med]`
 
@@ -177,28 +187,45 @@ the leading smallest fix is to register the existing audio handler as a Nitro
 `devHandler`, bypassing env-runner for this route in development while retaining
 the normal Nitro handler for production.
 
-- [ ] Remove the arbitrary audio response maximum and its cap-specific comment,
+- [x] Remove the arbitrary audio response maximum and its cap-specific comment,
       export, and tests. A satisfiable range response uses the parsed requested
       end after the ordinary EOF clamp.
-- [ ] Run the unit/socket suite and a short real-dev probe with the existing
+- [x] Run the unit/socket suite and a short real-dev probe with the existing
       `rawFileBody` first. If P0/T1 evidence meets the threshold, retain it and
       stop—do not redesign a passing transport.
-- [ ] If the actual dev stack still drains or grows, evaluate the smallest
+- [x] If the actual dev stack still drains or grows, evaluate the smallest
       cancellation-safe body in this order: a native Bun file/blob slice with
       exact range headers; an actual connection-close signal wired to owned
       cleanup; then an audio-only development path that bypasses the draining
       adapter. Validate each candidate through the real Vite/Nitro route, not a
       direct-`Response` microbenchmark alone.
-- [ ] Keep file open lazy, memory bounded independently of selected range size,
+- [x] Keep file open lazy, memory bounded independently of selected range size,
       and cleanup idempotent on EOF, exact range completion, cancellation,
       disconnect, and read/open error. Preserve structured missing-asset errors
       and do not expose paths.
-- [ ] Do not change EPUB, cover, VTT, or alignment delivery merely for symmetry.
+- [x] Do not change EPUB, cover, VTT, or alignment delivery merely for symmetry.
       Generalize the transport only when the same proven mechanism safely
       improves those paths without enlarging this task.
-- [ ] Record the final mechanism, evidence, and rejected alternatives in this
+- [x] Record the final mechanism, evidence, and rejected alternatives in this
       plan. Update comments to explain the transport invariant rather than the
       superseded response cap.
+
+Final mechanism: audio responses now use the parser's exact EOF-clamped range
+with the existing lazy 64 KiB `rawFileBody`. Production keeps its normal Nitro
+handler. Development additionally registers that same handler as a Nitro
+`devHandler`, so it runs on Vite's outer request and receives the real
+client-close signal instead of crossing the env-runner proxy that drops it. No
+other asset route changed.
+
+The uncapped pre-transport 5+5 probe failed at +421.34 MiB warmed RSS. After the
+dev-handler bypass, a fresh fixed-order 20+20 run passed: the repeat moved from
+1066.23 MiB to 828.36 MiB (-237.88 MiB), its final-five RSS slope was -1.19
+MiB/sample, heap/external/array buffers settled, and every observed `206`
+matched its requested range. Historical Bun-file/native, BYOB, and inner-signal
+experiments were rejected because they still traversed the signal-dropping proxy
+and grew roughly 0.8–1.7 GiB. Modifying `httpxy` or reconstructing an outer
+close signal inside the worker would be broader and more fragile than the
+route-local development bypass.
 
 Acceptance: all unit and focused disconnect tests pass; exact-range assertions
 pass; the short dev run has no unexpected failures; `bun run ci` passes.
@@ -207,6 +234,11 @@ pass; the short dev run has no unexpected failures; `bun run ci` passes.
 
 Boundary: small harness corrections exposed by real use only. Do not build the
 general E2E framework.
+
+The first real T2 runs exposed and corrected two probe-owned races: seek state
+is no longer written as a pre-hydration DOM attribute, and response telemetry is
+drained before Chromium closes. The analyzer now sees real application errors
+without those harness-generated hydration/teardown failures.
 
 - [ ] Run the full matrix below with fixed seed 7 and the same 20 selected books
       on one warmed process per runtime. Save JSONL under the private evidence

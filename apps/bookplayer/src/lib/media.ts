@@ -19,7 +19,6 @@ import type { BookRecord } from "./types.ts";
 export const BOOK_ID_RE = /^[a-f0-9]{12}$/;
 
 const RAW_FILE_CHUNK_BYTES = 64 * 1024;
-export const AUDIO_RANGE_RESPONSE_MAX_BYTES = 1024 * 1024;
 
 export type AssetKind = "audio" | "cover" | "epub" | "vtt";
 
@@ -284,11 +283,7 @@ export function serveStreamedWithRange(
     });
   }
 
-  const { start } = range;
-  // A 206 may select a smaller interval than a broad requested range. The
-  // 1 MiB cap bounds native allocation churn when a downstream dev adapter
-  // drains after disconnect; MediaElement requests subsequent spans as needed.
-  const end = Math.min(range.end, start + AUDIO_RANGE_RESPONSE_MAX_BYTES - 1);
+  const { start, end } = range;
   return new Response(rawFileBody(absPath, { start, end }, request.signal), {
     status: 206,
     headers: {
