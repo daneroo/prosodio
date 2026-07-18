@@ -47,24 +47,33 @@ asset server is simplified; do not begin asset changes before R0 passes.
 
 ### R0 — establish the simple regression guard `[coding, tier: low]`
 
-- [ ] Preserve these normal commands and their current defaults:
+- [x] Preserve these normal commands and their current defaults:
       `bun run scripts/burn-in`, `bun run scripts/burn-in --no-mute`, and
       `bun run scripts/burn-in --play-time 30000`.
-- [ ] With the current working asset implementation unchanged, run burn-in and
+- [x] With the current working asset implementation unchanged, run burn-in and
       confirm it still visits books, exercises playback/seeking, reports useful
       per-book results, and completes normally.
-- [ ] Make the existing memory route available in both development and
+- [x] Make the existing memory route available in both development and
       production, returning only uncached RSS bytes. The normal burn-in command
       should use that route automatically—no memory URL or PID option required.
-- [ ] Simplify `burn-in.ts` so it samples RSS after every book and reports only
+- [x] Simplify `burn-in.ts` so it samples RSS after every book and reports only
       understandable minimum, maximum, range, and final RSS during the run and
       at completion. It must not require a second analysis command or evidence
       file.
-- [ ] Remove navigation and endpoint-selection modes unless a concrete behavior
+- [x] Remove navigation and endpoint-selection modes unless a concrete behavior
       required by the normal commands proves they are necessary.
-- [ ] Run the normal command and focused short checks of `--no-mute` and
+- [x] Run the normal command and focused short checks of `--no-mute` and
       `--play-time 30000`. Do not remove the old analyzer machinery until this
       replacement is visibly working.
+
+Automated R0 checks used the user-owned standard development server without
+altering asset delivery. One-book samples of normal playback, `--no-mute`, and
+the full `--play-time 30000` all played from the middle, reported healthy media
+state, completed with zero errors, and printed baseline, per-book, and final RSS
+summaries. Daniel then accepted R0 after a normal five-book interactive run
+completed and remained usable. It reported RSS final 1100.5 MiB, minimum 1081.2
+MiB, maximum 1100.5 MiB, and range 19.3 MiB. Its 24 observed errors were mostly
+known missing font/resources and do not block this burn-in simplification.
 
 ### R1 — remove the completed experiment `[coding, tier: low]`
 
