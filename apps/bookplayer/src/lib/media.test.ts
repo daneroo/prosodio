@@ -5,7 +5,6 @@ import {
   rmSync,
   symlinkSync,
   truncateSync,
-  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,13 +14,12 @@ import { createConnection, createServer } from "node:net";
 
 import {
   BOOK_ID_RE,
-  createAudioSourceCache,
   describeAudioResponse,
   parseRangeHeader,
   rawFileBody,
   safeResolve,
+  serveAudio,
   serveFile,
-  serveStreamedWithRange,
 } from "./media.ts";
 
 const tempDirs: Array<string> = [];
@@ -44,49 +42,6 @@ function rangeRequest(range?: string): Request {
     range ? { headers: { Range: range } } : undefined,
   );
 }
-
-describe("audio source cache", () => {
-  test("reuses one source until the file version changes", () => {
-    let creations = 0;
-    const cache = createAudioSourceCache(2, (path) => {
-      creations += 1;
-      return new Blob([path]);
-    });
-
-    const first = cache.get("/audio/a.m4b", "version-1");
-    expect(cache.get("/audio/a.m4b", "version-1")).toBe(first);
-    expect(creations).toBe(1);
-
-    const replaced = cache.get("/audio/a.m4b", "version-2");
-    expect(replaced).not.toBe(first);
-    expect(creations).toBe(2);
-    expect(cache.size).toBe(1);
-  });
-
-  test("keeps only the most recently used bounded set", () => {
-    const creations: Array<string> = [];
-    const cache = createAudioSourceCache(2, (path) => {
-      creations.push(path);
-      return new Blob([path]);
-    });
-
-    const a = cache.get("a", "1");
-    cache.get("b", "1");
-    expect(cache.get("a", "1")).toBe(a);
-    cache.get("c", "1");
-    cache.get("b", "1");
-
-    expect(cache.size).toBe(2);
-    expect(creations).toEqual(["a", "b", "c", "b"]);
-  });
-
-  test("rejects an unbounded or empty configuration", () => {
-    expect(() => createAudioSourceCache(0)).toThrow(RangeError);
-    expect(() => createAudioSourceCache(Number.POSITIVE_INFINITY)).toThrow(
-      RangeError,
-    );
-  });
-});
 
 describe("safeResolve", () => {
   test("resolves a real file inside the root", () => {
@@ -171,7 +126,7 @@ describe("parseRangeHeader", () => {
   });
 });
 
-describe("serveStreamedWithRange", () => {
+describe("serveAudio", () => {
   function makeAudio(bytes: number): string {
     const root = makeDir("media-audio-");
     const path = join(root, "book.m4b");
@@ -243,7 +198,7 @@ describe("serveStreamedWithRange", () => {
 
   test("full response has exact Content-Length and Accept-Ranges", async () => {
     const path = makeAudio(4096);
-    const res = serveStreamedWithRange(path, rangeRequest());
+    const res = serveAudio(path, rangeRequest());
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Length")).toBe("4096");
     expect(res.headers.get("Accept-Ranges")).toBe("bytes");
@@ -255,46 +210,18 @@ describe("serveStreamedWithRange", () => {
 
   test("Bun file bodies preserve full and end-exclusive sliced bytes", async () => {
     const path = makeAudio(64);
-    const full = serveStreamedWithRange(path, rangeRequest(), "bun-file");
+    const full = serveAudio(path, rangeRequest());
     expect(full.status).toBe(200);
     expect(full.headers.get("Content-Length")).toBe("64");
     expect(await responseBytes(full)).toEqual(
       Array.from({ length: 64 }, (_, index) => index),
     );
 
-    const sliced = serveStreamedWithRange(
-      path,
-      rangeRequest("bytes=5-12"),
-      "bun-file",
-    );
+    const sliced = serveAudio(path, rangeRequest("bytes=5-12"));
     expect(sliced.status).toBe(206);
     expect(sliced.headers.get("Content-Range")).toBe("bytes 5-12/64");
     expect(sliced.headers.get("Content-Length")).toBe("8");
     expect(await responseBytes(sliced)).toEqual([5, 6, 7, 8, 9, 10, 11, 12]);
-  });
-
-  test("Bun source reuse invalidates after a same-path file replacement", async () => {
-    const path = makeAudio(64);
-    const firstDescriptor = describeAudioResponse(path, null);
-    if (firstDescriptor instanceof Response) {
-      throw new Error(`unexpected descriptor error: ${firstDescriptor.status}`);
-    }
-    const first = serveStreamedWithRange(path, rangeRequest(), "bun-file");
-    expect((await first.arrayBuffer()).byteLength).toBe(64);
-
-    writeFileSync(path, Buffer.alloc(64, 7));
-    const future = new Date(Date.now() + 10_000);
-    utimesSync(path, future, future);
-    const secondDescriptor = describeAudioResponse(path, null);
-    if (secondDescriptor instanceof Response) {
-      throw new Error(
-        `unexpected descriptor error: ${secondDescriptor.status}`,
-      );
-    }
-    expect(secondDescriptor.fileVersion).not.toBe(firstDescriptor.fileVersion);
-
-    const second = serveStreamedWithRange(path, rangeRequest(), "bun-file");
-    expect(await responseBytes(second)).toEqual(Array(64).fill(7));
   });
 
   test.each([
@@ -324,11 +251,7 @@ describe("serveStreamedWithRange", () => {
     },
   ])("$name range pins headers and exact body bytes", async (fixture) => {
     const path = makeAudio(64);
-    const res = serveStreamedWithRange(
-      path,
-      rangeRequest(fixture.range),
-      "bounded-stream",
-    );
+    const res = serveAudio(path, rangeRequest(fixture.range));
     expect(res.status).toBe(206);
     expect(res.headers.get("Content-Range")).toBe(fixture.contentRange);
     expect(res.headers.get("Content-Length")).toBe(
@@ -346,10 +269,7 @@ describe("serveStreamedWithRange", () => {
     const end = 2_500_123;
     writeFileSync(path, "fixture");
     truncateSync(path, fileSize);
-    const res = serveStreamedWithRange(
-      path,
-      rangeRequest(`bytes=${start}-${end}`),
-    );
+    const res = serveAudio(path, rangeRequest(`bytes=${start}-${end}`));
     expect(res.status).toBe(206);
     expect(res.headers.get("Content-Range")).toBe(
       `bytes ${start}-${end}/${fileSize}`,
@@ -362,7 +282,7 @@ describe("serveStreamedWithRange", () => {
     "malformed or unsatisfiable range %s returns a structured 416",
     async (range) => {
       const path = makeAudio(64);
-      const res = serveStreamedWithRange(path, rangeRequest(range));
+      const res = serveAudio(path, rangeRequest(range));
       expect(res.status).toBe(416);
       expect(res.headers.get("Content-Range")).toBe("bytes */64");
       expect(res.headers.get("Cache-Control")).toBe("no-store");
@@ -377,7 +297,7 @@ describe("serveStreamedWithRange", () => {
 
   test("a non-bytes range is ignored as a full response", async () => {
     const path = makeAudio(4096);
-    const res = serveStreamedWithRange(path, rangeRequest("items=0-7"));
+    const res = serveAudio(path, rangeRequest("items=0-7"));
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Range")).toBeNull();
     expect(res.headers.get("Content-Length")).toBe("4096");
@@ -386,7 +306,7 @@ describe("serveStreamedWithRange", () => {
 
   test("missing file returns structured 404", async () => {
     const root = makeDir("media-root-");
-    const res = serveStreamedWithRange(join(root, "gone.m4b"), rangeRequest());
+    const res = serveAudio(join(root, "gone.m4b"), rangeRequest());
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error: { code: string } };
     expect(body.error.code).toBe("ASSET_MISSING");

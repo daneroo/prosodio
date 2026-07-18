@@ -6,8 +6,6 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
-import { devAudioMiddleware } from "./server/dev-audio-middleware.ts";
-
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   // Bun preset per https://bun.com/docs/guides/ecosystem/tanstack-start.
@@ -18,6 +16,7 @@ const config = defineConfig({
   // media-element requests (Sec-Fetch-Dest image/audio) reach them in dev.
   nitro: {
     preset: "bun",
+    devServer: { runner: "self" },
     rollupConfig: { external: [/^@sentry\//] },
     handlers: [
       {
@@ -39,13 +38,7 @@ const config = defineConfig({
       { route: "/api/vtt/:bookId", handler: "./server/handlers/vtt.ts" },
     ],
   },
-  plugins: [
-    devAudioMiddleware(),
-    nitro(),
-    tailwindcss(),
-    tanstackStart(),
-    viteReact(),
-  ],
+  plugins: [nitro(), tailwindcss(), tanstackStart(), viteReact()],
 });
 
 export default config;

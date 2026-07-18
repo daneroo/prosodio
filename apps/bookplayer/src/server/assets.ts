@@ -1,7 +1,7 @@
 /**
  * Shared handler behind the four /api/<kind>/$bookId routes: validate the
  * id, resolve the book and asset inside the active root, and serve with the
- * right semantics. Audio body ownership is selected explicitly by its route.
+ * right semantics.
  */
 import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
@@ -9,26 +9,21 @@ import {
   BOOK_ID_RE,
   assetPath,
   jsonError,
+  serveAudio,
   serveFile,
-  serveStreamedWithRange,
 } from "#/lib/media";
-import type { AssetKind, AudioBodyStrategy } from "#/lib/media";
-
-type ServeAssetOptions = {
-  audioBodyStrategy?: AudioBodyStrategy;
-};
+import type { AssetKind } from "#/lib/media";
 
 export function serveAsset(
   kind: AssetKind,
   bookId: string,
   request: Request,
-  options: ServeAssetOptions = {},
 ): Response {
   const resolved = resolveAsset(kind, bookId);
   if (resolved instanceof Response) return resolved;
 
   return kind === "audio"
-    ? serveStreamedWithRange(resolved, request, options.audioBodyStrategy)
+    ? serveAudio(resolved, request)
     : serveFile(resolved, request.signal);
 }
 

@@ -93,23 +93,31 @@ CI passed with 565 tests and no failures; asset delivery remained unchanged.
       and the current development and production paths. Use it as the design
       constraint; if the implementation cannot be explained briefly, simplify
       it.
-- [ ] Verify the specific Vite/Nitro limitation claimed to require a separate
+- [x] Verify the specific Vite/Nitro limitation claimed to require a separate
       development audio middleware. Do not preserve the split on experiment
       history alone.
-- [ ] Decide whether one audio-serving path can work in development and
+- [x] Decide whether one audio-serving path can work in development and
       production.
-- [ ] Remove the development override unless it is demonstrably necessary.
-- [ ] If the override remains, document exactly what it replaces, what remains
-      shared, and why the duplication is the smallest reliable design.
-- [ ] Simplify the remaining asset code and tests one piece at a time. After
+- [x] Remove the development override unless it is demonstrably necessary.
+- [x] No override remains: development and production use the Nitro audio
+      handler and native Bun file slices.
+- [x] Simplify the remaining asset code and tests one piece at a time. After
       each change, use the working burn-in and its coarse RSS summary; require
       no exact MiB ceiling.
-- [ ] Finalize the document to describe only the accepted implementation and its
+- [x] Finalize the document to describe only the accepted implementation and its
       invariants. Archive plans are experiment records to harvest and then
       delete, not permanent system documentation.
-- [ ] Stop when the smallest understandable implementation honors exact ranges,
+- [x] Stop when the smallest understandable implementation honors exact ranges,
       plays large books, survives representative switching without OOM/restart,
       and shows no obvious continuing or file-size-proportional RSS growth.
+
+R2 replaced the 664-line development middleware/test pair with Nitro's `self`
+runner and one native Bun audio path. The default worker path was re-tested on
+the same five books: RSS rose from 517.8 MiB to 1880.6 MiB. The accepted path
+played the same books, applied a live server edit without restart, and completed
+a warmed 20-book run at 673.0 MiB final, 545.0 MiB minimum, 682.1 MiB maximum,
+and 137.0 MiB range. Removing the 32-entry BunFile cache did not cause
+catastrophic or file-sized growth.
 
 ### R3 — acceptance and close
 

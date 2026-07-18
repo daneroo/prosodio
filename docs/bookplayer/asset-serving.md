@@ -22,16 +22,16 @@ URL -> server/handlers -> src/server/assets.ts -> src/lib/media.ts -> filesystem
 - Alignment stays in its handler because it generates, caches, and negotiates an
   artifact.
 
-## Development audio override
+## Runtime
 
 ```text
-development -> Vite audio middleware -> file
-production  -> Nitro audio handler    -> Bun file
+development -> Vite -> Nitro -> serveAudio -> Bun.file slice
+production  -> Nitro         -> serveAudio -> Bun.file slice
 ```
 
-- Override: `GET|HEAD /api/audio/:bookId` only.
-- Shared: validation, path resolution, ranges, status, and headers.
-- Duplicated: byte delivery, backpressure, and disconnect handling.
+- Nitro's `self` development runner keeps requests in Vite's Bun process. This
+  avoids the worker proxy whose abandoned audio reads caused file-sized RSS
+  growth.
 
 ## Acceptance
 
