@@ -295,14 +295,6 @@ function isExpectedAbort(text: string) {
   return /ERR_ABORTED|NS_BINDING_ABORTED/i.test(text);
 }
 
-// Kept until the experiment-only burn-in tests are removed in R1.
-export function isTransientMediaDiagnosticError(error: unknown) {
-  const text = error instanceof Error ? error.message : String(error);
-  return /execution context was destroyed|element is not attached to the dom/i.test(
-    text,
-  );
-}
-
 function formatDuration(durationMs: number) {
   return durationMs >= 1000
     ? `${(durationMs / 1000).toFixed(durationMs % 1000 === 0 ? 0 : 1)}s`
@@ -397,11 +389,11 @@ Options:
   };
 }
 
-export function parseRepeat(value: string | undefined) {
+function parseRepeat(value: string | undefined) {
   return parseInteger(value, DEFAULT_ARGS.repeat, "repeat", 1);
 }
 
-export function repeatLinks<T>(links: ReadonlyArray<T>, repeat: number) {
+function repeatLinks<T>(links: ReadonlyArray<T>, repeat: number) {
   return Array.from({ length: repeat }, () => links).flat();
 }
 

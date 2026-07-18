@@ -77,12 +77,15 @@ known missing font/resources and do not block this burn-in simplification.
 
 ### R1 — remove the completed experiment `[coding, tier: low]`
 
-- [ ] Delete `analyze-burn-in.ts`, `burn-in-analysis.ts`, their tests, and
+- [x] Delete `analyze-burn-in.ts`, `burn-in-analysis.ts`, their tests, and
       `burn-in.test.ts`; remove their package references and dead types/options.
-- [ ] Delete the ignored `data/bookplayer/evidence/audio-range-compat/`
+- [x] Delete the ignored `data/bookplayer/evidence/audio-range-compat/`
       directory. Do not replace it with another maintained evidence format.
-- [ ] Run `bun run ci` and commit the small, self-contained burn-in before
+- [x] Run `bun run ci` and commit the small, self-contained burn-in before
       changing asset delivery.
+
+R1 removed 687 maintained lines and 23 ignored experiment files (6.7 MiB). Full
+CI passed with 565 tests and no failures; asset delivery remained unchanged.
 
 ### R2 — review and simplify asset delivery `[coding only after approval]`
 
