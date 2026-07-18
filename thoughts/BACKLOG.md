@@ -7,11 +7,7 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 ## Now
 
-- [ ] bookplayer-audio-range-compat — honor browser-requested audio ranges
-      exactly without restoring dev-server OOM behavior; retain native audio
-      playback and prove cancellation, warmed RSS, and iPad Brave playback.
-      plan:
-      [bookplayer-audio-range-compat](plans/bookplayer-audio-range-compat.md)
+No scheduled item.
 
 ## player-ux
 
@@ -85,6 +81,10 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 ## infra
 
+- [ ] bookplayer-runtime-parity — make the built Bookplayer serve every route,
+      including alignment; pass burn-in and iPad ad-hoc checks in development
+      and production, explicitly exercising Node and Bun execution rather than
+      assuming `bun run` selects the runtime.
 - [ ] promote-app-config — shared `packages/config` (four consumers now); the
       first brick of any future data-plane extraction. ticket:
       [promote-app-config](tickets/promote-app-config.md)
@@ -142,11 +142,9 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
-- 2026-07-15 bookplayer-epub-serve-oom — fixed whole-file copies, unsafe/split
-  raw delivery, stale client requests, and file-size-proportional dev-adapter
-  churn with one bounded/cancellable raw-file primitive and a 1 MiB audio range
-  cap. Accepted in dev and production.
-  [plans/archive/bookplayer-epub-serve-oom.md](plans/archive/bookplayer-epub-serve-oom.md)
+- 2026-07-18 bookplayer-audio-range-compat — exact browser ranges now use one
+  Nitro/Bun-file audio path in development and production. Accepted with a
+  50-book development burn-in (no OOM) and Brave/iPad ad-hoc playback.
 - 2026-07-12 sync-repository-workflow — `docs/` renamed to lowercase kebab-case
   (reversed the earlier UPPERCASE decision; verified two-hop `git mv` procedure
   for macOS case-insensitive filesystems), all 20 referencing files fixed,
