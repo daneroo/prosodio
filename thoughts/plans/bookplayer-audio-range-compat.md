@@ -89,18 +89,27 @@ CI passed with 565 tests and no failures; asset delivery remained unchanged.
 
 ### R2 — review and simplify asset delivery `[coding only after approval]`
 
-- [ ] Explain the current development and production request paths in plain
-      language, then decide which special pieces are actually required to avoid
-      catastrophic growth. Review the development middleware and production
-      BunFile cache explicitly.
-- [ ] Remove unjustified tuning one piece at a time. After each change, run the
-      working burn-in and inspect its simple RSS summary; require no exact MiB
-      ceiling.
-- [ ] Keep exact range behavior and only the focused protocol/lifecycle tests
-      needed to protect it and the original OOM regression.
-- [ ] Stop when the smallest understandable implementation plays large books,
-      survives representative switching without OOM/restart, and shows no
-      obvious continuing or file-size-proportional RSS growth.
+- [ ] Write a short durable asset-serving document: URL scheme, code ownership,
+      and the current development and production paths. Use it as the design
+      constraint; if the implementation cannot be explained briefly, simplify
+      it.
+- [ ] Verify the specific Vite/Nitro limitation claimed to require a separate
+      development audio middleware. Do not preserve the split on experiment
+      history alone.
+- [ ] Decide whether one audio-serving path can work in development and
+      production.
+- [ ] Remove the development override unless it is demonstrably necessary.
+- [ ] If the override remains, document exactly what it replaces, what remains
+      shared, and why the duplication is the smallest reliable design.
+- [ ] Simplify the remaining asset code and tests one piece at a time. After
+      each change, use the working burn-in and its coarse RSS summary; require
+      no exact MiB ceiling.
+- [ ] Finalize the document to describe only the accepted implementation and its
+      invariants. Archive plans are experiment records to harvest and then
+      delete, not permanent system documentation.
+- [ ] Stop when the smallest understandable implementation honors exact ranges,
+      plays large books, survives representative switching without OOM/restart,
+      and shows no obvious continuing or file-size-proportional RSS growth.
 
 ### R3 — acceptance and close
 
@@ -108,8 +117,8 @@ CI passed with 565 tests and no failures; asset delivery remained unchanged.
       including playback, seeks, pause/resume, and background/foreground.
 - [ ] Run one representative burn-in against development and production, then
       run `bun run ci`.
-- [ ] Update the durable documentation and backlog with the final small design;
-      merge only after Daniel approves the reviewed source.
+- [ ] Update the backlog, harvest and delete superseded archived plans, and
+      merge only after Daniel approves the reviewed source and durable document.
 
 ## Scheduling and dispatch
 
