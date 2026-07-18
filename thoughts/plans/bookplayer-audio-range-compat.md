@@ -6,6 +6,99 @@ Goal: honor every satisfiable browser-requested audio byte range exactly while
 keeping raw-file delivery bounded, cancellation-safe, and RSS-stable in the real
 development and production server stacks.
 
+## Review reset — controlling decisions
+
+The implementation is not approved for merge. Review and simplification now take
+precedence over the earlier execution plan and its 16 MiB tuning target. The
+detailed material below remains only as an experiment record until this review
+is complete.
+
+Keep the final objective small:
+
+- honor browser-requested audio ranges exactly so large books work on iPad;
+- do not crash or OOM during representative development or production use;
+- observe memory coarsely enough to expose catastrophic or continuing growth;
+- prefer understandable code over optimizing allocator noise.
+
+Review decisions recorded so far:
+
+- Remove the exact 16 MiB warmed-RSS acceptance threshold. It was a diagnostic
+  guardrail, not a product requirement, and drove unjustified tuning.
+- Keep `scripts/burn-in.ts` as the only durable burn-in artifact. It should stay
+  an understandable book-sampling tool, not become an E2E framework.
+- Make the memory route usable in both development and production so burn-in can
+  sample RSS after every book and report simple minimum, maximum, range, and
+  final values during the run and at completion.
+- Presume the hard/in-app navigation modes and endpoint-selection matrix should
+  be removed unless the remaining review identifies a concrete ongoing use.
+- Remove `analyze-burn-in.ts`, `burn-in-analysis.ts`, their tests, and
+  `burn-in.test.ts`. We do not want to maintain tests for this temporary tuning
+  harness.
+- Delete the ignored `data/bookplayer/evidence/audio-range-compat/` experiment
+  output when simplification is executed. Its conclusions are recorded here; the
+  raw evidence is not a maintained project artifact.
+- Preserve only focused product tests: exact HTTP range behavior and any small
+  transport lifecycle test required to prevent the original OOM failure.
+
+## Review execution checklist
+
+Execute in this order. The working burn-in is the regression guard while the
+asset server is simplified; do not begin asset changes before R0 passes.
+
+### R0 — establish the simple regression guard `[coding, tier: low]`
+
+- [ ] Preserve these normal commands and their current defaults:
+      `bun run scripts/burn-in`, `bun run scripts/burn-in --no-mute`, and
+      `bun run scripts/burn-in --play-time 30000`.
+- [ ] With the current working asset implementation unchanged, run burn-in and
+      confirm it still visits books, exercises playback/seeking, reports useful
+      per-book results, and completes normally.
+- [ ] Make the existing memory route available in both development and
+      production, returning only uncached RSS bytes. The normal burn-in command
+      should use that route automatically—no memory URL or PID option required.
+- [ ] Simplify `burn-in.ts` so it samples RSS after every book and reports only
+      understandable minimum, maximum, range, and final RSS during the run and
+      at completion. It must not require a second analysis command or evidence
+      file.
+- [ ] Remove navigation and endpoint-selection modes unless a concrete behavior
+      required by the normal commands proves they are necessary.
+- [ ] Run the normal command and focused short checks of `--no-mute` and
+      `--play-time 30000`. Do not remove the old analyzer machinery until this
+      replacement is visibly working.
+
+### R1 — remove the completed experiment `[coding, tier: low]`
+
+- [ ] Delete `analyze-burn-in.ts`, `burn-in-analysis.ts`, their tests, and
+      `burn-in.test.ts`; remove their package references and dead types/options.
+- [ ] Delete the ignored `data/bookplayer/evidence/audio-range-compat/`
+      directory. Do not replace it with another maintained evidence format.
+- [ ] Run `bun run ci` and commit the small, self-contained burn-in before
+      changing asset delivery.
+
+### R2 — review and simplify asset delivery `[coding only after approval]`
+
+- [ ] Explain the current development and production request paths in plain
+      language, then decide which special pieces are actually required to avoid
+      catastrophic growth. Review the development middleware and production
+      BunFile cache explicitly.
+- [ ] Remove unjustified tuning one piece at a time. After each change, run the
+      working burn-in and inspect its simple RSS summary; require no exact MiB
+      ceiling.
+- [ ] Keep exact range behavior and only the focused protocol/lifecycle tests
+      needed to protect it and the original OOM regression.
+- [ ] Stop when the smallest understandable implementation plays large books,
+      survives representative switching without OOM/restart, and shows no
+      obvious continuing or file-size-proportional RSS growth.
+
+### R3 — acceptance and close
+
+- [ ] Daniel validates the previously failing large book in Brave on iPad,
+      including playback, seeks, pause/resume, and background/foreground.
+- [ ] Run one representative burn-in against development and production, then
+      run `bun run ci`.
+- [ ] Update the durable documentation and backlog with the final small design;
+      merge only after Daniel approves the reviewed source.
+
 ## Scheduling and dispatch
 
 This plan starts only after Daniel finishes testing the current 4000 MiB
