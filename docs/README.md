@@ -32,3 +32,7 @@ invariants. Grows by harvesting settled `thoughts/design/` docs.
   media-serving pattern (validated in apps/bookplayer)
 - [framework-astro.md](framework-astro.md) — Astro/Starlight bootstrap
   (unvalidated)
+
+## Applications
+
+- [bookplayer/](bookplayer/) — Bookplayer architecture and operating contracts

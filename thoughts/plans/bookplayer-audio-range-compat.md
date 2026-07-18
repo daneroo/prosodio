@@ -89,7 +89,7 @@ CI passed with 565 tests and no failures; asset delivery remained unchanged.
 
 ### R2 — review and simplify asset delivery `[coding only after approval]`
 
-- [ ] Write a short durable asset-serving document: URL scheme, code ownership,
+- [x] Write a short durable asset-serving document: URL scheme, code ownership,
       and the current development and production paths. Use it as the design
       constraint; if the implementation cannot be explained briefly, simplify
       it.
