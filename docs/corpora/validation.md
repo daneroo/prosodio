@@ -28,8 +28,8 @@ Validation there is two-layered today:
 - `apps/validate` — a TypeScript CLI, **already root-pointable**
   (`pnpm run dev -r <root>`): directory classification, mtime checks against a
   hints database, metadata via ffprobe / music-metadata. It also carries
-  `--mtime fix`/`write` and conversion modes — those are repair, and stay behind
-  the validation-only fence here (a milestone-2 decision on what parity keeps).
+  `--mtime fix`/`write` and conversion modes — those are repair, excluded from
+  parity (see Scope for where repair fits later).
 
 That validator is the ancestor of this effort. Prosodio brings the **visual**
 surface (the Corpora tab shows problems at a glance) but its scan/probe logic is
@@ -55,6 +55,11 @@ metadata enrichment (series/narrator/…), the preparation pipeline (conversion,
 audiobookshelf conformance), bookId changes, and any cleanup off the validation
 path.
 
+Repair is out for now, not forever: correctable defects may later get a
+**fix/apply step, properly gated**, following the Reconciliation convention
+([coding-style.md](../coding-style.md) — desired vs actual, converge,
+idempotent; kin to backlog `sanity-reconcilers`). Not before parity.
+
 ## Shape
 
 One pointable core (a package; server-side — it needs `fs` + `ffprobe`) takes a
@@ -66,12 +71,15 @@ validation. This is the seam that un-braids validation from the web app.
 
 1. **Bootstrap** — the CLI exists and validates a corpus root, emitting
    findings. _(not started)_
-2. **nx-audiobook parity** — the `checkfiles` + `apps/validate` rules ported and
-   tightened: perms 644/755, `.DS_Store`, macOS xattr cleanup, mtime sanity,
-   naming conventions, metadata presence. Parity means `nx-audiobook`'s
-   validator can retire. _(not started)_
+2. **nx-audiobook parity** — the `checkfiles` + `apps/validate` rules brought
+   over **vetted, not copied**: each rule tightened or dropped (Daniel vets the
+   set): perms 644/755, `.DS_Store`, macOS xattr cleanup, mtime sanity, naming
+   conventions, metadata presence. Parity means `nx-audiobook`'s validator can
+   retire. _(not started)_
 3. **vtt / alignment** — validation extends to VTT and alignment artifacts.
-   _(not started)_
+   These sources live outside the audiobook corpora (`data/transcribe/output`,
+   `VTT_DIR` override) and `nx-audiobook` has no knowledge of them — excluded
+   until parity lands. _(not started)_
 
 ## Where it grows
 
