@@ -77,15 +77,19 @@ export function createLibrary(
           book.metadata.durationSec = result.durationSec;
           book.metadata.bitrateKbps = result.bitrateKbps;
           book.metadata.codec = result.codec;
-          // The "Author - Title" basename convention is the curated source;
-          // embedded tags are often upstream junk (the Alice fixture's title
-          // tag is "AliceWonderland8_librivox"). Tags only fill the gap when
-          // the basename has no author/title structure — a recorded
-          // deviation from the seed's tag-first priority.
-          if (book.metadata.author === null) {
-            if (result.titleTag) book.metadata.title = result.titleTag;
-            if (result.artistTag) book.metadata.author = result.artistTag;
-          }
+          // The curated m4b tags are the canonical source for title/author
+          // (the private corpus is 100% clean on both — verified
+          // 2026-07-19). scan.ts seeds provisional basename values; the tags
+          // overwrite them per-field when present, and the basename survives
+          // only as a fallback for a missing tag. The Alice FIXTURE's junk
+          // title tag ("AliceWonderland8_librivox") misled the original
+          // basename-first logic — it is a pathological example, not the
+          // rule. Fuller correction (series/narrator, a finding when the
+          // fallback fires, a dedicated extractor) is tracked as
+          // metadata-canonical-from-tags in thoughts/BACKLOG.md and
+          // docs/corpora/metadata.md.
+          if (result.titleTag) book.metadata.title = result.titleTag;
+          if (result.artistTag) book.metadata.author = result.artistTag;
         }),
       ),
     );
@@ -139,10 +143,13 @@ function restoreCache(config: BookplayerConfig): LibraryIndex | null {
     return null;
   }
   if (
-    // v1 caches predate typed findings and graded match quality (BookRecord
-    // shape changed too); the version bump is the intended invalidation —
-    // they simply rescan rather than attempt a field-by-field migration.
-    cache.version !== 2 ||
+    // Older caches predate schema/semantic changes (v2: typed findings +
+    // graded match quality; v3: title/author sourced from tags, not the
+    // basename). The version bump is the intended invalidation — an
+    // unchanged fingerprint would otherwise keep stale metadata via
+    // carryOverMetadata, so a full rescan/re-probe is required, not a
+    // field-by-field migration.
+    cache.version !== 3 ||
     cache.rootName !== config.activeRoot.name ||
     !Array.isArray(cache.books)
   ) {
@@ -163,7 +170,7 @@ function persistCache(cacheFile: string, index: LibraryIndex): void {
   try {
     mkdirSync(dirname(cacheFile), { recursive: true });
     const cache: BookCache = {
-      version: 2,
+      version: 3,
       rootName: index.rootName,
       scannedAt: index.scannedAt,
       books: index.books,

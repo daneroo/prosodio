@@ -82,7 +82,7 @@ export interface LibraryIndex {
 }
 
 export interface BookCache {
-  version: 2;
+  version: 3;
   rootName: RootName;
   scannedAt: string;
   books: Array<BookRecord>;

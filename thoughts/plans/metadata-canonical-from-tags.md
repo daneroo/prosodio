@@ -1,6 +1,18 @@
 # metadata-canonical-from-tags — m4b tags are the truth, not the basename
 
-Status: planned (execute after `lab-routes-refined` merges; own branch off main)
+Status: partially landed — a first-stab correction (invert priority +
+title/author only + cache bump + doc) shipped on `lab-routes-refined`; the
+remainder (series/narrator model, dedicated extractor, finding-on-fallback)
+stays for a full pass after merge.
+
+First stab (committed): `library.ts` enrich now takes title/author from the m4b
+tags canonically, basename only as a per-field fallback; `BookCache` version
+bumped 2 -> 3 to force a re-probe; `docs/corpora/metadata.md` documents the
+truth hierarchy and the fixtures' sorry state, pointing here. Deliberately NOT
+in the first stab: series[] (needs the corpora-validation thinking — Daniel),
+narrator, the `metadata-basename-fallback` finding, and the dedicated
+`src/lib/metadata.ts` extractor. Those are S1/S3/S4 below, minus what the first
+stab already did.
 
 Goal: make the curated m4b ffprobe tags the canonical source for
 title/author/series/narrator, with the basename as a flagged fallback used only

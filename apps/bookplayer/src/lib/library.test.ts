@@ -198,7 +198,7 @@ describe("library lifecycle", () => {
     const cache = JSON.parse(
       readFileSync(config.cacheFile, "utf8"),
     ) as BookCache;
-    expect(cache.version).toBe(2);
+    expect(cache.version).toBe(3);
     expect(cache.findings.length).toBe(firstIndex.findings.length);
     expect(cache.findings[0]?.code).toBe("multi-m4b");
 
@@ -225,7 +225,7 @@ describe("library lifecycle", () => {
     expect(library.getBook("ffffffffffff")).toBeUndefined();
   });
 
-  test("basename convention beats tags; tags fill unstructured basenames", async () => {
+  test("m4b tags are canonical; they override even a structured basename", async () => {
     const config = makeConfig();
     addBook(config, "one", "Author - Book One");
     addBook(config, "two", "unstructured");
@@ -241,9 +241,28 @@ describe("library lifecycle", () => {
     const unstructured = library
       .getIndex()
       .books.find((b) => b.basename === "unstructured");
-    expect(structured?.metadata.title).toBe("Book One");
-    expect(structured?.metadata.author).toBe("Author");
+    // Tags win over the "Author - Book One" basename parse — the curated
+    // corpus's tags are the truth (metadata-canonical-from-tags).
+    expect(structured?.metadata.title).toBe("Tag Title");
+    expect(structured?.metadata.author).toBe("Tag Author");
     expect(unstructured?.metadata.title).toBe("Tag Title");
     expect(unstructured?.metadata.author).toBe("Tag Author");
+  });
+
+  test("basename is the fallback when the m4b has no tags", async () => {
+    const config = makeConfig();
+    addBook(config, "one", "Author - Book One");
+    const library = createLibrary(
+      config,
+      // durationSec present so enrich runs, but no title/artist tags.
+      stubProbe({ titleTag: null, artistTag: null }, []),
+    );
+    library.getIndex();
+    await settle();
+    const book = library
+      .getIndex()
+      .books.find((b) => b.basename === "Author - Book One");
+    expect(book?.metadata.title).toBe("Book One");
+    expect(book?.metadata.author).toBe("Author");
   });
 });

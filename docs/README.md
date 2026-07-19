@@ -25,6 +25,8 @@ invariants. Grows by harvesting settled `thoughts/design/` docs.
 
 - [locate-sweep.md](locate-sweep.md) — what the locate sweep verifies; what an
   `ok` means
+- [corpora/metadata.md](corpora/metadata.md) — where title/author come from (m4b
+  tags are canonical; basename is a fallback)
 
 ## Frameworks
 
