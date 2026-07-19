@@ -126,11 +126,6 @@ Scheduled items go here (leave this comment)
 
 ## docs workflow
 
-- [ ] document-delegation-tiers — pull the proven `[tier: low|med]` ->
-      model-class scheme from `plans/archive/player-sync-core.md`'s "Dispatch
-      policy" into `docs/workflow.md`'s Plans section (the paragraph deduped
-      there by `sync-repository-workflow`); current guidance there is abstract,
-      this pattern is proven in practice.
 - [ ] docs-taxonomy — grouped `docs/` index landed 2026-07-10 (working-here /
       pipeline-and-data / frameworks; flat files, index in docs/README.md).
       Remaining: write data-contracts.md (per-artifact axes — deterministic?
@@ -156,6 +151,11 @@ Scheduled items go here (leave this comment)
 
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
+
+- 2026-07-19 document-delegation-tiers — standing delegation directive ("lower
+  power model and effort in a subagent; account for it in planning") plus the
+  proven `[tier: low|med]` scheme written into `docs/workflow.md`'s Plans
+  section; AGENTS.md Execution pointer strengthened.
 
 - 2026-07-18 bookplayer-audio-range-compat — exact browser ranges now use one
   Nitro/Bun-file audio path in development and production. Accepted with a

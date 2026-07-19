@@ -12,8 +12,9 @@ alongside their ebooks on a synchronized timeline.
 
 ## Execution
 
-Plan coding tasks for delegation (model/effort selection, boundaries, acceptance
-criteria) — see [docs/workflow.md](docs/workflow.md#plans).
+Delegate all coding tasks to lower-power subagents (your judgement on model and
+effort); plan for that delegation (boundaries, acceptance criteria) — see
+[docs/workflow.md](docs/workflow.md#plans).
 
 ## Layout
 

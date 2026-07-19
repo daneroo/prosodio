@@ -69,12 +69,28 @@ Goal: <one line>.
   not permanent: prune them once nothing depends on them, and don't index them
   by directory listing — the Closed section (newest first) is the index.
 
+Standing directive (Daniel; proven with Claude and Codex): for all coding tasks
+use your judgement to decide an appropriate lower power model and effort level
+and run that in a subagent. Account for this in your planning.
+
 Plan coding tasks for delegation and routing, not only sequencing. Each task
 should provide enough context to select an appropriate subagent model class and
 effort level without reconstructing the design. State its boundaries,
 dependencies, risk or ambiguity, acceptance criteria, and verification where
 they are not obvious. Recommend model or effort when useful, but let the
 executor reassess when implementation reveals new complexity.
+
+The tier scheme, proven in practice (`player-sync-core`, `lab-routes-refined`):
+
+- `[tier: low]` -> small model, e.g. Haiku (mechanical: renames, extractions
+  with no behavior change, list pages from existing rows).
+- `[tier: med]` -> mid model, e.g. Sonnet (scoped feature/refactor work with a
+  written spec).
+- Orchestrator (the top-level agent): specs, wiring review, acceptance, commits;
+  may promote a task a tier when implementation reveals complexity.
+
+Mechanics: sequential delegation, one commit per task, the quality gate green
+before each commit; subagents never commit.
 
 ## Design — `thoughts/design/<id>-design.md`
 
