@@ -3,10 +3,11 @@
 why: low coverage must read as "known mismatch", not pipeline failure. Reframed
 (Daniel, 2026-07-19) as part of the VALIDATION flow: validations accumulate
 declared exceptions/expectations as we find them, and known non-faithful pairs
-are the first class. Live exemplar: the Alice abridged epub vs full narration
-(~34% vtt — an abridged/unabridged mismatch, settled; the earlier Gutenberg #11
-"puzzle" was the same thing). Also: A Wizard of Earthsea BBC dramatization vs
-the original ebook (27%/5.8%).
+are the first class. Both live cases are SETTLED as this class, awaiting only
+the marker: the Alice abridged epub vs full narration (~34% vtt — an
+abridged/unabridged mismatch; the earlier Gutenberg #11 "puzzle" was the same
+thing), and A Wizard of Earthsea BBC dramatization vs the book epub (27%/5.8% —
+a dramatization is not the book).
 
 CONTRAST the rabbit fixtures (2026-07-19): a faithful pair can also read low on
 book% for a purely structural reason (narration 86-91%, book 22-25%, the
