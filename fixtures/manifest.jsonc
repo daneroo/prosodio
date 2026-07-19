@@ -56,16 +56,17 @@
   },
   // Fixture Rabbits — purpose-built public fixture SERIES (fixtures-into-shape,
   // 2026-07-19): three Beatrix Potter tales at deliberately non-contiguous
-  // series positions (grouping tags "Fixture Rabbits #1/#4/#6"). Full origin
-  // record (exact archive.org track URLs, per-track LibriVox narrators,
-  // Gutenberg ebook numbers): origin.yaml next to the books. m4bs were
-  // converted + retagged from those sources (no upstream m4b exists), so they
-  // ARE committed (gitignore negation) — unlike the fetched 98MB Alice m4b.
-  // EPUBs are the unmodified Gutenberg downloads. metadata.json is the
-  // audiobookshelf sidecar. composer (narrator) tags added 2026-07-19 — a
-  // DIFFERENT narrator per track (Pratley / Broda / Maggs), so fixtures
-  // exercise per-book narrator variety; Alice/jfk keep the null cases.
+  // positions in the locally assigned series "Fixture Rabbits" (grouping tags
+  // #1/#4/#6; not part of any upstream metadata). Audio: LibriVox collection
+  // "The Tale of Peter Rabbit and Others" (via Internet Archive), one 128kbps
+  // MP3 track per tale (source URLs on the m4b entries below), converted to
+  // m4b and retagged incl. per-track composer/narrator — no upstream m4b
+  // exists, so they ARE committed (gitignore negation), unlike the fetched
+  // 98MB Alice. EPUBs are the unmodified Gutenberg downloads. metadata.json
+  // is the audiobookshelf sidecar. Alice/jfk keep the null-narrator cases.
   {
+    // converted + retagged from LibriVox track 1, narrator Julian Pratley:
+    // https://archive.org/download/thetaleofpeterrabbitandothers_2008_librivox/peterrabbitandothertales_01_potter_128kb.mp3
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit.m4b",
     "sha256": "8c5abfd1fd309fced79dae47b970c66ccb6a9be58818a326abb04d725c45c142",
   },
@@ -83,6 +84,8 @@
     "sha256": "e3ded631f581d7c64a8df07186ec8db94a901325883018dfb6553c44d93694c4",
   },
   {
+    // converted + retagged from LibriVox track 4, narrator Jenn Broda:
+    // https://archive.org/download/thetaleofpeterrabbitandothers_2008_librivox/peterrabbitandothertales_04_potter_128kb.mp3
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny.m4b",
     "sha256": "1d8d3acf175d950ccb7ea36d17c17ca2b78538807b4e6d77406bcac24708e161",
   },
@@ -100,6 +103,8 @@
     "sha256": "dedde1de4f6185124db231a270c02a8d467eb1e29fdfde14de2f3586aa4592e9",
   },
   {
+    // converted + retagged from LibriVox track 6, narrator Michael Maggs:
+    // https://archive.org/download/thetaleofpeterrabbitandothers_2008_librivox/peterrabbitandothertales_06_potter_128kb.mp3
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies.m4b",
     "sha256": "7b1c489a60c78176d4fc5786c5d8c0796e3722070af06028838fd7d5e5d30321",
   },
