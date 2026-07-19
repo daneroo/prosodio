@@ -251,6 +251,10 @@ function groupDirectory(
     metadata: {
       title,
       author,
+      // Wired up in step S2 (metadata-canonical-from-tags): scan seeds the
+      // provisional basename value; ffprobe fills series/narrator from tags.
+      series: [],
+      narrator: null,
       durationSec: null,
       bitrateKbps: null,
       codec: null,

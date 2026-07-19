@@ -1,9 +1,8 @@
 # metadata-canonical-from-tags — m4b tags are the truth, not the basename
 
-Status: partially landed — a first-stab correction (invert priority +
-title/author only + cache bump + doc) shipped on `lab-routes-refined`; the
-remainder (series/narrator model, dedicated extractor, finding-on-fallback)
-stays for a full pass after merge.
+Status: active (2026-07-19) — first stab shipped on `lab-routes-refined`
+(tags-first title/author + cache v3 + doc); this full pass runs S1-S4 against
+the private corpus. S5 moved to `fixtures-into-shape`.
 
 First stab (committed): `library.ts` enrich now takes title/author from the m4b
 tags canonically, basename only as a per-field fallback; `BookCache` version
@@ -88,16 +87,16 @@ directly; sequential, one commit per task, `bun run ci` green before each.
 
 ### S1 — model + dedicated extractor + ffprobe surface [tier: med]
 
-- [ ] `types.ts`: `BookMetadata` gains `series`/`narrator` (D4); add
+- [x] `types.ts`: `BookMetadata` gains `series`/`narrator` (D4); add
       `BookSeries`.
-- [ ] `ffprobe.ts`: `ProbeResult` exposes raw `grouping`/`composer` (keep
+- [x] `ffprobe.ts`: `ProbeResult` exposes raw `grouping`/`composer` (keep
       `titleTag`/`artistTag`); update the `.title override` comment — tags are
       canonical now, not an override.
-- [ ] New `src/lib/metadata.ts`: `extractMetadata(probe, basename)` (tags first,
+- [x] New `src/lib/metadata.ts`: `extractMetadata(probe, basename)` (tags first,
       basename fallback only when title tag absent, returning a
       `usedBasenameFallback` signal for D2) + `parseGrouping` (semicolon split;
       trailing `#<pos>` incl. fractional; name-only when no `#`).
-- [ ] `metadata.test.ts`: parseGrouping (single, multi, no-position, fractional,
+- [x] `metadata.test.ts`: parseGrouping (single, multi, no-position, fractional,
       junk `Adult`); extractMetadata (clean tags win; missing title ->
       basename + fallback flag; author from album_artist when artist absent).
 - Acceptance: pure-unit, no I/O; multi-series

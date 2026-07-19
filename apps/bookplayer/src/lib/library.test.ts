@@ -55,6 +55,8 @@ function stubProbe(
       codec: "aac",
       titleTag: null,
       artistTag: null,
+      groupingTag: null,
+      composerTag: null,
       ...result,
     });
   };

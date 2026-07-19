@@ -80,6 +80,8 @@ function fakeBook(
     metadata: {
       title: "Test Book",
       author: null,
+      series: [],
+      narrator: null,
       durationSec: null,
       bitrateKbps: null,
       codec: null,

@@ -11,9 +11,18 @@ export interface Fingerprint {
   size: number;
 }
 
+/** One series membership parsed from the `grouping` tag; a book can belong
+ *  to multiple (docs/corpora/metadata.md). */
+export interface BookSeries {
+  name: string;
+  position: number | null;
+}
+
 export interface BookMetadata {
   title: string;
   author: string | null;
+  series: Array<BookSeries>;
+  narrator: string | null;
   durationSec: number | null;
   bitrateKbps: number | null;
   codec: string | null;

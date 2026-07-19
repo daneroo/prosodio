@@ -8,9 +8,14 @@ export interface ProbeResult {
   durationSec: number | null;
   bitrateKbps: number | null;
   codec: string | null;
-  /** m4b tags override basename parsing when present. */
+  /** Canonical source for book metadata; basename parsing is only the
+   *  fallback when a tag is absent (see docs/corpora/metadata.md). */
   titleTag: string | null;
   artistTag: string | null;
+  /** Semicolon-separated series memberships, each `<name> #<position>`. */
+  groupingTag: string | null;
+  /** Narrator. */
+  composerTag: string | null;
 }
 
 export type ProbeFn = (filePath: string) => Promise<ProbeResult>;
@@ -23,6 +28,8 @@ const EMPTY: ProbeResult = {
   codec: null,
   titleTag: null,
   artistTag: null,
+  groupingTag: null,
+  composerTag: null,
 };
 
 export function probeFile(filePath: string): Promise<ProbeResult> {
@@ -79,5 +86,7 @@ function parseProbeOutput(data: FfprobeJson): ProbeResult {
     codec: audioStream?.codec_name ?? null,
     titleTag: tags.title?.trim() || null,
     artistTag: (tags.artist ?? tags.album_artist)?.trim() || null,
+    groupingTag: tags.grouping?.trim() || null,
+    composerTag: tags.composer?.trim() || null,
   };
 }
