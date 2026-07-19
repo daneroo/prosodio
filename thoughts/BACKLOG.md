@@ -9,6 +9,11 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
+1. `fixtures-into-shape` (active — Daniel assembling the Beatrix Potter set)
+2. `metadata-canonical-from-tags` (full S1-S5; plan exists)
+3. `validate-bootstrap` (charter milestone 1; `promote-app-config` is its first
+   step)
+
 ## player-ux
 
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
@@ -37,38 +42,51 @@ Scheduled items go here (leave this comment)
       Earthsea BBC dramatization paired with the original ebook (27% narration /
       5.8% book, caught by /lab/alignment 2026-07-19); fixtures Alice
       abridged-vs-unabridged. Decide the marker (naming, sidecar, curated list)
-      and how lab surfaces render it. Relates: `align-better-fixture-pair`,
+      and how lab surfaces render it. Relates: `fixtures-into-shape`,
       `corpora-omnibus-mapping`.
 
 - [ ] align-precision-at-scale — automated precision signal over the corpus;
       manual `reviewSamples` reading does not scale to ~700 books. ticket:
       [align-precision-at-scale](tickets/align-precision-at-scale.md)
-- [ ] align-better-fixture-pair — replace the abridged Alice fixture; want >=2
-      faithful public narration<->edition pairs (id stable; shared with
-      bookplayer). ticket:
-      [align-better-fixture-pair](tickets/align-better-fixture-pair.md)
 - [ ] locate-sweep-epubjs-console-noise — epub.js emits internal `substitute`
       TypeErrors during the sweep's renderless `section.load`; cosmetic, results
       unaffected, low priority.
 
+## corpus validation
+
+Charter: [docs/corpora/validation.md](../docs/corpora/validation.md) — one core,
+CLI + web skins, three corpora; milestones bootstrap -> nx-audiobook parity ->
+vtt/alignment.
+
+- [ ] validate-bootstrap — charter milestone 1: a pointable validation core
+      package + standalone CLI over any corpus root, findings on the existing
+      Corpora channel. First step is `promote-app-config` (its `CORPORA_DIR`
+      override becomes real here). Needs a plan; the extraction seam is the
+      scary part — ground it in `library.ts`/`scan.ts` before writing steps.
+- [ ] merge-nx-audiobook-validation — charter milestone 2 (nx-audiobook parity):
+      port the `just checkfiles` + `apps/validate` rules VETTED, not copied
+      (Daniel vets; tighten or drop): perms 644/755, `.DS_Store`, xattr, mtime,
+      naming, metadata presence. Excludes repair modes (see charter Scope).
+      (Renamed from epoch3-audiobook-validation 2026-07-19.)
+- [ ] epub-calibre-pollution-audit — Calibre bookmark files silently change epub
+      sha256 (141 + 167 flagged 2026-07-03); decide strip/prevent/CI-gate — a
+      validation rule in waiting. ticket:
+      [epub-calibre-pollution-audit](tickets/epub-calibre-pollution-audit.md)
+
 ## corpus quality
 
-- [ ] metadata-canonical-from-tags — m4b tags are the canonical truth for
-      title/author/series; basename is a fallback only when tags are absent.
-      FIRST STAB LANDED (2026-07-19, commit d1d7698): title/author inverted to
-      tags-first + cache v3 re-probe + `docs/corpora/metadata.md`; verified on
-      the private corpus. Evidence gathered: title 952/952, artist 952/952 =
-      100% clean; `grouping` (series) 224/952 (23%); `composer` (narrator)
-      936/952. Fixtures are worst-case demonstrators — jfk.m4b all-null, Alice
-      title tag `AliceWonderland8_librivox`. REMAINING (full pass, plan
-      `plans/metadata-canonical-from-tags.md`): a dedicated extractor module;
-      `series[]` {name, position|null} from `grouping` (semicolon-separated,
-      each `<name> #<pos>`, MULTI-series real — one Discworld book lists both
-      `Discworld #34` and `Discworld: Ankh-Morpork City Watch #7`), deferred to
-      the corpora-validation work; `narrator`; and a
-      `metadata-basename-fallback` finding on the Corpora tab. Blocks
-      book-metadata-identity; relates `merge-nx-audiobook-validation` (findings
-      surface), `align-better-fixture-pair` (bad metadata test data too).
+- [ ] fixtures-into-shape — make the public fixtures respectable: >=2 faithful
+      pairs, clean canonical tags (keep deliberate junk cases), recorded
+      provenance. ACTIVE: Daniel assembling a Beatrix Potter series set. Absorbs
+      `align-better-fixture-pair` + metadata S5. ticket:
+      [fixtures-into-shape](tickets/fixtures-into-shape.md)
+- [ ] metadata-canonical-from-tags — full pass: dedicated extractor,
+      `series[]` + `narrator`, `metadata-basename-fallback` finding, docs. First
+      stab landed 2026-07-19 (tags canonical for title/author, d1d7698, verified
+      952/952 on the private corpus). Unhandled shapes (multi-author, odd
+      series) degrade to validator WARNINGS, not blockers. Blocks
+      `book-metadata-identity`; S5 moved to `fixtures-into-shape`. plan:
+      [metadata-canonical-from-tags](plans/metadata-canonical-from-tags.md)
 - [ ] book-metadata-identity — possibly use canonical metadata as the bookId
       (suffixed with a short sha digest, 5-7 hex). GATED on
       `metadata-canonical-from-tags` first (tag reliability now proven, 100%
@@ -84,10 +102,6 @@ Scheduled items go here (leave this comment)
       would match a SUB-RANGE of the epub, breaking the whole-book linearity
       assumption). Relates: `align-soft-basename-match`, and the
       matching-quality content-qualification direction.
-- [ ] epub-calibre-pollution-audit — Calibre bookmark files silently change epub
-      sha256 (141 + 167 flagged 2026-07-03); decide strip/prevent/CI-gate.
-      ticket:
-      [epub-calibre-pollution-audit](tickets/epub-calibre-pollution-audit.md)
 - [ ] align-soft-basename-match — case-insensitive VTT<->epub pairing fallback
       (books missed on filename case only). Corpus DIRECTORIES cannot be renamed
       (audiobookshelf history); `.epub` rename or a soft fallback in
@@ -106,14 +120,6 @@ Scheduled items go here (leave this comment)
       needs it.
 - [ ] epub-report-html — replace the file-tree markdown report with a single
       static self-contained HTML view.
-- [ ] merge-nx-audiobook-validation — merge the useful validation rules from
-      `~/Code/iMetrical/nx-audiobook` (nx monorepo, `apps/validate`; also the
-      `just checkfiles` target): file/dir perms 644/755, macOS xattr cleanup
-      where possible, naming conventions, plus the validators/file-walking worth
-      porting. Corpora tab findings are the natural render surface
-      (file-mode/xattr issues = new finding codes). Do NOT unify models just
-      because both say "validation"; exclude the old viewer/conversion surface.
-      (Renamed from epoch3-audiobook-validation 2026-07-19.)
 
 ## infra
 
@@ -177,6 +183,9 @@ Scheduled items go here (leave this comment)
 
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
+
+- 2026-07-19 align-better-fixture-pair — absorbed into `fixtures-into-shape`
+  (broadened: faithful pairs + fixture re-tagging + jfk decision + provenance).
 
 - 2026-07-19 lab-routes-refined — `/lab` grew into list-first surfaces per
   pipeline artifact: Corpora (typed scan findings replacing server-log

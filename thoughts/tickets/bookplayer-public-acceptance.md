@@ -12,8 +12,8 @@ checkout.
 - decide the harness: MCP/in-app browser per the seed (NO local Playwright in
   bookplayer), or a headless alternative — and whether it gates CI or is a
   documented manual acceptance.
-- partly blocked by `align-better-fixture-pair` for a trustworthy pair, but the
-  Alice search path works today.
+- partly blocked by `fixtures-into-shape` for a trustworthy pair, but the Alice
+  search path works today.
 
 See [plans/archive/bookplayer.md](../plans/archive/bookplayer.md) §Final
 acceptance checklist.

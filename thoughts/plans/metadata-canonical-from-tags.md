@@ -78,6 +78,11 @@ directly; sequential, one commit per task, `bun run ci` green before each.
 - D7 — consumers are read-only and unaffected (home, browse sort/search, all lab
   tabs read `metadata.title/author`); they just get better data. New fields
   surface in the Audiobooks tab.
+- D8 (2026-07-19) — unhandled shapes are WARNINGS, not blockers: metadata forms
+  this pass does not model (multiple authors, odd series grammars) parse to the
+  best simple representation and surface as validator warnings on the findings
+  channel (see `docs/corpora/validation.md`). Scope stays fixed; nothing waits
+  on modelling every case.
 
 ## Steps
 
@@ -135,15 +140,12 @@ directly; sequential, one commit per task, `bun run ci` green before each.
 - Acceptance: `bun run ci` (markdownlint) green; a reader learns why tags win
   and why the fixtures mislead.
 
-### S5 — fixtures decision (open) [tier: low]
+### S5 — fixtures decision — MOVED (2026-07-19)
 
-- [ ] Post-change the fixture Alice displays its junk title tag
-      (`AliceWonderland8_librivox`) because the tag IS present, just semantic
-      garbage — the code cannot know. Decide: re-tag the committed fixture m4bs
-      with clean title/author (changes their sha/fingerprint, triggers re-probe;
-      bookId is basename-derived so it is unaffected) vs. accept the junk
-      display as an honest demonstration. Recommend re-tagging — it also helps
-      `align-better-fixture-pair`. Daniel's call.
+Moved to `fixtures-into-shape` (tickets/), which owns all fixture repair:
+faithful pairs, re-tagging (keeping deliberate junk cases as test data for the
+D2 finding), provenance. Daniel is actively assembling a Beatrix Potter series
+set there. This plan's S1-S4 do not depend on it.
 
 ## Verification aids
 
@@ -174,7 +176,8 @@ these):
   title+author), so the bookId-from-metadata idea has an evidence base.
 - `merge-nx-audiobook-validation` — its file-mode/xattr checks emit findings
   through the same Corpora channel this uses for `metadata-basename-fallback`.
-- `align-better-fixture-pair` — the fixtures are bad metadata test data too; S5
-  overlaps.
+- `fixtures-into-shape` — owns the fixture repair (absorbed S5 and
+  align-better-fixture-pair); the Beatrix Potter series set will exercise
+  `series[]` parsing.
 - `corpora-omnibus-mapping` — series/position may inform omnibus detection
   later.

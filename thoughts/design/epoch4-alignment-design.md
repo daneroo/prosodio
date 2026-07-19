@@ -363,4 +363,4 @@ runs, and the default all-matched run use the same alignment pipeline.
   is a placeholder, not a decided policy.
 - The committed Alice fixture is a poor reference (abridged edition vs full
   narration); a better narration<->edition pair is needed — BACKLOG
-  `align-better-fixture-pair`.
+  `fixtures-into-shape` (formerly `align-better-fixture-pair`).

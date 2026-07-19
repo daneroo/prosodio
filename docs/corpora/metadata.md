@@ -33,7 +33,7 @@ the **fixtures**, which are the worst possible examples:
 Neither is representative of the curated corpus. Note a consequence: because
 Alice's junk title tag _is_ present (just semantically garbage), the app now
 faithfully displays it — the code cannot know a present tag is nonsense.
-Re-tagging the fixtures is tracked under `align-better-fixture-pair`.
+Re-tagging the fixtures is tracked under `fixtures-into-shape`.
 
 ## Not yet done
 
