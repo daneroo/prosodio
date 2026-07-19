@@ -11,6 +11,10 @@
  * Dev-gated identically to lab.locate: import.meta.env.DEV is checked before
  * SweepCorpusPage mounts, so no hooks run and nothing fetches or imports
  * epubjs outside dev.
+ *
+ * The table itself renders through the shared LabTable shell
+ * (components/lab/LabTable.tsx, plan thoughts/plans/lab-routes-refined.md,
+ * S1b) — no behavior change from the page's own inline `<table>`.
  */
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
@@ -18,8 +22,11 @@ import { useEffect, useRef, useState } from "react";
 import { fetchArtifact } from "#/lib/alignment-client";
 import { sweepBook } from "#/lib/locate-sweep";
 import { fetchLibrary } from "#/server/library";
+import { formatTimestamp } from "#/components/lab/format";
+import { LabTable } from "#/components/lab/LabTable";
 import type { SweepReport } from "#/lib/locate-sweep";
 import type { BookRow } from "#/server/library";
+import type { LabColumn } from "#/components/lab/LabTable";
 
 export const Route = createFileRoute("/lab/locate/")({
   component: DevSweepRoute,
@@ -373,33 +380,12 @@ function SweepCorpusPage() {
       )}
       {loadState.status === "ready" && rows.length > 0 && (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] border-collapse text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-700 text-slate-500">
-                  <th className="py-1 pr-3 font-medium">title</th>
-                  <th className="py-1 pr-3 font-medium">sections</th>
-                  <th className="py-1 pr-3 font-medium">ok</th>
-                  <th className="py-1 pr-3 font-medium">failed</th>
-                  <th className="py-1 pr-3 font-medium">tokens</th>
-                  <th className="py-1 pr-3 font-medium">ok%</th>
-                  <th className="py-1 pr-3 font-medium">generated</th>
-                  <th className="py-1 pr-3 font-medium">status</th>
-                  <th className="py-1 pr-3 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <SweepRow
-                    key={row.id}
-                    row={row}
-                    running={running}
-                    onRun={runRow(row.id)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <LabTable
+            rows={rows}
+            rowKey={(row) => row.id}
+            columns={buildColumns(running, runRow)}
+            minWidthClassName="min-w-[820px]"
+          />
 
           <p
             className="mt-3 text-xs tabular-nums text-slate-300"
@@ -416,24 +402,25 @@ function SweepCorpusPage() {
   );
 }
 
-function SweepRow({
-  row,
-  running,
-  onRun,
-}: {
-  row: Row;
-  running: boolean;
-  onRun: () => void;
-}) {
-  const totals = row.liveTotals ?? row.stored?.totals ?? null;
-  const okPct =
-    totals && totals.tokens > 0
-      ? `${((totals.ok / totals.tokens) * 100).toFixed(1)}%`
-      : "—";
+/** A row's totals: the live sweep just run in this session, falling back to
+ * the last persisted report. Shared by several columns below. */
+function rowTotals(row: Row): Totals | null {
+  return row.liveTotals ?? row.stored?.totals ?? null;
+}
 
-  return (
-    <tr className="border-b border-slate-800">
-      <td className="max-w-[280px] truncate py-1 pr-3 text-slate-300">
+/** Column defs for the sweep table — the old `SweepRow` component dissolved
+ * into these once the table shell moved to LabTable. Built as a function
+ * (not a module constant) so the run button can close over the current
+ * `running` state and per-row run handler. */
+function buildColumns(
+  running: boolean,
+  runRow: (id: string) => () => void,
+): Array<LabColumn<Row>> {
+  return [
+    {
+      header: "title",
+      className: "max-w-[280px] truncate text-slate-300",
+      cell: (row) => (
         <Link
           to="/lab/locate/$bookId"
           params={{ bookId: row.id }}
@@ -441,42 +428,74 @@ function SweepRow({
         >
           {row.title}
         </Link>
-      </td>
-      <td className="py-1 pr-3 tabular-nums text-slate-400">
-        {totals ? totals.sections : "—"}
-      </td>
-      <td className="py-1 pr-3 tabular-nums text-emerald-400">
-        {totals ? totals.ok : "—"}
-      </td>
-      <td
-        className={`py-1 pr-3 tabular-nums ${
-          totals && totals.failed > 0 ? "text-rose-400" : "text-slate-400"
-        }`}
-      >
-        {totals ? totals.failed : "—"}
-      </td>
-      <td className="py-1 pr-3 tabular-nums text-slate-400">
-        {totals ? totals.tokens : "—"}
-      </td>
-      <td className="py-1 pr-3 tabular-nums text-slate-400">{okPct}</td>
-      <td className="py-1 pr-3 text-slate-500">
-        {row.stored ? formatGeneratedAt(row.stored.generatedAt) : "—"}
-      </td>
-      <td className="max-w-[240px] truncate py-1 pr-3">
-        <LiveStatusLabel live={row.live} />
-      </td>
-      <td className="py-1 pr-3">
+      ),
+    },
+    {
+      header: "sections",
+      className: "tabular-nums text-slate-400",
+      cell: (row) => rowTotals(row)?.sections ?? "—",
+    },
+    {
+      header: "ok",
+      className: "tabular-nums text-emerald-400",
+      cell: (row) => rowTotals(row)?.ok ?? "—",
+    },
+    {
+      header: "failed",
+      className: "tabular-nums",
+      cell: (row) => {
+        const totals = rowTotals(row);
+        return (
+          <span
+            className={
+              totals && totals.failed > 0 ? "text-rose-400" : "text-slate-400"
+            }
+          >
+            {totals ? totals.failed : "—"}
+          </span>
+        );
+      },
+    },
+    {
+      header: "tokens",
+      className: "tabular-nums text-slate-400",
+      cell: (row) => rowTotals(row)?.tokens ?? "—",
+    },
+    {
+      header: "ok%",
+      className: "tabular-nums text-slate-400",
+      cell: (row) => {
+        const totals = rowTotals(row);
+        return totals && totals.tokens > 0
+          ? `${((totals.ok / totals.tokens) * 100).toFixed(1)}%`
+          : "—";
+      },
+    },
+    {
+      header: "generated",
+      className: "text-slate-500",
+      cell: (row) =>
+        row.stored ? formatTimestamp(row.stored.generatedAt) : "—",
+    },
+    {
+      header: "status",
+      className: "max-w-[240px] truncate",
+      cell: (row) => <LiveStatusLabel live={row.live} />,
+    },
+    {
+      header: "",
+      cell: (row) => (
         <button
           type="button"
-          onClick={onRun}
+          onClick={runRow(row.id)}
           disabled={running}
           className="rounded border border-slate-700 px-1.5 py-0.5 text-[11px] text-slate-300 hover:text-white disabled:opacity-40"
         >
           Run
         </button>
-      </td>
-    </tr>
-  );
+      ),
+    },
+  ];
 }
 
 function LiveStatusLabel({ live }: { live: LiveState }) {
@@ -502,9 +521,4 @@ function LiveStatusLabel({ live }: { live: LiveState }) {
     case "unavailable":
       return <span className="text-slate-500">no alignment</span>;
   }
-}
-
-function formatGeneratedAt(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
 }
