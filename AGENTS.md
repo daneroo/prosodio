@@ -13,8 +13,8 @@ alongside their ebooks on a synchronized timeline.
 ## Execution
 
 Delegate all coding tasks to lower-power subagents (your judgement on model and
-effort); plan for that delegation (boundaries, acceptance criteria) — see
-[docs/workflow.md](docs/workflow.md#plans).
+effort); plan for that delegation (boundaries, acceptance criteria) — see the
+Plan section of [docs/workflow.md](docs/workflow.md).
 
 ## Layout
 
