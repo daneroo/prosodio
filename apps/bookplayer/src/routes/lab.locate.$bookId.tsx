@@ -117,10 +117,7 @@ function LocateSweepPage() {
   }, [bookId]);
 
   return (
-    <div
-      className="min-h-screen bg-slate-900 p-4 text-white"
-      data-testid="locate-sweep"
-    >
+    <div className="p-4" data-testid="locate-sweep">
       <div className="mb-3 flex items-baseline justify-between">
         <h1 className="text-sm font-medium text-slate-300">
           Locate sweep — {bookId}

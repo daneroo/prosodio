@@ -324,18 +324,9 @@ function SweepCorpusPage() {
   const summary = computeSummary(rows);
 
   return (
-    <div
-      className="min-h-screen bg-slate-900 p-4 text-white"
-      data-testid="sweep-page"
-    >
+    <div className="p-4" data-testid="sweep-page">
       <div className="mb-3 flex items-baseline justify-between">
         <h1 className="text-sm font-medium text-slate-300">Sweep — corpus</h1>
-        <a
-          href="/lab"
-          className="text-xs text-slate-400 underline hover:text-slate-300"
-        >
-          lab
-        </a>
       </div>
 
       <div className="mb-3 flex items-center gap-2">
