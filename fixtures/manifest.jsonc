@@ -62,12 +62,12 @@
   // converted + retagged from those sources (no upstream m4b exists), so they
   // ARE committed (gitignore negation) — unlike the fetched 98MB Alice m4b.
   // EPUBs are the unmodified Gutenberg downloads. metadata.json is the
-  // audiobookshelf sidecar. No composer tag yet: the narrators differ per
-  // track (Pratley / Broda / MichaelMaggs) — retag decision tracked in the
-  // fixtures-into-shape ticket.
+  // audiobookshelf sidecar. composer (narrator) tags added 2026-07-19 — a
+  // DIFFERENT narrator per track (Pratley / Broda / Maggs), so fixtures
+  // exercise per-book narrator variety; Alice/jfk keep the null cases.
   {
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit.m4b",
-    "sha256": "20eb2f851d78495c7cd0174a2fa94fc792d2aa1696dacd02b13bae3ae347096a",
+    "sha256": "8c5abfd1fd309fced79dae47b970c66ccb6a9be58818a326abb04d725c45c142",
   },
   {
     "url": "https://www.gutenberg.org/ebooks/14838",
@@ -80,11 +80,11 @@
   },
   {
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/metadata.json",
-    "sha256": "c52c0c374b802d355ba89d5465c0decf33ead685a074705e2c2c215e127e2b00",
+    "sha256": "e3ded631f581d7c64a8df07186ec8db94a901325883018dfb6553c44d93694c4",
   },
   {
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny.m4b",
-    "sha256": "7c2b87da92e18ba90c0e4754cd696768fe0746f8824dd3c4e658688e21f91e3d",
+    "sha256": "1d8d3acf175d950ccb7ea36d17c17ca2b78538807b4e6d77406bcac24708e161",
   },
   {
     "url": "https://www.gutenberg.org/ebooks/14407",
@@ -97,11 +97,11 @@
   },
   {
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny/metadata.json",
-    "sha256": "3076d367909ca301c47f642a004e4a2b2c660d05ceb4e925c2fbe2d24ee70bf7",
+    "sha256": "dedde1de4f6185124db231a270c02a8d467eb1e29fdfde14de2f3586aa4592e9",
   },
   {
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies.m4b",
-    "sha256": "e67182bedf69f19275f67afbb9b1e03e0f711079a769cd37994b6d269b35b0e6",
+    "sha256": "7b1c489a60c78176d4fc5786c5d8c0796e3722070af06028838fd7d5e5d30321",
   },
   {
     "url": "https://www.gutenberg.org/ebooks/14220",
@@ -114,6 +114,6 @@
   },
   {
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/metadata.json",
-    "sha256": "5d8dd4cdf260406044b07d4c4c266982b242591e4cd7fd189a618330b2b97dca",
+    "sha256": "88906e75a113d075b422e7379e052f1429b81101af46af177b5ffbb98c477fd1",
   },
 ]
