@@ -9,11 +9,12 @@ Every date or timestamp a human sees — UI, logs, reports, filenames — is ISO
 (`7/12/2026, 3:24:56 AM`) are banned; never call `toLocaleString`,
 `toLocaleDateString`, or `toLocaleTimeString` on a Date.
 
-- Storage and wire: full ISO 8601 with timezone (`toISOString()`).
-- Presentation may omit or transform ONLY the timezone (e.g. render local time,
-  drop the offset). The `T` separator is not optional — 8601-1:2019 requires it
-  (the space form is an RFC 3339 readability concession, not 8601) — and the
-  `YYYY-MM-DDTHH:mm:ss` field order never changes.
+- Storage and wire: full ISO 8601 with timezone, prefer UTC `Z`
+  (`toISOString()`).
+- Presentation may omit or transform the timezone (e.g. render local time, drop
+  the offset). The `T` separator is preferred; it may be omitted for readability
+  in some cases (a space, per RFC 3339's concession). The `YYYY-MM-DD HH:mm:ss`
+  field order never changes.
 - One shared formatter per app surface (bookplayer:
   `src/components/lab/format.ts`), so the rule has a single enforcement point.
 
