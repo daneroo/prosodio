@@ -1,6 +1,7 @@
 # lab-routes-refined — per-artifact lab surfaces
 
-Status: active
+Status: done — all five slices landed on branch `lab-routes-refined` (9 commits,
+12d3b86..b18607a, CI green throughout); backlog closure on Daniel's acceptance.
 
 Goal: grow `/lab` from one surface (Locate) into a list-first inspection surface
 per pipeline artifact — Corpora, Audiobooks, Epub, VTT, Alignment, Locate
@@ -96,74 +97,81 @@ appropriate lower power model and run that in a subagent." Same mechanics as
 
 ### S2 — Corpora [tier: med]
 
-- [ ] `scan.ts`: replace `warnings: Array<string>` with typed findings (D2);
-      `library.ts` cache v2 persists them (version guard bump invalidates old
-      caches — that is the intended migration); console demoted to the summary
-      line. `fetchLibrary`'s `warningCount` becomes a findings count.
-- [ ] Match-quality classification (D2b): epub side compares basenames within
-      the book dir; vtt side must LIST the transcriptions dir and compare
+- [x] (124c1f6) `scan.ts`: replace `warnings: Array<string>` with typed findings
+      (D2); `library.ts` cache v2 persists them (version guard bump invalidates
+      old caches — that is the intended migration); console demoted to the
+      summary line. `fetchLibrary`'s `warningCount` becomes a findings count.
+- [x] (124c1f6) Match-quality classification (D2b): epub side compares basenames
+      within the book dir; vtt side must LIST the transcriptions dir and compare
       normalized names — today's `hasVtt` is an exact-name `existsSync`, so a
       case-only vtt is currently indistinguishable from a missing one.
-- [ ] Server fn `fetchScanReport`: findings + match classes + lean book
-      projections including `relDir` (lab-only surface; still no absolute
+- [x] (124c1f6) Server fn `fetchScanReport`: findings + match classes + lean
+      book projections including `relDir` (lab-only surface; still no absolute
       paths).
-- [ ] `/lab/corpora`: summary line (books, findings by code, scan age/root),
-      books table with finding badges plus epub/vtt match-quality columns
-      (`exact | near | mismatch | absent`, D2b — `near` visually distinct as the
-      actionable class), and an excluded-candidates section — the rows that
-      never became books.
+- [x] (b2b6960) `/lab/corpora`: summary line (books, findings by code, scan
+      age/root), books table with finding badges plus epub/vtt match-quality
+      columns (`exact | near | mismatch | absent`, D2b — `near` visually
+      distinct as the actionable class), and an excluded-candidates section —
+      the rows that never became books.
 - Acceptance: fixtures root shows expected findings; a cache-restored session
   still shows findings; per-line `console.warn` spam gone on start/rescan; a
   case-only epub or vtt name difference classifies as `near`, not `mismatch`.
 
 ### S3 — asset lists (Audiobooks, Epub, VTT) [tier: low]
 
-- [ ] `/lab/audiobooks`: all books — duration, size, codec, bitrate (extend the
-      row projection with codec/bitrate). Placeholder detail deferred; ffprobe
-      chapters noted as the future detail-view payload.
-- [ ] `/lab/epub`: books with an epub — size, basename-mismatch badge.
+- [x] (1474c80) `/lab/audiobooks`: all books — duration, size, codec, bitrate
+      (extend the row projection with codec/bitrate). Placeholder detail
+      deferred; ffprobe chapters noted as the future detail-view payload.
+- [x] (1474c80) `/lab/epub`: books with an epub — size, basename-mismatch badge.
       List-only; validation is out of scope (epub-validate inspiration recorded
       in the landing card).
-- [ ] `/lab/vtt`: books with a vtt — cue count + cue-span duration via
+- [x] (1474c80) `/lab/vtt`: books with a vtt — cue count + cue-span duration via
       `packages/vtt` (server fn, computed on request).
 - Acceptance: all three render from the shared S1 components; no new state.
 
 ### S4 — Alignment [tier: med, the detail-view candidate]
 
-- [ ] Move the metrics computation (vttCoverage, epubCoverage, spanCount,
-      gapCount) from the viewer path into `packages/align`; AlignmentViewer
-      consumes it unchanged (D3/D7).
-- [ ] Artifact-cache introspection in the server: list entries
-      `{ bookId, bytes, mtime, schemaVersion }`; metrics parsed from cached
-      bytes, memoized in-memory keyed by mtime. Evict (per-book) and clear-all
-      operations (D4).
-- [ ] `/lab/alignment` list: eligible pairs (epub && vtt), metrics columns,
-      cache column (bytes/age), per-row compute (fetches `/api/alignment/:id` —
-      first compute may take minutes, show the honest status) and evict;
-      clear-all with confirm. Summary line aggregates corpus coverage.
-- [ ] `/lab/alignment/$bookId` detail: standalone inspector — header metrics,
-      spans/gaps table (sortable, filter by gap size), per-cue coverage. No
-      audio, no player chrome.
-- Acceptance: list loads instantly with nothing cached (all "—"); compute fills
-  a row; evict reverts it; clear-all empties the cache dir; the player behaves
-  identically after the metrics extraction.
+- [x] Metrics extraction — RESOLVED AS ALREADY BUILT: vttCoverage, epubCoverage,
+      spanCount, gapCount were computed in `packages/align` (metrics.ts) at
+      align time all along and stored in every artifact's `match.metrics`; the
+      server plucks the stored values, no code moved (D3 satisfied as-is, D10
+      win).
+- [x] (5926e03) Artifact-cache introspection: `src/server/alignment-lab.ts` —
+      index with bytes/mtime/schemaVersion, mtime-keyed metrics memo, per-book
+      evict + clear-all (iterates eligible books, structurally cannot touch
+      locate-sweep files) (D4).
+- [x] (5926e03) `/lab/alignment` list: metrics columns, cache column (bytes ·
+      age · vN), Compute/Evict per row, confirmed Clear cache. Verified evict ->
+      compute -> re-list live on the fixtures server.
+- [x] (b198d11) `/lab/alignment/$bookId` detail inspector: metrics line +
+      matched/total tokens, passes table, per-spine stats with zero/low flags,
+      gaps table (desc by epub tokens, min-size filter, 500-row cap). Deviation:
+      per-cue coverage skipped — spine/pass/gap views carry the diagnostic
+      weight; revisit if a real need appears (D10).
+- Acceptance: verified live — list renders uncached rows as "—"; compute fills a
+  row (~5s Alice); evict reverts it; player metrics line unchanged.
 
 ### S5 — Locate all-tokens mode [tier: med]
 
-- [ ] Sweep source abstraction: artifact tokens (today) or all epub tokens
-      (tokenize the same extraction the aligner reads, server-side; the sweep
-      still runs in the browser against real epub.js). Eligibility for epub mode
-      is `hasEpub` alone. Size caution (D10): the token stream for a whole book
-      is artifact-scale — transport it via the existing artifact-http path
-      (etag + gzip) or per-section fetches; the REPORT keeps today's shape
-      (totals + failures capped per section, files stay KB-sized).
-- [ ] Report schema v2: per-source sections in `<bookId>.locate-sweep.json`
-      (`{ artifact?, epub? }`); v1 files are refused and re-run (a version bump
-      is cache invalidation, not a compat promise). Index reports both.
-- [ ] Sweep page: mode toggle; summary and rows render any `failed > 0` as a bug
-      state (D5), both modes expected 100%.
-- Acceptance: fixture book sweeps clean in both modes; a v1 report on disk is
-  ignored/replaced without error; failures visually unmissable.
+- [x] (b18607a) Sweep source: `SweepSource = "matched" | "all"`. MAJOR
+      simplification over the planned design: the artifact already carries EVERY
+      epub token (DOM locators for matched and unmatched alike), so all-tokens
+      mode is a token-selection change on the same fetched artifact — no new
+      endpoints, no new transport, no server tokenization. Deviations recorded:
+      eligibility stays epub+vtt (a true artifact-free epub-only source is
+      deferred until wanted); in all mode the text-guard step is a structural
+      no-op for unmatched tokens (the artifact drops epub raw text by design) —
+      path resolve, CFI generation, and CFI round-trip are fully exercised for
+      every token.
+- [x] (b18607a) Report file v2:
+      `{ version: 2, bookId, runs: { matched?,     all? } }`; v1 files read as
+      absent (version bump = cache invalidation); writing one source preserves
+      the other; index reports both runs.
+- [x] (b18607a) Both sweep pages: matched/all toggle; any `failed > 0` renders
+      as a rose BUG badge in cells, status, and summary (D5).
+- Acceptance: verified live on the fixtures server — Alice matched 9343 tokens /
+  0 failed, all 13290 / 0 failed; one v2 file holds both runs; toggle switches
+  stored views without re-sweeping.
 
 ## Relates
 
