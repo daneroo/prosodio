@@ -23,10 +23,12 @@ How to work in this repo — layout, workflow, tooling, style.
 What the system does and what must hold about the data — algorithms, contracts,
 invariants. Grows by harvesting settled `thoughts/design/` docs.
 
-- [corpora/metadata.md](corpora/metadata.md) — where title/author come from (m4b
-  tags are canonical; basename is a fallback)
-- [corpora/validation.md](corpora/validation.md) — corpus validation: one core,
-  CLI + web skins, three corpora; milestones to nx-audiobook parity
+- [corpora/](corpora/) — corpus contracts (index:
+  [corpora/README.md](corpora/README.md))
+  - [corpora/metadata.md](corpora/metadata.md) — where title/author/series/
+    narrator come from (m4b tags are canonical; basename is a flagged fallback)
+  - [corpora/validation.md](corpora/validation.md) — corpus validation: one
+    core, CLI + web skins, three corpora; milestones to nx-audiobook parity
 
 ## Frameworks
 

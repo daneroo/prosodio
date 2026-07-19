@@ -10,8 +10,7 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 Scheduled items go here (leave this comment)
 
 1. `fixtures-into-shape` (active — Daniel assembling the Beatrix Potter set)
-2. `metadata-canonical-from-tags` (full S1-S5; plan exists)
-3. `validate-bootstrap` (charter milestone 1; `promote-app-config` is its first
+2. `validate-bootstrap` (charter milestone 1; `promote-app-config` is its first
    step)
 
 ## player-ux
@@ -80,17 +79,10 @@ vtt/alignment.
       provenance. ACTIVE: Daniel assembling a Beatrix Potter series set. Absorbs
       `align-better-fixture-pair` + metadata S5. ticket:
       [fixtures-into-shape](tickets/fixtures-into-shape.md)
-- [ ] metadata-canonical-from-tags — full pass: dedicated extractor,
-      `series[]` + `narrator`, `metadata-basename-fallback` finding, docs. First
-      stab landed 2026-07-19 (tags canonical for title/author, d1d7698, verified
-      952/952 on the private corpus). Unhandled shapes (multi-author, odd
-      series) degrade to validator WARNINGS, not blockers. Blocks
-      `book-metadata-identity`; S5 moved to `fixtures-into-shape`. plan:
-      [metadata-canonical-from-tags](plans/metadata-canonical-from-tags.md)
 - [ ] book-metadata-identity — possibly use canonical metadata as the bookId
-      (suffixed with a short sha digest, 5-7 hex). GATED on
-      `metadata-canonical-from-tags` first (tag reliability now proven, 100%
-      title+author). Big blast radius (alignment artifact cache keys,
+      (suffixed with a short sha digest, 5-7 hex). Gate CLEARED 2026-07-19:
+      `metadata-canonical-from-tags` closed, tag reliability proven (952/952
+      source=tags). Big blast radius (alignment artifact cache keys,
       locate-sweep reports, localStorage progress, URLs) and a digest-input
       decision (basename = rename-fragile; file content = rename-stable but
       reads every m4b). Needs its own design + migration story before code.
@@ -184,6 +176,12 @@ vtt/alignment.
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
+- 2026-07-19 metadata-canonical-from-tags — m4b tags canonical for
+  title/author/series/narrator via one pure extractor (`src/lib/metadata.ts`);
+  `metadata-basename-fallback` finding (rescan-proof via `metadata.source`);
+  series/narrator on the Audiobooks tab; cache v4 re-probe verified 952/952
+  source=tags, findings 0, 40 multi-series books.
+  [plans/archive/metadata-canonical-from-tags.md](plans/archive/metadata-canonical-from-tags.md)
 - 2026-07-19 align-better-fixture-pair — absorbed into `fixtures-into-shape`
   (broadened: faithful pairs + fixture re-tagging + jfk decision + provenance).
 

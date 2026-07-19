@@ -1,8 +1,8 @@
 # metadata-canonical-from-tags — m4b tags are the truth, not the basename
 
-Status: active (2026-07-19) — first stab shipped on `lab-routes-refined`
-(tags-first title/author + cache v3 + doc); this full pass runs S1-S4 against
-the private corpus. S5 moved to `fixtures-into-shape`.
+Status: done (2026-07-19) — S1-S4 landed and verified on the private corpus
+(952/952 source=tags, findings 0, narrator 936, series 224 incl. 40
+multi-series). S5 lives on as `fixtures-into-shape`.
 
 First stab (committed): `library.ts` enrich now takes title/author from the m4b
 tags canonically, basename only as a per-field fallback; `BookCache` version
@@ -130,12 +130,12 @@ directly; sequential, one commit per task, `bun run ci` green before each.
 
 ### S4 — docs/corpora/ [tier: low]
 
-- [ ] `docs/corpora/README.md` + `metadata.md`: the truth hierarchy (tags
+- [x] `docs/corpora/README.md` + `metadata.md`: the truth hierarchy (tags
       canonical, basename fallback = defect), the `grouping` grammar with the
       multi-series example, the corpus prevalence numbers, and the fixtures'
       sorry state (jfk all-null, Alice junk title) as the cautionary tale of why
       the original code was wrong.
-- [ ] Index the new dir in `docs/README.md`.
+- [x] Index the new dir in `docs/README.md`.
 - Acceptance: `bun run ci` (markdownlint) green; a reader learns why tags win
   and why the fixtures mislead.
 
