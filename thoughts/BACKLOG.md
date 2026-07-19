@@ -9,9 +9,8 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
-1. `fixtures-into-shape` (active — Daniel assembling the Beatrix Potter set)
-2. `validate-bootstrap` (charter milestone 1; `promote-app-config` is its first
-   step)
+1. `validate-bootstrap` (charter milestone 1; `promote-app-config` is its first
+   step; plan drafted, awaiting D1-D3)
 
 ## player-ux
 
@@ -36,13 +35,11 @@ Scheduled items go here (leave this comment)
 ## alignment quality
 
 - [ ] align-known-mismatch-convention — a convention for marking epub/audio
-      pairs that are legitimately non-faithful renditions, so their low coverage
-      reads as "known mismatch", not pipeline failure. Live cases: A Wizard of
-      Earthsea BBC dramatization paired with the original ebook (27% narration /
-      5.8% book, caught by /lab/alignment 2026-07-19); fixtures Alice
-      abridged-vs-unabridged. Decide the marker (naming, sidecar, curated list)
-      and how lab surfaces render it. Relates: `fixtures-into-shape`,
-      `corpora-omnibus-mapping`.
+      pairs that are legitimately non-faithful, so low coverage reads as "known
+      mismatch", not pipeline failure. Direction: file-naming keyword cues
+      (`Omnibus`, `reference`, `abridged`); private Alice as the practice
+      specimen; also carries the Gutenberg #11 puzzle. ticket:
+      [align-known-mismatch-convention](tickets/align-known-mismatch-convention.md)
 
 - [ ] align-precision-at-scale — automated precision signal over the corpus;
       manual `reviewSamples` reading does not scale to ~700 books. ticket:
@@ -74,11 +71,6 @@ vtt/alignment.
 
 ## corpus quality
 
-- [ ] fixtures-into-shape — make the public fixtures respectable: >=2 faithful
-      pairs, clean canonical tags (keep deliberate junk cases), recorded
-      provenance. ACTIVE: Daniel assembling a Beatrix Potter series set. Absorbs
-      `align-better-fixture-pair` + metadata S5. ticket:
-      [fixtures-into-shape](tickets/fixtures-into-shape.md)
 - [ ] book-metadata-identity — possibly use canonical metadata as the bookId
       (suffixed with a short sha digest, 5-7 hex). Gate CLEARED 2026-07-19:
       `metadata-canonical-from-tags` closed, tag reliability proven (952/952
@@ -92,8 +84,10 @@ vtt/alignment.
       known). Discovery/pairing assumes 1:1 — decide how to represent
       1-epub:N-audiobooks (and the alignment window per audiobook: each book
       would match a SUB-RANGE of the epub, breaking the whole-book linearity
-      assumption). Relates: `align-soft-basename-match`, and the
-      matching-quality content-qualification direction.
+      assumption). A public omnibus FIXTURE is planned in RabitRemix ("Fixture
+      Rabbits 00", Gutenberg #582). Relates: `align-soft-basename-match`,
+      `align-known-mismatch-convention`, and the matching-quality
+      content-qualification direction.
 - [ ] align-soft-basename-match — case-insensitive VTT<->epub pairing fallback
       (books missed on filename case only). Corpus DIRECTORIES cannot be renamed
       (audiobookshelf history); `.epub` rename or a soft fallback in
@@ -176,6 +170,13 @@ vtt/alignment.
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
+- 2026-07-19 fixtures-into-shape — the Fixture Rabbits series landed: three
+  faithful public pairs (clean tags, per-track narrators, VTTs, sha-pinned
+  provenance in manifest.jsonc), alignment baselines narration 86-91% (accepted;
+  low book% = Gutenberg license spine, normal). Alice keeps its junk title and
+  jfk stays tagless deliberately (validator/metadata test cases). Mismatch
+  threads + the #11 puzzle moved to `align-known-mismatch-convention`; the
+  omnibus fixture note to `corpora-omnibus-mapping`.
 - 2026-07-19 metadata-canonical-from-tags — m4b tags canonical for
   title/author/series/narrator via one pure extractor (`src/lib/metadata.ts`);
   `metadata-basename-fallback` finding (rescan-proof via `metadata.source`);

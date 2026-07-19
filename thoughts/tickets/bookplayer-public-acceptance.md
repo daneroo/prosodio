@@ -12,8 +12,9 @@ checkout.
 - decide the harness: MCP/in-app browser per the seed (NO local Playwright in
   bookplayer), or a headless alternative — and whether it gates CI or is a
   documented manual acceptance.
-- partly blocked by `fixtures-into-shape` for a trustworthy pair, but the Alice
-  search path works today.
+- UNBLOCKED 2026-07-19: fixtures-into-shape closed — three faithful Fixture
+  Rabbits pairs (epub+vtt exact) now committed. The harness decision is the only
+  remaining blocker.
 
 See [plans/archive/bookplayer.md](../plans/archive/bookplayer.md) §Final
 acceptance checklist.
