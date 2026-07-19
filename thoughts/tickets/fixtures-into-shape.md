@@ -24,8 +24,13 @@ S1-S5 testing (clean AND junk cases both wanted).
     fixtures now exercise per-book narrator variety; Alice/jfk keep the
     null-narrator cases. m4b + sidecar pins re-pinned.
   - epub Calibre cleanup pass never ran — committed epubs are raw Gutenberg
-    (boilerplate present). Matters only when VTTs exist and alignment coverage
-    becomes the metric; swap = manifest sha update, bookId stable.
+    (boilerplate present). NOW QUANTIFIED (first alignment baselines,
+    2026-07-19, tiny.en VTTs): Peter 89.0%/22.0%, Benjamin 91.4%/25.2%, Flopsy
+    85.8%/21.6% (narration/book). The low book% is ENTIRELY the Gutenberg
+    license spine — Peter's story spine matches 79.1% with 26 anchors while the
+    3014-token license spine sits at 0% (flagged `zero`) and is ~72% of the
+    epub. Cleanup would lift book% to the story-spine ratio (~79%+); a bigger
+    whisper model would lift narration%. Swap = manifest re-pin, bookId stable.
   - ~~no VTTs yet~~ RESOLVED 2026-07-19: Daniel transcribed all three (whisper
     tiny.en, ~5s/book); committed to `fixtures/transcriptions/` +
     manifest-pinned (Alice's pre-existing VTT pinned too). Both roots show
