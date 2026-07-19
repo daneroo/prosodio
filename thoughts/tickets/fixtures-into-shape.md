@@ -19,8 +19,11 @@ S1-S5 testing (clean AND junk cases both wanted).
   on the fixtures root: tags win over basenames, series positions 1/4/6 parse,
   epubMatch exact on all three, findings 0.
 - REMAINING (from the RabitRemix TODO + this landing):
-  - no `composer` tag — the rabbits double as the null-narrator case; decide
-    whether to keep that or re-tag with the LibriVox reader.
+  - no `composer` tag — the rabbits double as the null-narrator case. The real
+    narrators are known and DIFFER per track (origin.yaml: Julian Pratley #1,
+    Jenn Broda #4, MichaelMaggs #6) — retagging would give per-book narrator
+    variety, worth it if the null case moves to jfk-style fixtures. Daniel's
+    call.
   - epub Calibre cleanup pass never ran — committed epubs are raw Gutenberg
     (boilerplate present). Matters only when VTTs exist and alignment coverage
     becomes the metric; swap = manifest sha update, bookId stable.

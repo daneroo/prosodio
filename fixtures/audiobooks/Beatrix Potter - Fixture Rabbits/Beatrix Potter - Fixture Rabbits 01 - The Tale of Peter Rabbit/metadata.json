@@ -16,10 +16,16 @@
   ],
   "title": "The Tale of Peter Rabbit",
   "subtitle": null,
-  "authors": ["Beatrix Potter"],
+  "authors": [
+    "Beatrix Potter"
+  ],
   "narrators": [],
-  "series": ["Fixture Rabbits #1"],
-  "genres": ["speech"],
+  "series": [
+    "Fixture Rabbits #1"
+  ],
+  "genres": [
+    "speech"
+  ],
   "publishedYear": null,
   "publishedDate": null,
   "publisher": null,

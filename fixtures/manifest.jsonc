@@ -1,3 +1,8 @@
+// Three distinct roles, one file. For every entry the sha256 is an INTEGRITY
+// PIN on the committed bytes (detects silent rewrites — cf. Calibre bookmark
+// pollution); `url` is PROVENANCE ONLY, never a reproduction recipe (Gutenberg
+// regenerates its artifacts; produced m4bs have no upstream at all). Only
+// `fetchIfMissing` entries are ever downloaded.
 [
   {
     // checked in; URL records provenance
@@ -51,14 +56,15 @@
   },
   // Fixture Rabbits — purpose-built public fixture SERIES (fixtures-into-shape,
   // 2026-07-19): three Beatrix Potter tales at deliberately non-contiguous
-  // series positions (grouping tags "Fixture Rabbits #1/#4/#6"). Audio remixed
-  // to m4b from the LibriVox collection "The Tale of Peter Rabbit and Others"
-  // (128 kbps MP3 tracks 01/04/06; source sha256s recorded in the RabitRemix
-  // staging area). EPUBs are the untouched illustrated per-tale Gutenberg
-  // editions (url = provenance). Small and purpose-produced, so the m4bs ARE
-  // committed (gitignore negation) — unlike the fetched 98MB Alice m4b.
-  // metadata.json is the audiobookshelf sidecar (chapters + series). No
-  // composer tag: these double as the null-narrator case.
+  // series positions (grouping tags "Fixture Rabbits #1/#4/#6"). Full origin
+  // record (exact archive.org track URLs, per-track LibriVox narrators,
+  // Gutenberg ebook numbers): origin.yaml next to the books. m4bs were
+  // converted + retagged from those sources (no upstream m4b exists), so they
+  // ARE committed (gitignore negation) — unlike the fetched 98MB Alice m4b.
+  // EPUBs are the unmodified Gutenberg downloads. metadata.json is the
+  // audiobookshelf sidecar. No composer tag yet: the narrators differ per
+  // track (Pratley / Broda / MichaelMaggs) — retag decision tracked in the
+  // fixtures-into-shape ticket.
   {
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit.m4b",
     "sha256": "20eb2f851d78495c7cd0174a2fa94fc792d2aa1696dacd02b13bae3ae347096a",

@@ -1,5 +1,9 @@
 # Generated artifacts — do not reformat.
 bun.lock
+
+# Fixture corpus bytes are immutable (sha256-pinned in fixtures/manifest.jsonc);
+# formatting them is corruption. The manifest itself stays formatted.
+fixtures/audiobooks/
 apps/epub-validate/dist/
 apps/epub-validate/reports/
 apps/align/reports/

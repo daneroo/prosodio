@@ -1,0 +1,58 @@
+# Origin record for the Fixture Rabbits series (Daniel, 2026-07-19).
+# The m4bs were converted and retagged from the audio sources below; the
+# epubs are the unmodified Gutenberg downloads (Gutenberg regenerates its
+# artifacts, so the URLs are provenance, not a reproduction recipe — the
+# committed bytes + fixtures/manifest.jsonc sha256 pins are the record).
+
+series:
+  title: Fixture Rabbits
+  note: Locally assigned fixture series; not part of the upstream metadata.
+
+fixtures:
+  - title: The Tale of Peter Rabbit
+    series_index: 1
+    author: Beatrix Potter
+
+    epub_origin:
+      provider: Project Gutenberg
+      ebook_number: 14838
+      url: https://www.gutenberg.org/ebooks/14838
+
+    audio_origin:
+      provider: LibriVox via Internet Archive
+      collection: The Tale of Peter Rabbit and Others
+      track: 1
+      narrator: Julian Pratley
+      url: https://archive.org/download/thetaleofpeterrabbitandothers_2008_librivox/peterrabbitandothertales_01_potter_128kb.mp3
+
+  - title: The Tale of Benjamin Bunny
+    series_index: 4
+    author: Beatrix Potter
+
+    epub_origin:
+      provider: Project Gutenberg
+      ebook_number: 14407
+      url: https://www.gutenberg.org/ebooks/14407
+
+    audio_origin:
+      provider: LibriVox via Internet Archive
+      collection: The Tale of Peter Rabbit and Others
+      track: 4
+      narrator: Jenn Broda
+      url: https://archive.org/download/thetaleofpeterrabbitandothers_2008_librivox/peterrabbitandothertales_04_potter_128kb.mp3
+
+  - title: The Tale of the Flopsy Bunnies
+    series_index: 6
+    author: Beatrix Potter
+
+    epub_origin:
+      provider: Project Gutenberg
+      ebook_number: 14220
+      url: https://www.gutenberg.org/ebooks/14220
+
+    audio_origin:
+      provider: LibriVox via Internet Archive
+      collection: The Tale of Peter Rabbit and Others
+      track: 6
+      narrator: MichaelMaggs
+      url: https://archive.org/download/thetaleofpeterrabbitandothers_2008_librivox/peterrabbitandothertales_06_potter_128kb.mp3
