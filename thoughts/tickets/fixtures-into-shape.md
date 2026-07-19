@@ -23,20 +23,19 @@ S1-S5 testing (clean AND junk cases both wanted).
     per-track narrators (Julian Pratley #1, Jenn Broda #4, Michael Maggs #6) —
     fixtures now exercise per-book narrator variety; Alice/jfk keep the
     null-narrator cases. m4b + sidecar pins re-pinned.
-  - epub Calibre cleanup pass never ran — committed epubs are raw Gutenberg
-    (boilerplate present). NOW QUANTIFIED (first alignment baselines,
-    2026-07-19, tiny.en VTTs): Peter 89.0%/22.0%, Benjamin 91.4%/25.2%, Flopsy
-    85.8%/21.6% (narration/book). The low book% is ENTIRELY the Gutenberg
-    license spine — Peter's story spine matches 79.1% with 26 anchors while the
-    3014-token license spine sits at 0% (flagged `zero`) and is ~72% of the
-    epub. Cleanup would lift book% to the story-spine ratio (~79%+); a bigger
-    whisper model would lift narration%. Swap = manifest re-pin, bookId stable.
+  - BASELINES ACCEPTED (Daniel, 2026-07-19): Peter 89.0%/22.0%, Benjamin
+    91.4%/25.2%, Flopsy 85.8%/21.6% (narration/book, tiny.en VTTs). Narration
+    match — THE metric that matters — is good on all three. Book% low is NORMAL:
+    the Gutenberg license spine is huge relative to a five-minute tale (Peter:
+    story spine 79.1% matched, 3014-token license spine 0%, flagged `zero`) and
+    we don't much care about the book side. The epub Calibre cleanup (RabitRemix
+    TODO) is therefore NOT coverage-driven — revisit only for licensing tidiness
+    or the omnibus work.
   - ~~no VTTs yet~~ RESOLVED 2026-07-19: Daniel transcribed all three (whisper
-    tiny.en, ~5s/book); committed to `fixtures/transcriptions/` +
-    manifest-pinned (Alice's pre-existing VTT pinned too). Both roots show
-    vtt=exact on all rabbits. Note tiny.en transcript quality may cap alignment
-    coverage — regenerate with a larger model + re-pin if the rabbit alignment
-    baselines look weak.
+    tiny.en, ~5s/book); committed to `fixtures/transcriptions/`. VTTs are NOT
+    manifest-pinned — our own transcribe makes them from the committed m4bs and
+    each embeds its provenance (NOTE Provenance headers). Both roots show
+    vtt=exact on all rabbits; regenerate with a larger model at will.
   - the combined Gutenberg #582 omnibus ("Fixture Rabbits 00") is planned in
     RabitRemix — would become the `corpora-omnibus-mapping` fixture.
 - faithful-pair problem (from align-better-fixture-pair): the committed Alice
