@@ -25,6 +25,8 @@ invariants. Grows by harvesting settled `thoughts/design/` docs.
 
 - [corpora/metadata.md](corpora/metadata.md) — where title/author come from (m4b
   tags are canonical; basename is a fallback)
+- [corpora/validation.md](corpora/validation.md) — corpus validation: one core,
+  CLI + web skins, three corpora; milestones to nx-audiobook parity
 
 ## Frameworks
 
