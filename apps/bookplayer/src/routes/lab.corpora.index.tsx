@@ -8,7 +8,9 @@
  *
  * Follows the lab.locate.index.tsx data-fetch shape (useEffect + alive
  * guard) and renders through the shared LabTable (D9's chevron-expand slot,
- * first real use here for the id/basename/relDir detail row).
+ * first real use here for the id/basename/relDir detail row — since
+ * extracted to components/lab/BookDetail.tsx, along with MatchBadge and
+ * formatBytes, for the S3 Audiobooks/Epub/VTT pages to reuse).
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
@@ -16,9 +18,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { formatDuration } from "#/lib/browse";
 import { fetchScanReport, triggerRescan } from "#/server/library";
-import { formatTimestamp } from "#/components/lab/format";
+import { BookDetail } from "#/components/lab/BookDetail";
+import { formatBytes, formatTimestamp } from "#/components/lab/format";
 import { LabTable } from "#/components/lab/LabTable";
-import type { ScanFinding, ScanFindingCode, MatchClass } from "#/lib/types";
+import { MatchBadge } from "#/components/lab/MatchBadge";
+import type { ScanFinding, ScanFindingCode } from "#/lib/types";
 import type { ScanReportBookRow } from "#/server/library";
 import type { LabColumn } from "#/components/lab/LabTable";
 
@@ -68,14 +72,6 @@ function isProblem(book: ScanReportBookRow): boolean {
     book.vttMatch === "near" ||
     book.vttMatch === "mismatch"
   );
-}
-
-/** MB/GB, one decimal — no formatter for this exists yet in lib/browse.ts. */
-function formatBytes(bytes: number): string {
-  const gb = bytes / 1024 ** 3;
-  if (gb >= 1) return `${gb.toFixed(1)} GB`;
-  const mb = bytes / 1024 ** 2;
-  return `${mb.toFixed(1)} MB`;
 }
 
 function CorporaPage() {
@@ -252,16 +248,7 @@ const BOOK_COLUMNS: Array<LabColumn<ScanReportBookRow>> = [
 ];
 
 function renderBookDetail(book: ScanReportBookRow) {
-  return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-      <dt className="text-slate-500">id</dt>
-      <dd className="text-slate-400">{book.id}</dd>
-      <dt className="text-slate-500">basename</dt>
-      <dd className="text-slate-400">{book.basename}</dd>
-      <dt className="text-slate-500">relDir</dt>
-      <dd className="text-slate-400">{book.relDir}</dd>
-    </dl>
-  );
+  return <BookDetail book={book} />;
 }
 
 const FINDING_COLUMNS: Array<LabColumn<ScanFinding>> = [
@@ -284,21 +271,3 @@ const FINDING_COLUMNS: Array<LabColumn<ScanFinding>> = [
     cell: (finding) => finding.detail,
   },
 ];
-
-function MatchBadge({ match }: { match: MatchClass }) {
-  if (match === "absent") {
-    return <span className="text-slate-600">{"—"}</span>;
-  }
-  const tones: Record<Exclude<MatchClass, "absent">, string> = {
-    exact: "bg-emerald-900/60 text-emerald-400",
-    near: "bg-amber-900/60 text-amber-400",
-    mismatch: "bg-rose-900/60 text-rose-400",
-  };
-  return (
-    <span
-      className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${tones[match]}`}
-    >
-      {match}
-    </span>
-  );
-}

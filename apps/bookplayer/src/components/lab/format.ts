@@ -8,3 +8,12 @@ export function formatTimestamp(iso: string): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
 }
+
+/** MB/GB, one decimal (plan lab-routes-refined S3; moved out of
+ * lab.corpora.index.tsx unchanged so Audiobooks/Epub share it). */
+export function formatBytes(bytes: number): string {
+  const gb = bytes / 1024 ** 3;
+  if (gb >= 1) return `${gb.toFixed(1)} GB`;
+  const mb = bytes / 1024 ** 2;
+  return `${mb.toFixed(1)} MB`;
+}

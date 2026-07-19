@@ -2,12 +2,15 @@
  * Server functions: the loaders' data surface. Rows are lean — ids, display
  * fields, capability flags — never filesystem paths.
  */
+import { statSync } from "node:fs";
+
 import { createServerFn } from "@tanstack/react-start";
 
 import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
-import { BOOK_ID_RE } from "#/lib/media";
+import { assetPath, BOOK_ID_RE } from "#/lib/media";
 import { loadTranscript } from "#/lib/transcript";
+import type { BookplayerConfig } from "#/lib/config";
 import type { BookRecord, MatchClass } from "#/lib/types";
 
 export interface BookRow {
@@ -46,9 +49,30 @@ export interface ScanReportBookRow {
   vttMatch: MatchClass;
   sizeBytes: number;
   durationSec: number | null;
+  codec: string | null;
+  bitrateKbps: number | null;
+  /** statSync'd on the resolved epub path; null with no epub or a stat
+   *  failure — never throws (S3). */
+  epubSizeBytes: number | null;
 }
 
-function toScanReportRow(book: BookRecord): ScanReportBookRow {
+function epubSizeBytes(
+  config: BookplayerConfig,
+  book: BookRecord,
+): number | null {
+  const path = assetPath(config, book, "epub");
+  if (!path) return null;
+  try {
+    return statSync(path).size;
+  } catch {
+    return null;
+  }
+}
+
+function toScanReportRow(
+  book: BookRecord,
+  config: BookplayerConfig,
+): ScanReportBookRow {
   return {
     id: book.id,
     title: book.metadata.title,
@@ -61,6 +85,9 @@ function toScanReportRow(book: BookRecord): ScanReportBookRow {
     vttMatch: book.vttMatch,
     sizeBytes: book.metadata.sizeBytes,
     durationSec: book.metadata.durationSec,
+    codec: book.metadata.codec,
+    bitrateKbps: book.metadata.bitrateKbps,
+    epubSizeBytes: epubSizeBytes(config, book),
   };
 }
 
@@ -89,12 +116,13 @@ export const fetchLibrary = createServerFn({ method: "GET" }).handler(() => {
 /** Lab-only: the Corpora tab's data source (findings + graded match
  *  quality, plan lab-routes-refined S2). Not consumed by the home page. */
 export const fetchScanReport = createServerFn({ method: "GET" }).handler(() => {
+  const config = getConfig();
   const index = library().getIndex();
   return {
     rootName: index.rootName,
     scannedAt: index.scannedAt,
     findings: index.findings,
-    books: index.books.map(toScanReportRow),
+    books: index.books.map((book) => toScanReportRow(book, config)),
   };
 });
 
