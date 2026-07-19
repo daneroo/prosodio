@@ -7,7 +7,13 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 ## Now
 
-No scheduled item.
+Scheduled items go here (leave this comment)
+
+- [ ] lab-routes-refined — grow `/lab` into a list-first surface per pipeline
+      artifact (Corpora, Audiobooks, Epub, VTT, Alignment, Locate; Parsers
+      reserved): structured scan findings replace console warnings, alignment
+      metrics + artifact-cache visibility/evict, locate all-epub-tokens mode.
+      plan: [lab-routes-refined](plans/lab-routes-refined.md)
 
 ## player-ux
 
