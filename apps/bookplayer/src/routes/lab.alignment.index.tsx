@@ -7,7 +7,7 @@
  * age, and schema version are always visible (D4); per-row and clear-all
  * eviction are one click away.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -333,12 +333,16 @@ function buildColumns(
       header: "title",
       className: "max-w-[300px] truncate",
       cell: (row) => (
-        <span className="truncate">
+        <Link
+          to="/lab/alignment/$bookId"
+          params={{ bookId: row.id }}
+          className="truncate underline hover:text-white"
+        >
           <span className="text-slate-300">{row.title}</span>
           {row.author && (
             <span className="text-slate-500"> — {row.author}</span>
           )}
-        </span>
+        </Link>
       ),
     },
     {
