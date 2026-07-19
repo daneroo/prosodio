@@ -1,18 +1,28 @@
 /**
  * L3 locate-coverage sweep page (plan
- * thoughts/plans/bookplayer-align-refine-model.md, T4.4). Dev-gated: this
- * page runs the real epub.js in the real browser against every matched EPUB
- * token in a book and reports whether it resolves to a working, round-
- * tripped epubcfi. Never wired into CI (it needs a browser + a served
- * book) — it's a manual triage tool, and doubles as the automation seam
- * `window.__locateSweepReport` for the orchestrator's browser verification.
+ * thoughts/plans/bookplayer-align-refine-model.md, T4.4; matched/all mode
+ * toggle added by thoughts/plans/lab-routes-refined.md, S5/D5). Dev-gated:
+ * this page runs the real epub.js in the real browser against every epub
+ * token in a book (matched-only, or all tokens — see the toggle) and
+ * reports whether each resolves to a working, round-tripped epubcfi. Never
+ * wired into CI (it needs a browser + a served book) — it's a manual triage
+ * tool, and doubles as the automation seam `window.__locateSweepReport` for
+ * the orchestrator's browser verification.
+ *
+ * The page auto-runs on load and re-runs whenever the mode toggle changes —
+ * simplest interaction that keeps the report on screen always matching the
+ * selected source (D10).
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { fetchArtifact } from "#/lib/alignment-client";
 import { sweepBook } from "#/lib/locate-sweep";
-import type { SweepReport, SweepSectionReport } from "#/lib/locate-sweep";
+import type {
+  SweepReport,
+  SweepSectionReport,
+  SweepSource,
+} from "#/lib/locate-sweep";
 
 export const Route = createFileRoute("/lab/locate/$bookId")({
   component: DevLocateSweepRoute,
@@ -49,6 +59,7 @@ type SaveStatus = "saving" | "saved" | "save-failed" | null;
 
 function LocateSweepPage() {
   const { bookId } = Route.useParams();
+  const [source, setSource] = useState<SweepSource>("matched");
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [progress, setProgress] = useState<Progress | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
@@ -63,6 +74,7 @@ function LocateSweepPage() {
     const controller = new AbortController();
     setState({ status: "loading" });
     setProgress(null);
+    setSaveStatus(null);
 
     fetchArtifact(bookId, controller.signal)
       .then(async (result) => {
@@ -75,6 +87,7 @@ function LocateSweepPage() {
         const report = await sweepBook(
           result.artifact,
           `/api/epub/${bookId}`,
+          source,
           (done, total, href) => {
             if (!isCancelled()) setProgress({ done, total, href });
           },
@@ -114,7 +127,9 @@ function LocateSweepPage() {
       cancelled = true;
       controller.abort();
     };
-  }, [bookId]);
+  }, [bookId, source]);
+
+  const running = state.status === "loading" || state.status === "sweeping";
 
   return (
     <div className="p-4" data-testid="locate-sweep">
@@ -129,6 +144,9 @@ function LocateSweepPage() {
           all books
         </a>
       </div>
+
+      <SourceToggle source={source} onSelect={setSource} disabled={running} />
+
       {state.status === "loading" && (
         <p className="text-xs text-slate-500">Loading alignment…</p>
       )}
@@ -157,6 +175,53 @@ function LocateSweepPage() {
   );
 }
 
+/** Same toggle as lab.locate.index.tsx — duplicated rather than extracted
+ * per D10/S1's shared-pieces call (LabTable + formatTimestamp only); this
+ * one is a ~15-line component, not worth a shared module yet. */
+function SourceToggle({
+  source,
+  onSelect,
+  disabled,
+}: {
+  source: SweepSource;
+  onSelect: (source: SweepSource) => void;
+  disabled: boolean;
+}) {
+  const options: Array<{ value: SweepSource; label: string }> = [
+    { value: "matched", label: "matched tokens" },
+    { value: "all", label: "all tokens" },
+  ];
+  return (
+    <div className="mb-3 flex items-center gap-1" data-testid="source-toggle">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onSelect(option.value)}
+          disabled={disabled}
+          aria-pressed={source === option.value}
+          className={`rounded border px-2 py-1 text-xs disabled:opacity-40 ${
+            source === option.value
+              ? "border-cyan-500 text-cyan-300"
+              : "border-slate-700 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Small rose "BUG" badge — the unmissable D5 marker for any failed > 0. */
+function BugBadge() {
+  return (
+    <span className="rounded bg-rose-950/70 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-rose-400">
+      BUG
+    </span>
+  );
+}
+
 function SweepResults({
   report,
   saveStatus,
@@ -173,7 +238,15 @@ function SweepResults({
           data-testid="locate-sweep-totals"
         >
           sections {totals.sections} · tokens {totals.tokens} · ok {totals.ok} ·
-          failed {totals.failed}
+          failed{" "}
+          {totals.failed > 0 ? (
+            <span className="inline-flex items-center gap-1 font-semibold text-rose-400">
+              {totals.failed}
+              <BugBadge />
+            </span>
+          ) : (
+            totals.failed
+          )}
         </p>
         {saveStatus && (
           <p
@@ -215,6 +288,7 @@ function SectionRow({ section }: { section: SweepSectionReport }) {
     section.extensionPredictedMode !== "unknown" &&
     section.extensionPredictedMode !== section.parseMode;
   const first = section.failures[0];
+  const failed = section.tokens - section.ok;
   return (
     <tr className="border-b border-slate-800">
       <td className="max-w-[280px] truncate py-1 pr-3 text-slate-300">
@@ -235,10 +309,13 @@ function SectionRow({ section }: { section: SweepSectionReport }) {
       </td>
       <td
         className={`py-1 pr-3 tabular-nums ${
-          section.ok === section.tokens ? "text-emerald-400" : "text-rose-400"
+          failed > 0 ? "font-semibold text-rose-400" : "text-emerald-400"
         }`}
       >
-        {section.ok}/{section.tokens}
+        <span className="inline-flex items-center gap-1">
+          {section.ok}/{section.tokens}
+          {failed > 0 && <BugBadge />}
+        </span>
       </td>
       <td className="py-1 pr-3 text-slate-500">
         {first ? `${first.step}@${first.epubSeq}` : "-"}

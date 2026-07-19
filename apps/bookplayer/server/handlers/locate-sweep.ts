@@ -102,7 +102,7 @@ async function serveSweep(bookId: string, request: Request): Promise<Response> {
       return jsonError(400, "SWEEP_INVALID", validated.reason);
     }
 
-    writeSweep(path, validated.report);
+    writeSweep(path, bookId, validated.report);
     return new Response(null, { status: 204 });
   }
 

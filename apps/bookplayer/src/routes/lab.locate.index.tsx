@@ -1,12 +1,13 @@
 /**
  * /lab/locate — the corpus sweep page (plan
- * thoughts/plans/bookplayer-locate-hardening.md, T2.3; decisions H4/H5). The
- * single-book sweep at lab.locate.$bookId.tsx runs the L3 locate sweep for
- * one book and auto-persists its report (T2.2); this page loops the whole
- * corpus in-page, sequentially, one book at a time, and persists each
- * finished report the same way. It replaces the need for any out-of-repo
- * driver script (Daniel's playwright-as-page-driver tool) — see the plan's
- * "How the sweep actually works" section.
+ * thoughts/plans/bookplayer-locate-hardening.md, T2.3; decisions H4/H5;
+ * matched/all mode toggle added by thoughts/plans/lab-routes-refined.md,
+ * S5/D5). The single-book sweep at lab.locate.$bookId.tsx runs the L3 locate
+ * sweep for one book and auto-persists its report (T2.2); this page loops
+ * the whole corpus in-page, sequentially, one book at a time, and persists
+ * each finished report the same way. It replaces the need for any
+ * out-of-repo driver script (Daniel's playwright-as-page-driver tool) — see
+ * the plan's "How the sweep actually works" section.
  *
  * Dev-gated identically to lab.locate: import.meta.env.DEV is checked before
  * SweepCorpusPage mounts, so no hooks run and nothing fetches or imports
@@ -15,6 +16,12 @@
  * The table itself renders through the shared LabTable shell
  * (components/lab/LabTable.tsx, plan thoughts/plans/lab-routes-refined.md,
  * S1b) — no behavior change from the page's own inline `<table>`.
+ *
+ * Mode toggle (D5): "matched tokens" sweeps only epub tokens paired to a vtt
+ * token (today's behavior); "all tokens" sweeps every epub token in the
+ * book, decoupling the check from alignment coverage. Both modes expect
+ * 100% — any failed > 0 renders as a bug signal (rose, unmissable), never as
+ * a neutral percentage.
  */
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
@@ -24,7 +31,7 @@ import { sweepBook } from "#/lib/locate-sweep";
 import { fetchLibrary } from "#/server/library";
 import { formatTimestamp } from "#/components/lab/format";
 import { LabTable } from "#/components/lab/LabTable";
-import type { SweepReport } from "#/lib/locate-sweep";
+import type { SweepReport, SweepSource } from "#/lib/locate-sweep";
 import type { BookRow } from "#/server/library";
 import type { LabColumn } from "#/components/lab/LabTable";
 
@@ -58,21 +65,23 @@ type LiveState =
 interface Row {
   id: string;
   title: string;
-  /** Server-confirmed persisted result. Updated optimistically (local
-   * timestamp) right after a successful PUT — see runOneBook. */
+  /** Server-confirmed persisted result FOR THE CURRENTLY SELECTED SOURCE.
+   * Updated optimistically (local timestamp) right after a successful PUT —
+   * see runOneBook. Recomputed from indexEntries whenever the mode toggle
+   * changes. */
   stored: { generatedAt: string; totals: Totals } | null;
-  /** Totals from the most recent sweep computed in THIS session, kept even
-   * if the follow-up save fails — "keep report in row" per the plan, without
-   * overloading LiveState's "error" variant with a totals field it doesn't
-   * otherwise need. */
+  /** Totals from the most recent sweep computed in THIS session (current
+   * source), kept even if the follow-up save fails — "keep report in row"
+   * per the plan, without overloading LiveState's "error" variant with a
+   * totals field it doesn't otherwise need. Reset on mode toggle: a live
+   * in-session result belongs to the mode it was run under. */
   liveTotals: Totals | null;
   live: LiveState;
 }
 
 interface SweepIndexEntry {
   bookId: string;
-  generatedAt: string;
-  totals: Totals;
+  runs: Partial<Record<SweepSource, { generatedAt: string; totals: Totals }>>;
 }
 
 type LoadState =
@@ -83,17 +92,18 @@ type LoadState =
 function mergeRows(
   books: Array<BookRow>,
   index: Array<SweepIndexEntry>,
+  source: SweepSource,
 ): Array<Row> {
   const byId = new Map(index.map((entry) => [entry.bookId, entry]));
   return books
     .filter((book) => book.hasEpub && book.hasVtt)
     .map((book): Row => {
-      const stored = byId.get(book.id);
+      const run = byId.get(book.id)?.runs[source];
       return {
         id: book.id,
         title: book.title,
-        stored: stored
-          ? { generatedAt: stored.generatedAt, totals: stored.totals }
+        stored: run
+          ? { generatedAt: run.generatedAt, totals: run.totals }
           : null,
         liveTotals: null,
         live: { status: "idle" },
@@ -137,12 +147,17 @@ function computeSummary(rows: Array<Row>) {
 
 function SweepCorpusPage() {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
+  const [library, setLibrary] = useState<Array<BookRow>>([]);
+  const [indexEntries, setIndexEntries] = useState<Array<SweepIndexEntry>>([]);
+  const [source, setSource] = useState<SweepSource>("matched");
   const [rows, setRows] = useState<Array<Row>>([]);
   const [running, setRunning] = useState(false);
 
   const aliveRef = useRef(true);
   const controllerRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
+  const sourceRef = useRef(source);
+  sourceRef.current = source;
 
   useEffect(() => {
     aliveRef.current = true;
@@ -152,7 +167,7 @@ function SweepCorpusPage() {
     (async () => {
       setLoadState({ status: "loading" });
       try {
-        const [library, sweepRes] = await Promise.all([
+        const [lib, sweepRes] = await Promise.all([
           fetchLibrary(),
           fetch("/api/locate-sweep", { signal: controller.signal }),
         ]);
@@ -160,7 +175,9 @@ function SweepCorpusPage() {
         const index: Array<SweepIndexEntry> = sweepRes.ok
           ? ((await sweepRes.json()) as Array<SweepIndexEntry>)
           : [];
-        setRows(mergeRows(library.books, index));
+        setLibrary(lib.books);
+        setIndexEntries(index);
+        setRows(mergeRows(lib.books, index, sourceRef.current));
         setLoadState({ status: "ready" });
       } catch (error) {
         if (!aliveRef.current) return;
@@ -187,7 +204,33 @@ function SweepCorpusPage() {
     setRows((prev) => prev.map((row) => (row.id === id ? update(row) : row)));
   }
 
+  function selectSource(next: SweepSource) {
+    if (running || next === source) return;
+    setSource(next);
+    setRows(mergeRows(library, indexEntries, next));
+  }
+
+  /** Upserts one book's run into indexEntries so a later mode toggle (back
+   * to this source) still shows the fresh result without a refetch. */
+  function recordIndexEntry(
+    id: string,
+    run: { generatedAt: string; totals: Totals },
+  ) {
+    setIndexEntries((prev) => {
+      const existing = prev.find((entry) => entry.bookId === id);
+      if (!existing) {
+        return [...prev, { bookId: id, runs: { [sourceRef.current]: run } }];
+      }
+      return prev.map((entry) =>
+        entry.bookId === id
+          ? { ...entry, runs: { ...entry.runs, [sourceRef.current]: run } }
+          : entry,
+      );
+    });
+  }
+
   async function runOneBook(id: string) {
+    const runSource = sourceRef.current;
     updateRow(id, (row) => ({ ...row, live: { status: "fetching-artifact" } }));
 
     // The artifact fetch can take minutes on a cold cache (the server
@@ -223,6 +266,7 @@ function SweepCorpusPage() {
       report = await sweepBook(
         artifactResult.artifact,
         `/api/epub/${id}`,
+        runSource,
         (done, total, href) => {
           updateRow(id, (row) => ({
             ...row,
@@ -255,12 +299,11 @@ function SweepCorpusPage() {
         body: JSON.stringify(report),
       });
       if (response.ok) {
+        const generatedAt = new Date().toISOString();
+        recordIndexEntry(id, { generatedAt, totals: report.totals });
         updateRow(id, (row) => ({
           ...row,
-          stored: {
-            generatedAt: new Date().toISOString(),
-            totals: report.totals,
-          },
+          stored: { generatedAt, totals: report.totals },
           live: { status: "done", totals: report.totals },
         }));
       } else {
@@ -329,6 +372,12 @@ function SweepCorpusPage() {
         <h1 className="text-sm font-medium text-slate-300">Sweep — corpus</h1>
       </div>
 
+      <SourceToggle
+        source={source}
+        onSelect={selectSource}
+        disabled={running}
+      />
+
       <div className="mb-3 flex items-center gap-2">
         <button
           type="button"
@@ -385,11 +434,68 @@ function SweepCorpusPage() {
             {summary.books}/{rows.length} swept · clean {summary.clean} ·
             partial {summary.partial} · zero-ok {summary.zeroOk} · tokens{" "}
             {summary.totals.tokens} · ok {summary.totals.ok} · failed{" "}
-            {summary.totals.failed}
+            <span
+              className={
+                summary.totals.failed > 0
+                  ? "font-semibold text-rose-400"
+                  : "text-slate-300"
+              }
+              data-testid="sweep-totals-failed"
+            >
+              {summary.totals.failed}
+            </span>
           </p>
         </>
       )}
     </div>
+  );
+}
+
+/** Small "matched tokens" / "all tokens" toggle, cyan-active — matches the
+ * lab's existing active-state convention. Disabled while a run is in
+ * flight so the selected mode can't change out from under an in-progress
+ * sweep. */
+function SourceToggle({
+  source,
+  onSelect,
+  disabled,
+}: {
+  source: SweepSource;
+  onSelect: (source: SweepSource) => void;
+  disabled: boolean;
+}) {
+  const options: Array<{ value: SweepSource; label: string }> = [
+    { value: "matched", label: "matched tokens" },
+    { value: "all", label: "all tokens" },
+  ];
+  return (
+    <div className="mb-3 flex items-center gap-1" data-testid="source-toggle">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onSelect(option.value)}
+          disabled={disabled}
+          aria-pressed={source === option.value}
+          className={`rounded border px-2 py-1 text-xs disabled:opacity-40 ${
+            source === option.value
+              ? "border-cyan-500 text-cyan-300"
+              : "border-slate-700 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Small rose "BUG" badge — the unmissable D5 marker for any failed > 0. */
+function BugBadge() {
+  return (
+    <span className="rounded bg-rose-950/70 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-rose-400">
+      BUG
+    </span>
   );
 }
 
@@ -436,13 +542,14 @@ function buildColumns(
       className: "tabular-nums",
       cell: (row) => {
         const totals = rowTotals(row);
+        if (!totals) return <span className="text-slate-400">—</span>;
+        if (totals.failed === 0) {
+          return <span className="text-slate-400">0</span>;
+        }
         return (
-          <span
-            className={
-              totals && totals.failed > 0 ? "text-rose-400" : "text-slate-400"
-            }
-          >
-            {totals ? totals.failed : "—"}
+          <span className="inline-flex items-center gap-1 font-semibold text-rose-400">
+            {totals.failed}
+            <BugBadge />
           </span>
         );
       },
@@ -471,7 +578,9 @@ function buildColumns(
     {
       header: "status",
       className: "max-w-[240px] truncate",
-      cell: (row) => <LiveStatusLabel live={row.live} />,
+      cell: (row) => (
+        <LiveStatusLabel live={row.live} totals={rowTotals(row)} />
+      ),
     },
     {
       header: "",
@@ -489,7 +598,29 @@ function buildColumns(
   ];
 }
 
-function LiveStatusLabel({ live }: { live: LiveState }) {
+/** `totals` is the row's current-source totals (live-session or last
+ * persisted) — passed in so an idle row with a stored failure still shows
+ * the bug state, not a blank "—" (D5: a failure is unmissable regardless of
+ * whether this session just ran the sweep). */
+function LiveStatusLabel({
+  live,
+  totals,
+}: {
+  live: LiveState;
+  totals: Totals | null;
+}) {
+  if (
+    (live.status === "idle" || live.status === "done") &&
+    totals &&
+    totals.failed > 0
+  ) {
+    return (
+      <span className="inline-flex items-center gap-1 font-semibold text-rose-400">
+        <BugBadge />
+        {totals.failed} failed
+      </span>
+    );
+  }
   switch (live.status) {
     case "idle":
       return <span className="text-slate-600">{"—"}</span>;

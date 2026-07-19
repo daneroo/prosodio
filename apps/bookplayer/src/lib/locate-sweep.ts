@@ -1,13 +1,27 @@
 /**
  * L3 locate-coverage sweep (plan thoughts/plans/bookplayer-align-refine-model.md,
  * T4.4; design thoughts/design/bookplayer-align-refine-model.md, "The DOM
- * path"). The empirical answer to "does EVERY matched EPUB token produce a
- * WORKING epubcfi in the real browser through the real epub.js": for each
- * matched token, resolve its DOM path, run the text guard, generate a CFI,
- * and round-trip it (`new EpubCFI(cfi)` -> `toRange` -> text compare) against
- * a section epub.js actually parsed. Section-level parity (L2, checked once
- * per section) is recorded alongside but does not gate the per-token loop —
- * this sweep MEASURES, it does not short-circuit.
+ * path"; all-tokens mode added by plan thoughts/plans/lab-routes-refined.md,
+ * S5/D5). The empirical answer to "does EVERY EPUB token produce a WORKING
+ * epubcfi in the real browser through the real epub.js": for each token,
+ * resolve its DOM path, run the text guard, generate a CFI, and round-trip
+ * it (`new EpubCFI(cfi)` -> `toRange` -> text compare) against a section
+ * epub.js actually parsed. Section-level parity (L2, checked once per
+ * section) is recorded alongside but does not gate the per-token loop — this
+ * sweep MEASURES, it does not short-circuit.
+ *
+ * Two sweep sources (`SweepSource`, exported below): "matched" walks only
+ * epub tokens paired to a vtt token by `artifact.match.spans` (today's
+ * behavior, alignment-dependent); "all" walks every epub token seq 0..N —
+ * the artifact's epub.tokens columns already span every token of every
+ * spine doc, only a fraction are matched by spans — decoupling the locate
+ * check from alignment coverage (D5). Both reuse the one fetched artifact;
+ * no new transport. "all" mode's text guard has no independent
+ * expected-text source for unmatched tokens (the artifact carries no raw
+ * epub text, only DOM-locator columns — see the guard's inline comment in
+ * sweepSection) so that one step is a structural no-op there; every other
+ * check (path resolution, CFI generation, CFI round-trip) still runs for
+ * every token, matched or not.
  *
  * Dev-only tool (see routes/lab.locate.$bookId.tsx), never run in CI: it
  * needs a browser + a served book. Browser-only module — epubjs is dynamic-
@@ -56,19 +70,32 @@ export interface SweepSectionReport {
   }>;
 }
 
+/**
+ * "matched" sweeps today's union of span ranges (every epubSeq that has a
+ * paired vttSeq — the alignment-dependent view); "all" sweeps every epub
+ * token seq 0..N regardless of whether it was ever matched, decoupling
+ * locate coverage from alignment coverage (plan thoughts/plans/lab-routes-
+ * refined.md, D5). Both reuse the one fetched artifact — the artifact
+ * already carries every epub token's DOM locator columns, matched or not.
+ */
+export type SweepSource = "matched" | "all";
+
 export interface SweepReport {
   bookId: string;
+  source: SweepSource;
   totals: { sections: number; tokens: number; ok: number; failed: number };
   sections: SweepSectionReport[];
 }
 
 const MAX_FAILURES_PER_SECTION = 20;
 
-/** One matched EPUB token, paired with its source VTT seq (for the text
- * guard's expected text — the inverse of deriveEpubSeq for this one token). */
-interface MatchedToken {
+/** One EPUB token to sweep, paired with its source VTT seq when one exists
+ * (for the text guard's expected text — the inverse of deriveEpubSeq for
+ * this one token). `vttSeq` is null for "all"-mode tokens that were never
+ * matched to a VTT token — see sweepSection's text-guard branch. */
+interface SweepToken {
   epubSeq: number;
-  vttSeq: number;
+  vttSeq: number | null;
 }
 
 /**
@@ -80,8 +107,8 @@ interface MatchedToken {
  */
 function groupMatchedTokensBySpine(
   artifact: AlignmentArtifact,
-): Map<number, Array<MatchedToken>> {
-  const bySpine = new Map<number, Array<MatchedToken>>();
+): Map<number, Array<SweepToken>> {
+  const bySpine = new Map<number, Array<SweepToken>>();
   const { spineIndex } = artifact.epub.tokens;
   for (const span of artifact.match.spans) {
     for (let epubSeq = span.epubStart; epubSeq < span.epubEnd; epubSeq++) {
@@ -97,6 +124,40 @@ function groupMatchedTokensBySpine(
     }
   }
   return bySpine;
+}
+
+/**
+ * Every epub token seq 0..N-1, grouped by its spineIndex column — "all"
+ * mode's token universe. The artifact's epub.tokens columns already span
+ * every token of every spine doc (only a fraction are matched by spans; see
+ * the plan's D5), so this is a plain grouping pass, no extraction/
+ * tokenization of any kind.
+ */
+function groupAllTokensBySpine(
+  artifact: AlignmentArtifact,
+): Map<number, Array<SweepToken>> {
+  const bySpine = new Map<number, Array<SweepToken>>();
+  const { spineIndex } = artifact.epub.tokens;
+  for (let epubSeq = 0; epubSeq < spineIndex.length; epubSeq++) {
+    const spine = spineIndex[epubSeq];
+    if (spine === undefined) continue; // defensive
+    let list = bySpine.get(spine);
+    if (!list) {
+      list = [];
+      bySpine.set(spine, list);
+    }
+    list.push({ epubSeq, vttSeq: null });
+  }
+  return bySpine;
+}
+
+function groupTokensBySpine(
+  artifact: AlignmentArtifact,
+  source: SweepSource,
+): Map<number, Array<SweepToken>> {
+  return source === "matched"
+    ? groupMatchedTokensBySpine(artifact)
+    : groupAllTokensBySpine(artifact);
 }
 
 function extensionPredictedMode(href: string): "xhtml" | "html" | "unknown" {
@@ -127,7 +188,7 @@ function spineItems(book: Book): Array<SpineItemLike> {
  * other failures list. */
 function unresolvedSectionReport(
   spine: AlignmentArtifact["epub"]["spines"][number],
-  matched: Array<MatchedToken>,
+  matched: Array<SweepToken>,
   reason: "section-not-found" | "section-load-failed" | "section-threw",
   detail: unknown,
 ): SweepSectionReport {
@@ -151,7 +212,7 @@ async function sweepSection(
   EpubCFICtor: EpubCFIConstructor,
   artifact: AlignmentArtifact,
   spine: AlignmentArtifact["epub"]["spines"][number],
-  matched: Array<MatchedToken>,
+  matched: Array<SweepToken>,
 ): Promise<SweepSectionReport> {
   // Extraction hrefs and epub.js spine hrefs can differ by a base dir
   // prefix; match on either suffix (same rule as EpubReader.locate).
@@ -231,11 +292,22 @@ async function sweepSection(
       }
       const { range } = diagnostic;
 
-      const expected = normalizeText(tokenRaw(artifact.vtt, vttSeq)).text;
       const actual = normalizeText(range.toString()).text;
-      if (actual !== expected) {
-        pushFailure(epubSeq, "text", { expected, actual });
-        continue;
+      // The text guard's expected text is the VTT-side ground truth — an
+      // independent source that catches DOM/alignment corruption. Unmatched
+      // ("all"-mode) tokens have no vttSeq, and the artifact carries no raw
+      // text for the epub side to compare against instead (epub.tokens is
+      // DOM-locator columns only — see the module doc and the S5 plan note
+      // on judgment calls). So for those tokens this step is structurally a
+      // no-op: `actual` stands as-is and the loop moves on to CFI generation,
+      // which still exercises the real resolve -> generate -> round-trip
+      // path for every epub token, matched or not.
+      if (vttSeq !== null) {
+        const expected = normalizeText(tokenRaw(artifact.vtt, vttSeq)).text;
+        if (actual !== expected) {
+          pushFailure(epubSeq, "text", { expected, actual });
+          continue;
+        }
       }
 
       let cfi: string;
@@ -294,21 +366,22 @@ async function sweepSection(
 }
 
 /**
- * Sweep every matched EPUB token in a book: resolve, guard, CFI-generate,
- * and round-trip it against the real epub.js section it belongs to. One
- * section at a time (load -> check -> unload) to keep memory bounded on long
- * books.
+ * Sweep EPUB tokens in a book — matched-only or every token, per `source` —
+ * resolve, guard, CFI-generate, and round-trip each one against the real
+ * epub.js section it belongs to. One section at a time (load -> check ->
+ * unload) to keep memory bounded on long books.
  */
 export async function sweepBook(
   artifact: AlignmentArtifact,
   epubUrl: string,
+  source: SweepSource,
   onProgress?: (done: number, total: number, href: string) => void,
 ): Promise<SweepReport> {
   // epubUrl is always `/api/epub/${bookId}` (see routes/lab.locate.$bookId.tsx)
   // — the bookId is its last path segment.
   const bookId = epubUrl.split("/").filter(Boolean).pop() ?? "";
 
-  const bySpine = groupMatchedTokensBySpine(artifact);
+  const bySpine = groupTokensBySpine(artifact, source);
   const spineIndices = [...bySpine.keys()].sort((a, b) => a - b);
   const total = spineIndices.length;
 
@@ -357,5 +430,5 @@ export async function sweepBook(
     { sections: 0, tokens: 0, ok: 0, failed: 0 },
   );
 
-  return { bookId, totals, sections };
+  return { bookId, source, totals, sections };
 }
