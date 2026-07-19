@@ -59,16 +59,33 @@ Scheduled items go here (leave this comment)
 
 ## corpus quality
 
-- [ ] book-metadata-identity — ffprobe metadata (title/author/series) as
-      first-class book fields, and possibly as the bookId (suffixed with a short
-      sha digest, 5-7 hex). Phase 1, cheap: extract + display in the Audiobooks
-      tab and measure tag-vs-basename agreement corpus-wide (tag quality is
-      unproven — the Alice fixture's title tag is upstream junk, see
-      library.ts). Phase 2, gated on that evidence: the id change — big blast
-      radius (alignment artifact cache keys, locate-sweep reports, localStorage
-      progress, URLs) and a digest-input decision (basename = rename-fragile;
-      file content = rename-stable but reads every m4b). Needs its own design +
-      migration story before any code.
+- [ ] metadata-canonical-from-tags — CORRECTNESS BUG in metadata sourcing. The
+      curated m4b tags are the canonical truth for title/author/series; the
+      basename is only a fallback for when tags are absent (a serious error
+      worth a finding, not the default). Today's code has it backwards
+      (`library.ts:85-87` — tags override ONLY when the basename yielded no
+      author), generalizing from ONE pathological fixture. Evidence (2026-07-19,
+      full private corpus): title 952/952, artist 952/952 = 100% clean;
+      `grouping` (series) 224/952 (23%); `composer` (narrator) 936/952. Fixtures
+      are worst-case demonstrators — jfk.m4b all-null, Alice title tag
+      `AliceWonderland8_librivox`. Series lives in `grouping`,
+      semicolon-separated, each `<name> #<pos>` (pos optional), MULTI-series
+      real (`Discworld #34; Discworld: Ankh-Morpork City Watch #7`). Do: a
+      dedicated metadata-extraction function (tags -> title, author, series[]
+      {name, position|null}, narrator; basename fallback + finding only when the
+      title tag is missing); `BookMetadata` gains `series`/`narrator`. Audit:
+      one population site, ~10 read-only consumers (home, browse, all lab tabs)
+      that only benefit. Document in `docs/corpora/` (truth hierarchy + the
+      fixtures' sorry state). Blocks book-metadata-identity; relates
+      `merge-nx-audiobook-validation` (findings surface),
+      `align-better-fixture-pair` (bad metadata test data too).
+- [ ] book-metadata-identity — possibly use canonical metadata as the bookId
+      (suffixed with a short sha digest, 5-7 hex). GATED on
+      `metadata-canonical-from-tags` first (tag reliability now proven, 100%
+      title+author). Big blast radius (alignment artifact cache keys,
+      locate-sweep reports, localStorage progress, URLs) and a digest-input
+      decision (basename = rename-fragile; file content = rename-stable but
+      reads every m4b). Needs its own design + migration story before code.
 - [ ] corpora-omnibus-mapping — some EPUBs are omnibus editions mapping to MANY
       audiobooks (Neal Stephenson, Baroque Cycle: the "Quicksilver" audiobook
       dir contains an epub covering volumes 01-02-03; other series omnibuses
