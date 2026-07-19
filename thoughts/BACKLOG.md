@@ -59,6 +59,16 @@ Scheduled items go here (leave this comment)
 
 ## corpus quality
 
+- [ ] book-metadata-identity — ffprobe metadata (title/author/series) as
+      first-class book fields, and possibly as the bookId (suffixed with a short
+      sha digest, 5-7 hex). Phase 1, cheap: extract + display in the Audiobooks
+      tab and measure tag-vs-basename agreement corpus-wide (tag quality is
+      unproven — the Alice fixture's title tag is upstream junk, see
+      library.ts). Phase 2, gated on that evidence: the id change — big blast
+      radius (alignment artifact cache keys, locate-sweep reports, localStorage
+      progress, URLs) and a digest-input decision (basename = rename-fragile;
+      file content = rename-stable but reads every m4b). Needs its own design +
+      migration story before any code.
 - [ ] corpora-omnibus-mapping — some EPUBs are omnibus editions mapping to MANY
       audiobooks (Neal Stephenson, Baroque Cycle: the "Quicksilver" audiobook
       dir contains an epub covering volumes 01-02-03; other series omnibuses
@@ -89,10 +99,14 @@ Scheduled items go here (leave this comment)
       needs it.
 - [ ] epub-report-html — replace the file-tree markdown report with a single
       static self-contained HTML view.
-- [ ] epoch3-audiobook-validation — assess/port the useful parts of nx-audiobook
-      collection validation (validate, validators, file-walking); do NOT unify
-      models just because both say "validation"; exclude the old
-      viewer/conversion surface.
+- [ ] merge-nx-audiobook-validation — merge the useful validation rules from
+      `~/Code/iMetrical/nx-audiobook` (nx monorepo, `apps/validate`; also the
+      `just checkfiles` target): file/dir perms 644/755, macOS xattr cleanup
+      where possible, naming conventions, plus the validators/file-walking worth
+      porting. Corpora tab findings are the natural render surface
+      (file-mode/xattr issues = new finding codes). Do NOT unify models just
+      because both say "validation"; exclude the old viewer/conversion surface.
+      (Renamed from epoch3-audiobook-validation 2026-07-19.)
 
 ## infra
 
