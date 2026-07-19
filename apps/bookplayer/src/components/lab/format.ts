@@ -4,10 +4,17 @@
 
 /** Formats a timestamp for display — an ISO string (scannedAt, generatedAt)
  * or an epoch-ms number (statSync's mtimeMs, plan lab-routes-refined S4a) —
- * falling back to the raw input if it doesn't parse. */
+ * falling back to the raw input if it doesn't parse. ISO 8601 layout in
+ * local time, timezone omitted (docs/coding-style.md "Dates: ISO 8601");
+ * locale formats are banned repo-wide. */
 export function formatTimestamp(input: string | number): string {
   const date = new Date(input);
-  return Number.isNaN(date.getTime()) ? String(input) : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return String(input);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  );
 }
 
 /** MB/GB, one decimal (plan lab-routes-refined S3; moved out of
