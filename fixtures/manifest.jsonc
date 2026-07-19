@@ -121,4 +121,25 @@
     "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/metadata.json",
     "sha256": "88906e75a113d075b422e7379e052f1429b81101af46af177b5ffbb98c477fd1",
   },
+  // Transcriptions — produced by apps/transcribe (whisper); NOT
+  // byte-reproducible (the NOTE Provenance headers embed wall-clock
+  // timestamps, and whisper is not strictly deterministic), so the sha pins
+  // the exact committed artifact — regenerating means re-pinning. The rabbit
+  // VTTs are tiny.en (2026-07-19); Alice is the original committed fixture.
+  {
+    "path": "transcriptions/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit.vtt",
+    "sha256": "e170f0e7dcd592e0532e93f4d95c5df8b1bf8113c67c89cec253ac208b0f0c28",
+  },
+  {
+    "path": "transcriptions/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny.vtt",
+    "sha256": "8f4d8916bb42e022aac6d190160e05bdaccf26010f32e962785f2c264cda0dbd",
+  },
+  {
+    "path": "transcriptions/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies.vtt",
+    "sha256": "6e1658c503530015f59bd97f0e2a7bfa69cb13bf83cf5ead1d52abe7056a48e4",
+  },
+  {
+    "path": "transcriptions/Lewis Carroll - Alices Adventures in Wonderland.vtt",
+    "sha256": "e1d21ad362ab13858a8d817de7925fd619fd2561ce1316995d52dff30b7ad736",
+  },
 ]

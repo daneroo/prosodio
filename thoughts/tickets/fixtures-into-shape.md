@@ -26,7 +26,12 @@ S1-S5 testing (clean AND junk cases both wanted).
   - epub Calibre cleanup pass never ran — committed epubs are raw Gutenberg
     (boilerplate present). Matters only when VTTs exist and alignment coverage
     becomes the metric; swap = manifest sha update, bookId stable.
-  - no VTTs yet — generate via apps/transcribe when wanted.
+  - ~~no VTTs yet~~ RESOLVED 2026-07-19: Daniel transcribed all three (whisper
+    tiny.en, ~5s/book); committed to `fixtures/transcriptions/` +
+    manifest-pinned (Alice's pre-existing VTT pinned too). Both roots show
+    vtt=exact on all rabbits. Note tiny.en transcript quality may cap alignment
+    coverage — regenerate with a larger model + re-pin if the rabbit alignment
+    baselines look weak.
   - the combined Gutenberg #582 omnibus ("Fixture Rabbits 00") is planned in
     RabitRemix — would become the `corpora-omnibus-mapping` fixture.
 - faithful-pair problem (from align-better-fixture-pair): the committed Alice
