@@ -1,0 +1,32 @@
+{
+  "tags": [],
+  "chapters": [
+    {
+      "id": 0,
+      "start": 0,
+      "end": 20,
+      "title": "Frontmatter"
+    },
+    {
+      "id": 1,
+      "start": 20,
+      "end": 474.514853,
+      "title": "The Tale of Benjamin Bunny"
+    }
+  ],
+  "title": "The Tale of Benjamin Bunny",
+  "subtitle": null,
+  "authors": ["Beatrix Potter"],
+  "narrators": [],
+  "series": ["Fixture Rabbits #4"],
+  "genres": ["speech"],
+  "publishedYear": null,
+  "publishedDate": null,
+  "publisher": null,
+  "description": null,
+  "isbn": null,
+  "asin": null,
+  "language": null,
+  "explicit": false,
+  "abridged": false
+}

@@ -11,7 +11,9 @@ import { basename, dirname, extname, join } from "node:path";
 type Entry = {
   path: string;
   sha256: string;
-  url: string;
+  /** Upstream provenance; absent for produced fixtures (Git + sha256 are the
+   *  record). Required when fetchIfMissing. */
+  url?: string;
   fetchIfMissing?: boolean;
 };
 
@@ -73,6 +75,7 @@ async function ensureEntry({
       );
       return false;
     }
+    if (!url) die(`${path}: fetchIfMissing without a url`);
     console.log(`  ${dim("↓")} ${path}`);
     await mkdir(dirname(target), { recursive: true });
     // curl (not fetch+Bun.write, which stalls on large streams): -f fails on

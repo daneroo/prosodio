@@ -9,10 +9,24 @@ Goal: >=2 faithful public narration<->edition pairs, clean canonical m4b tags,
 recorded provenance. Unblocks `bookplayer-public-acceptance`; feeds metadata
 S1-S5 testing (clean AND junk cases both wanted).
 
-- ACTIVE: Daniel is assembling a Beatrix Potter set ("a series of rabbits") —
-  public domain, short, and a real SERIES, so it also exercises the new
-  `series[]` metadata (`grouping` tag) that the private corpus only covers 23%
-  of. Capture tag conventions when committing.
+- LANDED 2026-07-19: the "Fixture Rabbits" series (Peter Rabbit #1, Benjamin
+  Bunny #4, Flopsy Bunnies #6 — deliberately non-contiguous positions) is
+  committed under `fixtures/audiobooks/`, m4bs included (gitignore negation;
+  5-10MB each, purpose-produced, no upstream to refetch). Manifest carries all
+  12 files with sha256; audio remixed from LibriVox "The Tale of Peter Rabbit
+  and Others" (source sha256s in the RabitRemix staging area); epubs are the
+  UNTOUCHED illustrated Gutenberg editions (#14838/#14407/#14220). Verified live
+  on the fixtures root: tags win over basenames, series positions 1/4/6 parse,
+  epubMatch exact on all three, findings 0.
+- REMAINING (from the RabitRemix TODO + this landing):
+  - no `composer` tag — the rabbits double as the null-narrator case; decide
+    whether to keep that or re-tag with the LibriVox reader.
+  - epub Calibre cleanup pass never ran — committed epubs are raw Gutenberg
+    (boilerplate present). Matters only when VTTs exist and alignment coverage
+    becomes the metric; swap = manifest sha update, bookId stable.
+  - no VTTs yet — generate via apps/transcribe when wanted.
+  - the combined Gutenberg #582 omnibus ("Fixture Rabbits 00") is planned in
+    RabitRemix — would become the `corpora-omnibus-mapping` fixture.
 - faithful-pair problem (from align-better-fixture-pair): the committed Alice
   epub (Gutenberg #19033, illustrated) is an ABRIDGED retelling (~13.3k words;
   no Mock Turtle / Gryphon / Lobster Quadrille) while the LibriVox narration

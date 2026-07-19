@@ -1,0 +1,32 @@
+{
+  "tags": [],
+  "chapters": [
+    {
+      "id": 0,
+      "start": 0,
+      "end": 13,
+      "title": "Frontmatter"
+    },
+    {
+      "id": 1,
+      "start": 13,
+      "end": 322.025941,
+      "title": "The Tale Of Peter Rabbit"
+    }
+  ],
+  "title": "The Tale of Peter Rabbit",
+  "subtitle": null,
+  "authors": ["Beatrix Potter"],
+  "narrators": [],
+  "series": ["Fixture Rabbits #1"],
+  "genres": ["speech"],
+  "publishedYear": null,
+  "publishedDate": null,
+  "publisher": null,
+  "description": null,
+  "isbn": null,
+  "asin": null,
+  "language": null,
+  "explicit": false,
+  "abridged": false
+}

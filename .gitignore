@@ -3,8 +3,10 @@ data
 
 # test fixtures (recreate via scripts/fetch-and-check-fixtures.ts): ignore only
 # the large fetched audiobook .m4b (~98MB). The small produced audio m4b, the
-# epub, jfk.mp3, and the manifest are all committed.
+# epub, jfk.mp3, and the manifest are all committed — as are the purpose-built
+# Fixture Rabbits m4bs (5-10MB, no upstream to refetch from).
 fixtures/audiobooks/**/*.m4b
+!fixtures/audiobooks/Beatrix Potter - Fixture Rabbits/**/*.m4b
 
 # dependencies (bun install)
 node_modules

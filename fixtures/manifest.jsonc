@@ -49,4 +49,65 @@
     "path": "epub/dickens-tale-of-two-cities.epub",
     "sha256": "10f02d9c0abe47a6c5f28ce34d5eadf6da8c4749aefdcb20edf409fb5946bef6",
   },
+  // Fixture Rabbits — purpose-built public fixture SERIES (fixtures-into-shape,
+  // 2026-07-19): three Beatrix Potter tales at deliberately non-contiguous
+  // series positions (grouping tags "Fixture Rabbits #1/#4/#6"). Audio remixed
+  // to m4b from the LibriVox collection "The Tale of Peter Rabbit and Others"
+  // (128 kbps MP3 tracks 01/04/06; source sha256s recorded in the RabitRemix
+  // staging area). EPUBs are the untouched illustrated per-tale Gutenberg
+  // editions (url = provenance). Small and purpose-produced, so the m4bs ARE
+  // committed (gitignore negation) — unlike the fetched 98MB Alice m4b.
+  // metadata.json is the audiobookshelf sidecar (chapters + series). No
+  // composer tag: these double as the null-narrator case.
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit.m4b",
+    "sha256": "20eb2f851d78495c7cd0174a2fa94fc792d2aa1696dacd02b13bae3ae347096a",
+  },
+  {
+    "url": "https://www.gutenberg.org/ebooks/14838",
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit.epub",
+    "sha256": "4ee25b00f38448547673e9825ea830c5dad00626687038141c0458ab4dfbbcbf",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/cover.jpg",
+    "sha256": "6bcd75e79c9a5b8d7cae2ee8d3a84731079092a981f9e35243718b6227c2008f",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 01 - The Tale of Peter Rabbit/metadata.json",
+    "sha256": "c52c0c374b802d355ba89d5465c0decf33ead685a074705e2c2c215e127e2b00",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny.m4b",
+    "sha256": "7c2b87da92e18ba90c0e4754cd696768fe0746f8824dd3c4e658688e21f91e3d",
+  },
+  {
+    "url": "https://www.gutenberg.org/ebooks/14407",
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny.epub",
+    "sha256": "c6716b4ade4883317ff43c1cf852423b4e4ee8bddde27f332e9511cc5d9c4928",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny/cover.jpg",
+    "sha256": "bf6171aec745b08690b439834a542c8c41114938038faad623153d19bc9e5cd9",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 04 - The Tale of Benjamin Bunny/metadata.json",
+    "sha256": "3076d367909ca301c47f642a004e4a2b2c660d05ceb4e925c2fbe2d24ee70bf7",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies.m4b",
+    "sha256": "e67182bedf69f19275f67afbb9b1e03e0f711079a769cd37994b6d269b35b0e6",
+  },
+  {
+    "url": "https://www.gutenberg.org/ebooks/14220",
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies.epub",
+    "sha256": "7301debfdb17e16b0bb03fbf7a391ec3cc69dce0a71bb9c57fb84de6d7720eba",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/cover.jpg",
+    "sha256": "e680058813cb8b58bdc78d77d472a0419cbccc8db707602953404fc0c479a9a6",
+  },
+  {
+    "path": "audiobooks/Beatrix Potter - Fixture Rabbits/Beatrix Potter - Fixture Rabbits 06 - The Tale of the Flopsy Bunnies/metadata.json",
+    "sha256": "5d8dd4cdf260406044b07d4c4c266982b242591e4cd7fd189a618330b2b97dca",
+  },
 ]

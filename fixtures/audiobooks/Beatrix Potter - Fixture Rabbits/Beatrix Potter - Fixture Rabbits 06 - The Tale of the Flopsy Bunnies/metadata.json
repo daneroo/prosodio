@@ -1,0 +1,32 @@
+{
+  "tags": [],
+  "chapters": [
+    {
+      "id": 0,
+      "start": 0,
+      "end": 19,
+      "title": "Frontmatter"
+    },
+    {
+      "id": 1,
+      "start": 19,
+      "end": 565.965374,
+      "title": "The Tale of the Flopsy Bunnies"
+    }
+  ],
+  "title": "The Tale of the Flopsy Bunnies",
+  "subtitle": null,
+  "authors": ["Beatrix Potter"],
+  "narrators": [],
+  "series": ["Fixture Rabbits #6"],
+  "genres": ["speech"],
+  "publishedYear": null,
+  "publishedDate": null,
+  "publisher": null,
+  "description": null,
+  "isbn": null,
+  "asin": null,
+  "language": null,
+  "explicit": false,
+  "abridged": false
+}
