@@ -37,6 +37,15 @@ Scheduled items go here (leave this comment)
 
 ## alignment quality
 
+- [ ] align-known-mismatch-convention — a convention for marking epub/audio
+      pairs that are legitimately non-faithful renditions, so their low coverage
+      reads as "known mismatch", not pipeline failure. Live cases: A Wizard of
+      Earthsea BBC dramatization paired with the original ebook (27% narration /
+      5.8% book, caught by /lab/alignment 2026-07-19); fixtures Alice
+      abridged-vs-unabridged. Decide the marker (naming, sidecar, curated list)
+      and how lab surfaces render it. Relates: `align-better-fixture-pair`,
+      `corpora-omnibus-mapping`.
+
 - [ ] align-precision-at-scale — automated precision signal over the corpus;
       manual `reviewSamples` reading does not scale to ~700 books. ticket:
       [align-precision-at-scale](tickets/align-precision-at-scale.md)

@@ -4,16 +4,17 @@
 
 /** Formats a timestamp for display — an ISO string (scannedAt, generatedAt)
  * or an epoch-ms number (statSync's mtimeMs, plan lab-routes-refined S4a) —
- * falling back to the raw input if it doesn't parse. ISO 8601 layout in
- * local time, timezone omitted (docs/coding-style.md "Dates: ISO 8601");
- * locale formats are banned repo-wide. */
+ * falling back to the raw input if it doesn't parse. ISO 8601 in local
+ * time, timezone omitted — the T separator is NOT optional (8601-1:2019
+ * dropped the by-mutual-agreement space; docs/coding-style.md "Dates").
+ * Locale formats are banned repo-wide. */
 export function formatTimestamp(input: string | number): string {
   const date = new Date(input);
   if (Number.isNaN(date.getTime())) return String(input);
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
   );
 }
 
