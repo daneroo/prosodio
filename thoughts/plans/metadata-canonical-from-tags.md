@@ -145,6 +145,29 @@ directly; sequential, one commit per task, `bun run ci` green before each.
       display as an honest demonstration. Recommend re-tagging — it also helps
       `align-better-fixture-pair`. Daniel's call.
 
+## Verification aids
+
+Pointers for whoever executes the full pass (a fresh session need not re-derive
+these):
+
+- Finding discriminator books (to prove tags win over the basename): any book
+  whose `title` tag differs from its basename-parsed title works — there is no
+  single canonical example. As of 2026-07-19 the private corpus had ~146 such
+  books; most differ by punctuation/casing the basename dropped (apostrophes,
+  `&`, capitalization). Regenerate the set by diffing, per m4b,
+  `ffprobe -show_format` `format.tags.title` against `parseBasename(basename)` —
+  do not hardcode titles, the corpus changes.
+- Driving the real corpus: `.claude/launch.json` (gitignored, local) defines
+  `bookplayer-dev-private` on port 3002 (`BOOKPLAYER_ROOT=private`) and
+  `bookplayer-dev-fixtures` on 3001. Metadata is only canonical after the
+  background `enrich` probe completes, so allow a re-probe pass after a
+  cache-version bump before reading titles.
+- Why the cache bump is load-bearing (D5): `carryOverMetadata` reuses prior
+  metadata for any unchanged m4b fingerprint, so without a `BookCache` version
+  bump an already-cached book keeps its stale (basename) title and never
+  re-probes. The first stab bumped 2 -> 3 for exactly this; any further
+  metadata-shape change needs its own bump.
+
 ## Relates
 
 - `book-metadata-identity` — blocked by this; tag reliability now proven (100%

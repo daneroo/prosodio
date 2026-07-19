@@ -18,3 +18,7 @@ node_modules
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Claude Code local tooling: dev-server launch configs + session permissions.
+# Single-developer, machine-local; stays on disk across sessions, not shared.
+.claude/
