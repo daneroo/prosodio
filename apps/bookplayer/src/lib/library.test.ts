@@ -200,7 +200,7 @@ describe("library lifecycle", () => {
     const cache = JSON.parse(
       readFileSync(config.cacheFile, "utf8"),
     ) as BookCache;
-    expect(cache.version).toBe(3);
+    expect(cache.version).toBe(4);
     expect(cache.findings.length).toBe(firstIndex.findings.length);
     expect(cache.findings[0]?.code).toBe("multi-m4b");
 
@@ -266,5 +266,99 @@ describe("library lifecycle", () => {
       .books.find((b) => b.basename === "Author - Book One");
     expect(book?.metadata.title).toBe("Book One");
     expect(book?.metadata.author).toBe("Author");
+  });
+
+  test("series and narrator flow through from tags; source is 'tags'", async () => {
+    const config = makeConfig();
+    addBook(config, "one", "Guards Guards");
+    const library = createLibrary(
+      config,
+      stubProbe(
+        {
+          titleTag: "Guards! Guards!",
+          artistTag: "Terry Pratchett",
+          groupingTag: "Discworld #34; Discworld: Ankh-Morpork City Watch #7",
+          composerTag: "Stephen Briggs",
+        },
+        [],
+      ),
+    );
+    library.getIndex();
+    await settle();
+    const book = library.getIndex().books[0];
+    expect(book?.metadata.series).toEqual([
+      { name: "Discworld", position: 34 },
+      { name: "Discworld: Ankh-Morpork City Watch", position: 7 },
+    ]);
+    expect(book?.metadata.narrator).toBe("Stephen Briggs");
+    expect(book?.metadata.source).toBe("tags");
+  });
+
+  test("a missing title tag emits metadata-basename-fallback and sets source 'basename'", async () => {
+    const config = makeConfig();
+    addBook(config, "one", "Author - Book One");
+    const library = createLibrary(
+      config,
+      stubProbe({ titleTag: null, artistTag: null }, []),
+    );
+    library.getIndex();
+    await settle();
+    const book = library
+      .getIndex()
+      .books.find((b) => b.basename === "Author - Book One");
+    expect(book?.metadata.source).toBe("basename");
+    const finding = library
+      .getIndex()
+      .findings.find((f) => f.code === "metadata-basename-fallback");
+    expect(finding?.bookId).toBe(book?.id);
+    expect(finding?.detail).toContain("Author - Book One");
+  });
+
+  test("a fallback finding survives a refresh (would otherwise vanish, since the carried book skips enrich)", async () => {
+    const config = makeConfig();
+    addBook(config, "one", "Author - Book One");
+    const library = createLibrary(
+      config,
+      stubProbe({ titleTag: null, artistTag: null }, []),
+    );
+    library.getIndex();
+    await settle();
+    const before = library
+      .getIndex()
+      .findings.filter((f) => f.code === "metadata-basename-fallback");
+    expect(before).toHaveLength(1);
+
+    // Fingerprints are unchanged, so carryOverMetadata keeps the carried
+    // book's metadata (source stays "basename") and it never reaches
+    // enrich's pending list; scanNow must re-derive the finding itself.
+    expect(library.refresh()).toBe(true);
+    await settle();
+    const after = library
+      .getIndex()
+      .findings.filter((f) => f.code === "metadata-basename-fallback");
+    expect(after).toHaveLength(1);
+  });
+
+  test("a v3 cache on disk is rejected and rescanned", () => {
+    const config = makeConfig();
+    addBook(config, "one", "Book One");
+    mkdirSync(join(config.dataDir, "cache"), { recursive: true });
+    // v3 shape: books lack series/narrator/source.
+    writeFileSync(
+      config.cacheFile,
+      JSON.stringify({
+        version: 3,
+        rootName: "fixtures",
+        scannedAt: "2020-01-01T00:00:00.000Z",
+        books: [],
+      }),
+    );
+
+    const library = createLibrary(config, stubProbe({}, []));
+    const index = library.getIndex();
+    // v4 added series/narrator/source plus the fallback finding; the version
+    // bump invalidates the cache wholesale, same as the v1 case above.
+    expect(index.books).toHaveLength(1);
+    expect(index.scanDurationMs).toBeGreaterThanOrEqual(0);
   });
 });

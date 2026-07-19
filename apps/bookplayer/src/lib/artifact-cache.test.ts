@@ -82,6 +82,7 @@ function fakeBook(
       author: null,
       series: [],
       narrator: null,
+      source: "pending",
       durationSec: null,
       bitrateKbps: null,
       codec: null,

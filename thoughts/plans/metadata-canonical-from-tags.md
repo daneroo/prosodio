@@ -105,14 +105,14 @@ directly; sequential, one commit per task, `bun run ci` green before each.
 
 ### S2 — wire into the library lifecycle [tier: med]
 
-- [ ] `scan.ts`: seed provisional metadata (basename) but stop treating it as
+- [x] `scan.ts`: seed provisional metadata (basename) but stop treating it as
       truth; `series: []`, `narrator: null` initial.
-- [ ] `library.ts` enrich: call `extractMetadata`, replace
+- [x] `library.ts` enrich: call `extractMetadata`, replace
       title/author/series/narrator from tags when the title tag is present; when
       absent, keep basename values AND append a `metadata-basename-fallback`
       finding to the index before the final persist (D2/D6). Bump `BookCache`
       version (D5).
-- [ ] Tests: inverted priority (tags win over a structured basename — the
+- [x] Tests: inverted priority (tags win over a structured basename — the
       library.test.ts:234 case flips); finding emitted when title tag missing;
       v-old cache on disk triggers full re-probe.
 - Acceptance: on the private root, a book with `Author - Title` basename AND

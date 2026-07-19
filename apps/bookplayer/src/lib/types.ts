@@ -23,6 +23,12 @@ export interface BookMetadata {
   author: string | null;
   series: Array<BookSeries>;
   narrator: string | null;
+  /** Provenance for title/author/series/narrator (docs/corpora/metadata.md):
+   *  "pending" is the scan-time seed before ffprobe has run; "tags" means the
+   *  extractor used the m4b tags (the normal, trusted path); "basename" means
+   *  the probe ran but the title tag was absent — a data defect, not a
+   *  variant, and it always pairs with a metadata-basename-fallback finding. */
+  source: "tags" | "basename" | "pending";
   durationSec: number | null;
   bitrateKbps: number | null;
   codec: string | null;
@@ -64,14 +70,16 @@ export interface BookRecord {
 }
 
 /** Structured scan diagnostic (plan lab-routes-refined D2), replacing prose
- *  warnings. Currently every code marks an EXCLUDED directory/candidate, so
- *  `bookId` is unset in practice; it exists for future finding codes that
- *  attach to a kept book. */
+ *  warnings. The first four codes each mark an EXCLUDED directory/candidate,
+ *  so `bookId` is unset for them; `metadata-basename-fallback` is the first
+ *  code that attaches to a KEPT book (`bookId` is set), and `bookId` exists on
+ *  `ScanFinding` for it and any future finding codes of that kind. */
 export type ScanFindingCode =
   | "unreadable-dir" // readdir failed
   | "multi-m4b" // >1 .m4b in a dir -> dir excluded
   | "no-cover" // .m4b without cover.jpg/png -> dir excluded
-  | "duplicate-basename"; // same normalized basename elsewhere -> excluded
+  | "duplicate-basename" // same normalized basename elsewhere -> excluded
+  | "metadata-basename-fallback"; // kept book; title tag absent -> basename used
 
 export interface ScanFinding {
   code: ScanFindingCode;
@@ -91,7 +99,9 @@ export interface LibraryIndex {
 }
 
 export interface BookCache {
-  version: 3;
+  /** v4 = series/narrator/source on BookMetadata plus the
+   *  metadata-basename-fallback finding (metadata-canonical-from-tags S2). */
+  version: 4;
   rootName: RootName;
   scannedAt: string;
   books: Array<BookRecord>;

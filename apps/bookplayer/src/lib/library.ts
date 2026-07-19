@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import pLimit from "p-limit";
 
 import { probeFile } from "./ffprobe.ts";
+import { extractMetadata } from "./metadata.ts";
 import { scanRoot } from "./scan.ts";
 import type { BookplayerConfig } from "./config.ts";
 import type { ProbeFn } from "./ffprobe.ts";
@@ -43,6 +44,17 @@ export function createLibrary(
       const previous = index;
       const { books, findings } = scanRoot(config.activeRoot);
       carryOverMetadata(books, previous?.books ?? []);
+      // Findings are rebuilt from scratch every scan, but a carried-over book
+      // (unchanged fingerprint) skips enrich entirely — so a fallback finding
+      // emitted there once would vanish on the next rescan unless re-derived
+      // here from the carried metadata.source. Re-probed books re-seed
+      // source "pending" at scan (above), so they can't double-emit: they
+      // still have durationSec === null and reach enrich's pending list.
+      for (const book of books) {
+        if (book.metadata.source === "basename") {
+          findings.push(basenameFallbackFinding(book));
+        }
+      }
       const scanDurationMs = Math.round(performance.now() - started);
       index = {
         rootName: config.activeRoot.name,
@@ -77,19 +89,19 @@ export function createLibrary(
           book.metadata.durationSec = result.durationSec;
           book.metadata.bitrateKbps = result.bitrateKbps;
           book.metadata.codec = result.codec;
-          // The curated m4b tags are the canonical source for title/author
-          // (the private corpus is 100% clean on both — verified
-          // 2026-07-19). scan.ts seeds provisional basename values; the tags
-          // overwrite them per-field when present, and the basename survives
-          // only as a fallback for a missing tag. The Alice FIXTURE's junk
-          // title tag ("AliceWonderland8_librivox") misled the original
-          // basename-first logic — it is a pathological example, not the
-          // rule. Fuller correction (series/narrator, a finding when the
-          // fallback fires, a dedicated extractor) is tracked as
-          // metadata-canonical-from-tags in thoughts/BACKLOG.md and
-          // docs/corpora/metadata.md.
-          if (result.titleTag) book.metadata.title = result.titleTag;
-          if (result.artistTag) book.metadata.author = result.artistTag;
+          // Truth hierarchy (tags canonical, basename a flagged fallback):
+          // see extractMetadata (metadata.ts) and docs/corpora/metadata.md.
+          const extracted = extractMetadata(result, book.basename);
+          book.metadata.title = extracted.title;
+          book.metadata.author = extracted.author;
+          book.metadata.series = extracted.series;
+          book.metadata.narrator = extracted.narrator;
+          book.metadata.source = extracted.usedBasenameFallback
+            ? "basename"
+            : "tags";
+          if (extracted.usedBasenameFallback) {
+            target.findings.push(basenameFallbackFinding(book));
+          }
         }),
       ),
     );
@@ -129,6 +141,19 @@ export function createLibrary(
   };
 }
 
+// FINDINGS
+
+/** Single construction site for the fallback finding so scanNow (re-deriving
+ *  it for carried-over books) and enrich (emitting it fresh) cannot drift. */
+function basenameFallbackFinding(book: BookRecord): ScanFinding {
+  return {
+    code: "metadata-basename-fallback",
+    relDir: book.relDir,
+    bookId: book.id,
+    detail: `"${book.relDir}" has no title tag; used the basename "${book.basename}" instead`,
+  };
+}
+
 // CACHE
 
 function restoreCache(config: BookplayerConfig): LibraryIndex | null {
@@ -145,11 +170,12 @@ function restoreCache(config: BookplayerConfig): LibraryIndex | null {
   if (
     // Older caches predate schema/semantic changes (v2: typed findings +
     // graded match quality; v3: title/author sourced from tags, not the
-    // basename). The version bump is the intended invalidation — an
-    // unchanged fingerprint would otherwise keep stale metadata via
-    // carryOverMetadata, so a full rescan/re-probe is required, not a
-    // field-by-field migration.
-    cache.version !== 3 ||
+    // basename; v4: series/narrator/source fields plus the
+    // metadata-basename-fallback finding). The version bump is the intended
+    // invalidation — an unchanged fingerprint would otherwise keep stale
+    // metadata via carryOverMetadata, so a full rescan/re-probe is required,
+    // not a field-by-field migration.
+    cache.version !== 4 ||
     cache.rootName !== config.activeRoot.name ||
     !Array.isArray(cache.books)
   ) {
@@ -170,7 +196,7 @@ function persistCache(cacheFile: string, index: LibraryIndex): void {
   try {
     mkdirSync(dirname(cacheFile), { recursive: true });
     const cache: BookCache = {
-      version: 3,
+      version: 4,
       rootName: index.rootName,
       scannedAt: index.scannedAt,
       books: index.books,
