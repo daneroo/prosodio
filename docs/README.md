@@ -23,8 +23,6 @@ How to work in this repo — layout, workflow, tooling, style.
 What the system does and what must hold about the data — algorithms, contracts,
 invariants. Grows by harvesting settled `thoughts/design/` docs.
 
-- [locate-sweep.md](locate-sweep.md) — what the locate sweep verifies; what an
-  `ok` means
 - [corpora/metadata.md](corpora/metadata.md) — where title/author come from (m4b
   tags are canonical; basename is a fallback)
 
@@ -38,3 +36,5 @@ invariants. Grows by harvesting settled `thoughts/design/` docs.
 ## Applications
 
 - [bookplayer/](bookplayer/) — Bookplayer architecture and operating contracts
+- [bookplayer/locate-sweep.md](bookplayer/locate-sweep.md) — what the locate
+  sweep verifies; what an `ok` means

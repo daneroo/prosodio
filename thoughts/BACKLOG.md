@@ -157,6 +157,11 @@ Scheduled items go here (leave this comment)
 
 ## docs workflow
 
+- [ ] locate-sweep-doc-coherence — re-read `docs/bookplayer/locate-sweep.md`
+      against the current `/lab/locate` page. The doc predates
+      lab-routes-refined S5 (matched/all mode toggle, report file v2, the
+      `failed > 0` = bug framing); confirm what it says an `ok`/sweep means
+      still matches, and refresh it if not.
 - [ ] docs-taxonomy — grouped `docs/` index landed 2026-07-10 (working-here /
       pipeline-and-data / frameworks; flat files, index in docs/README.md).
       Remaining: write data-contracts.md (per-artifact axes — deterministic?
