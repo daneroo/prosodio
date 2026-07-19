@@ -10,16 +10,26 @@ has zero failures; warnings flag concerns without failing it.
 The listening library runs on **audiobookshelf, in production daily**, deployed
 from the `~/Code/iMetrical/nx-audiobook` repo (pnpm/nx monorepo; audiobookshelf
 lives under `infra/`, alongside a Plex audiobook agent). That repo also owns the
-**preparation pipeline**: new books land in a staging area, a local
-audiobookshelf instance makes them conformant (conversion to m4b, tag curation),
-and validated books sync onward to production and its mirrors.
+**preparation pipeline**, a three-hop flow validated at every hop (walkthrough:
+its `README.md` Dev/Staging Operations):
+
+1. **prep** — new books land in the local audiobookshelf instance
+   (`infra/audiobookshelf/data/audiobooks/`), which makes them conformant
+   (conversion to m4b, tag curation);
+2. **staging** — rsync to `galois:/Volumes/Space/Reading/audiobooks`;
+3. **prod + mirrors** — syno pulls from staging, then syncs back to strip
+   xattrs; mirrors pull from staging too.
 
 Validation there is two-layered today:
 
 - `just checkfiles` — filesystem hygiene (`.DS_Store`, perms 644/755, macOS
-  xattrs) over staging, production, and the local instance's library.
-- `apps/validate` — a TypeScript app: directory classification, modification
-  times, metadata via ffprobe / music-metadata.
+  xattrs — the sync-back dance above is why xattrs are policed) over staging,
+  prod-local, and the instance library.
+- `apps/validate` — a TypeScript CLI, **already root-pointable**
+  (`pnpm run dev -r <root>`): directory classification, mtime checks against a
+  hints database, metadata via ffprobe / music-metadata. It also carries
+  `--mtime fix`/`write` and conversion modes — those are repair, and stay behind
+  the validation-only fence here (a milestone-2 decision on what parity keeps).
 
 That validator is the ancestor of this effort. Prosodio brings the **visual**
 surface (the Corpora tab shows problems at a glance) but its scan/probe logic is
@@ -32,8 +42,11 @@ pipeline itself stays in `nx-audiobook` for now.
 
 - **fixtures** — public, committed (`fixtures/`).
 - **private** — the curated production library (via config).
-- **staging** — the audiobookshelf prep area managed by `nx-audiobook`;
-  validated read-only, in place.
+- **staging** — the `nx-audiobook` prep area (the instance library, or any hop
+  of its pipeline); validated read-only, in place.
+
+Named corpora are conveniences — the core takes any root, as `nx-audiobook`'s
+`-r` flag does today.
 
 ## Scope
 
