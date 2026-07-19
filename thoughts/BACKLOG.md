@@ -9,12 +9,6 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
-- [ ] lab-routes-refined — grow `/lab` into a list-first surface per pipeline
-      artifact (Corpora, Audiobooks, Epub, VTT, Alignment, Locate; Parsers
-      reserved): structured scan findings replace console warnings, alignment
-      metrics + artifact-cache visibility/evict, locate all-epub-tokens mode.
-      plan: [lab-routes-refined](plans/lab-routes-refined.md)
-
 ## player-ux
 
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
@@ -59,26 +53,22 @@ Scheduled items go here (leave this comment)
 
 ## corpus quality
 
-- [ ] metadata-canonical-from-tags — CORRECTNESS BUG in metadata sourcing. The
-      curated m4b tags are the canonical truth for title/author/series; the
-      basename is only a fallback for when tags are absent (a serious error
-      worth a finding, not the default). Today's code has it backwards
-      (`library.ts:85-87` — tags override ONLY when the basename yielded no
-      author), generalizing from ONE pathological fixture. Evidence (2026-07-19,
-      full private corpus): title 952/952, artist 952/952 = 100% clean;
-      `grouping` (series) 224/952 (23%); `composer` (narrator) 936/952. Fixtures
-      are worst-case demonstrators — jfk.m4b all-null, Alice title tag
-      `AliceWonderland8_librivox`. Series lives in `grouping`,
-      semicolon-separated, each `<name> #<pos>` (pos optional), MULTI-series
-      real (`Discworld #34; Discworld: Ankh-Morpork City Watch #7`). Do: a
-      dedicated metadata-extraction function (tags -> title, author, series[]
-      {name, position|null}, narrator; basename fallback + finding only when the
-      title tag is missing); `BookMetadata` gains `series`/`narrator`. Audit:
-      one population site, ~10 read-only consumers (home, browse, all lab tabs)
-      that only benefit. Document in `docs/corpora/` (truth hierarchy + the
-      fixtures' sorry state). Blocks book-metadata-identity; relates
-      `merge-nx-audiobook-validation` (findings surface),
-      `align-better-fixture-pair` (bad metadata test data too).
+- [ ] metadata-canonical-from-tags — m4b tags are the canonical truth for
+      title/author/series; basename is a fallback only when tags are absent.
+      FIRST STAB LANDED (2026-07-19, commit d1d7698): title/author inverted to
+      tags-first + cache v3 re-probe + `docs/corpora/metadata.md`; verified on
+      the private corpus. Evidence gathered: title 952/952, artist 952/952 =
+      100% clean; `grouping` (series) 224/952 (23%); `composer` (narrator)
+      936/952. Fixtures are worst-case demonstrators — jfk.m4b all-null, Alice
+      title tag `AliceWonderland8_librivox`. REMAINING (full pass, plan
+      `plans/metadata-canonical-from-tags.md`): a dedicated extractor module;
+      `series[]` {name, position|null} from `grouping` (semicolon-separated,
+      each `<name> #<pos>`, MULTI-series real — one Discworld book lists both
+      `Discworld #34` and `Discworld: Ankh-Morpork City Watch #7`), deferred to
+      the corpora-validation work; `narrator`; and a
+      `metadata-basename-fallback` finding on the Corpora tab. Blocks
+      book-metadata-identity; relates `merge-nx-audiobook-validation` (findings
+      surface), `align-better-fixture-pair` (bad metadata test data too).
 - [ ] book-metadata-identity — possibly use canonical metadata as the bookId
       (suffixed with a short sha digest, 5-7 hex). GATED on
       `metadata-canonical-from-tags` first (tag reliability now proven, 100%
@@ -188,6 +178,15 @@ Scheduled items go here (leave this comment)
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
+- 2026-07-19 lab-routes-refined — `/lab` grew into list-first surfaces per
+  pipeline artifact: Corpora (typed scan findings replacing server-log
+  warnings + graded epub/vtt match quality), Audiobooks/Epub/VTT lists,
+  Alignment (coverage metrics from cached artifacts + cache visibility/evict +
+  standalone inspector), Locate (matched/all-token modes, report v2), all on a
+  shared LabTable. The branch also carried the metadata-canonical-from-tags
+  first stab (tags now canonical for title/author), the ISO 8601 date rule, and
+  the delegation-doc updates.
+  [plans/archive/lab-routes-refined.md](plans/archive/lab-routes-refined.md)
 - 2026-07-19 document-delegation-tiers — standing delegation directive ("lower
   power model and effort in a subagent; account for it in planning") plus the
   proven `[tier: low|med]` scheme written into `docs/workflow.md`'s Plans

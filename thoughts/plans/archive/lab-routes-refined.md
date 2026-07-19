@@ -1,7 +1,6 @@
 # lab-routes-refined — per-artifact lab surfaces
 
-Status: done — all five slices landed on branch `lab-routes-refined` (9 commits,
-12d3b86..b18607a, CI green throughout); backlog closure on Daniel's acceptance.
+Status: done — all five slices landed, accepted 2026-07-19, merged to main.
 
 Goal: grow `/lab` from one surface (Locate) into a list-first inspection surface
 per pipeline artifact — Corpora, Audiobooks, Epub, VTT, Alignment, Locate
