@@ -19,6 +19,7 @@ node_modules
 # Finder (MacOS) folder config
 .DS_Store
 
-# Claude Code local tooling: dev-server launch configs + session permissions.
-# Single-developer, machine-local; stays on disk across sessions, not shared.
-.claude/
+# Claude Code personal settings only (per-user permission allowlist). The rest
+# of .claude/ (launch configs, and any future shared commands/agents/hooks/
+# settings.json) IS tracked — never ignore the whole directory.
+.claude/settings.local.json
