@@ -34,13 +34,6 @@ Scheduled items go here (leave this comment)
 
 ## alignment quality
 
-- [ ] align-known-mismatch-convention — a convention for marking epub/audio
-      pairs that are legitimately non-faithful, so low coverage reads as "known
-      mismatch", not pipeline failure. Direction: file-naming keyword cues
-      (`Omnibus`, `reference`, `abridged`); private Alice as the practice
-      specimen; also carries the Gutenberg #11 puzzle. ticket:
-      [align-known-mismatch-convention](tickets/align-known-mismatch-convention.md)
-
 - [ ] align-precision-at-scale — automated precision signal over the corpus;
       manual `reviewSamples` reading does not scale to ~700 books. ticket:
       [align-precision-at-scale](tickets/align-precision-at-scale.md)
@@ -68,6 +61,12 @@ vtt/alignment.
       sha256 (141 + 167 flagged 2026-07-03); decide strip/prevent/CI-gate — a
       validation rule in waiting. ticket:
       [epub-calibre-pollution-audit](tickets/epub-calibre-pollution-audit.md)
+- [ ] align-known-mismatch-convention — validation exceptions/expectations:
+      declared deviations (file-naming keyword cues like `Omnibus`, `reference`,
+      `abridged`) so a legitimately non-faithful pair reads as acknowledged, not
+      failed. Exemplar: abridged Alice; private Alice as the practice specimen.
+      ticket:
+      [align-known-mismatch-convention](tickets/align-known-mismatch-convention.md)
 
 ## corpus quality
 
@@ -84,8 +83,7 @@ vtt/alignment.
       known). Discovery/pairing assumes 1:1 — decide how to represent
       1-epub:N-audiobooks (and the alignment window per audiobook: each book
       would match a SUB-RANGE of the epub, breaking the whole-book linearity
-      assumption). A public omnibus FIXTURE is planned in RabitRemix ("Fixture
-      Rabbits 00", Gutenberg #582). Relates: `align-soft-basename-match`,
+      assumption). Relates: `align-soft-basename-match`,
       `align-known-mismatch-convention`, and the matching-quality
       content-qualification direction.
 - [ ] align-soft-basename-match — case-insensitive VTT<->epub pairing fallback

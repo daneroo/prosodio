@@ -85,6 +85,10 @@ validation. This is the seam that un-braids validation from the web app.
 
 Beyond parity: richer epub/vtt/alignment checks and cross-corpus comparison.
 Every rule is a finding on the same channel the Corpora tab already renders.
-Backlog items that hang off this doc: `merge-nx-audiobook-validation` (milestone
-2), `epub-calibre-pollution-audit`, `align-soft-basename-match`,
+Validations also accumulate declared **exceptions/expectations** as they are
+found — a known deviation (e.g. a legitimately abridged pair) reads as
+acknowledged, not failed; `align-known-mismatch-convention` is the emerging
+exemplar. Backlog items that hang off this doc: `merge-nx-audiobook-validation`
+(milestone 2), `epub-calibre-pollution-audit`,
+`align-known-mismatch-convention`, `align-soft-basename-match`,
 `corpora-omnibus-mapping`.
