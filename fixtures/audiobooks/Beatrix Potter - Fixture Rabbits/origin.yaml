@@ -54,5 +54,5 @@ fixtures:
       provider: LibriVox via Internet Archive
       collection: The Tale of Peter Rabbit and Others
       track: 6
-      narrator: MichaelMaggs
+      narrator: Michael Maggs
       url: https://archive.org/download/thetaleofpeterrabbitandothers_2008_librivox/peterrabbitandothertales_06_potter_128kb.mp3
