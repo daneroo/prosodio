@@ -71,7 +71,12 @@ function fakeBook(
       "epubRelPath" in overrides
         ? (overrides.epubRelPath ?? null)
         : "test-book.epub",
+    epubMatch:
+      "epubRelPath" in overrides && overrides.epubRelPath === null
+        ? "absent"
+        : "exact",
     hasVtt: overrides.hasVtt ?? true,
+    vttMatch: (overrides.hasVtt ?? true) ? "exact" : "absent",
     metadata: {
       title: "Test Book",
       author: null,

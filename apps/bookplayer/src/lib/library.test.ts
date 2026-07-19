@@ -162,6 +162,53 @@ describe("library lifecycle", () => {
     expect(index.scanDurationMs).toBeGreaterThanOrEqual(0);
   });
 
+  test("a v1 cache on disk is rejected and rescanned", () => {
+    const config = makeConfig();
+    addBook(config, "one", "Book One");
+    mkdirSync(join(config.dataDir, "cache"), { recursive: true });
+    // v1 shape: no `findings`, and books lack the v2 match-quality fields.
+    writeFileSync(
+      config.cacheFile,
+      JSON.stringify({
+        version: 1,
+        rootName: "fixtures",
+        scannedAt: "2020-01-01T00:00:00.000Z",
+        books: [],
+      }),
+    );
+
+    const library = createLibrary(config, stubProbe({}, []));
+    const index = library.getIndex();
+    // The version bump is the intended migration: v1 is invalidated wholesale
+    // rather than field-migrated, so a real scan runs and finds the book.
+    expect(index.books).toHaveLength(1);
+    expect(index.scanDurationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  test("cache v2 round-trips findings across a restore", async () => {
+    const config = makeConfig();
+    addBook(config, "one", "Book One");
+    addBook(config, "one", "Book Two"); // second .m4b -> multi-m4b finding
+
+    const first = createLibrary(config, stubProbe({}, []));
+    const firstIndex = first.getIndex();
+    expect(firstIndex.findings.length).toBeGreaterThan(0);
+    await settle();
+
+    const cache = JSON.parse(
+      readFileSync(config.cacheFile, "utf8"),
+    ) as BookCache;
+    expect(cache.version).toBe(2);
+    expect(cache.findings.length).toBe(firstIndex.findings.length);
+    expect(cache.findings[0]?.code).toBe("multi-m4b");
+
+    // Fresh library instance restoring from the persisted cache must surface
+    // the same findings without a rescan.
+    const second = createLibrary(config, stubProbe({}, []));
+    const restored = second.getIndex();
+    expect(restored.findings).toEqual(firstIndex.findings);
+  });
+
   test("refresh rescans and picks up new books; getBook resolves ids", () => {
     const config = makeConfig();
     addBook(config, "one", "Book One");

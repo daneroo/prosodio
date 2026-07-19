@@ -110,7 +110,7 @@ function Home() {
           <span className="ml-auto text-xs tabular-nums text-slate-500">
             {filtered.length}/{data.books.length} books · {data.rootName} ·{" "}
             {data.scanDurationMs}ms
-            {data.warningCount > 0 && ` · ${data.warningCount} warnings`}
+            {data.findingCount > 0 && ` · ${data.findingCount} findings`}
           </span>
           <button
             type="button"

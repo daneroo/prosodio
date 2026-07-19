@@ -1,6 +1,6 @@
 # lab-routes-refined — per-artifact lab surfaces
 
-Status: planned
+Status: active
 
 Goal: grow `/lab` from one surface (Locate) into a list-first inspection surface
 per pipeline artifact — Corpora, Audiobooks, Epub, VTT, Alignment, Locate
@@ -81,16 +81,18 @@ appropriate lower power model and run that in a subagent." Same mechanics as
 
 ### S1 — shell, landing, shared components [tier: low]
 
-- [ ] `lab.tsx` tab bar: Corpora, Audiobooks, Epub, VTT, Alignment, Locate (live
+- [x] `lab.tsx` tab bar: Corpora, Audiobooks, Epub, VTT, Alignment, Locate (live
       as they land; stubs meanwhile), Parsers reserved. `lab.index.tsx` cards
-      updated to explain each surface (D8).
-- [ ] Home header: dev-only link to `/lab` (mirror of the lab header's "library"
-      link).
-- [ ] Extract the shared lab presentation pieces (table shell, summary line,
-      status label, formatGeneratedAt) from `lab.locate.index.tsx` into
-      `src/components/lab/` and re-point the locate pages. No behavior change.
-      The table shell owns the D9 concerns once for all surfaces: virtualized
-      rows at corpus scale and the per-row chevron expand slot.
+      updated to explain each surface (D8). (12d3b86)
+- [x] Home header: dev-only link to `/lab` (mirror of the lab header's "library"
+      link). (12d3b86)
+- [x] Extract the shared lab presentation pieces from `lab.locate.index.tsx`
+      into `src/components/lab/` and re-point the locate pages. No behavior
+      change. (950e03f) Deviations, per D10: shared pieces are LabTable +
+      formatTimestamp only (summary/status stayed locate-local — too trivial to
+      abstract); LabTable ships the chevron-expand slot but NOT virtualization —
+      plain table is fine at 1000 simple rows, and LabTable is the single
+      insertion point if a surface strains.
 
 ### S2 — Corpora [tier: med]
 

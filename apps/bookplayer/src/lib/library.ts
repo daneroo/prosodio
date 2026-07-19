@@ -13,7 +13,12 @@ import { probeFile } from "./ffprobe.ts";
 import { scanRoot } from "./scan.ts";
 import type { BookplayerConfig } from "./config.ts";
 import type { ProbeFn } from "./ffprobe.ts";
-import type { BookCache, BookRecord, LibraryIndex } from "./types.ts";
+import type {
+  BookCache,
+  BookRecord,
+  LibraryIndex,
+  ScanFinding,
+} from "./types.ts";
 
 export interface Library {
   getIndex: () => LibraryIndex;
@@ -36,20 +41,19 @@ export function createLibrary(
     try {
       const started = performance.now();
       const previous = index;
-      const { books, warnings } = scanRoot(config.activeRoot);
+      const { books, findings } = scanRoot(config.activeRoot);
       carryOverMetadata(books, previous?.books ?? []);
       const scanDurationMs = Math.round(performance.now() - started);
       index = {
         rootName: config.activeRoot.name,
         books,
-        warnings,
+        findings,
         scannedAt: new Date().toISOString(),
         scanDurationMs,
       };
       console.log(
-        `[scan] root=${index.rootName} books=${books.length} warnings=${warnings.length} in ${scanDurationMs}ms`,
+        `[scan] root=${index.rootName} books=${books.length} findings=${findings.length} in ${scanDurationMs}ms`,
       );
-      for (const warning of warnings) console.warn(`[scan] ${warning}`);
       persistCache(config.cacheFile, index);
       void enrich(index);
       return index;
@@ -135,7 +139,10 @@ function restoreCache(config: BookplayerConfig): LibraryIndex | null {
     return null;
   }
   if (
-    cache.version !== 1 ||
+    // v1 caches predate typed findings and graded match quality (BookRecord
+    // shape changed too); the version bump is the intended invalidation —
+    // they simply rescan rather than attempt a field-by-field migration.
+    cache.version !== 2 ||
     cache.rootName !== config.activeRoot.name ||
     !Array.isArray(cache.books)
   ) {
@@ -144,7 +151,9 @@ function restoreCache(config: BookplayerConfig): LibraryIndex | null {
   return {
     rootName: config.activeRoot.name,
     books: cache.books as Array<LibraryIndex["books"][number]>,
-    warnings: [],
+    findings: Array.isArray(cache.findings)
+      ? (cache.findings as Array<ScanFinding>)
+      : [],
     scannedAt: typeof cache.scannedAt === "string" ? cache.scannedAt : "",
     scanDurationMs: 0,
   };
@@ -154,10 +163,11 @@ function persistCache(cacheFile: string, index: LibraryIndex): void {
   try {
     mkdirSync(dirname(cacheFile), { recursive: true });
     const cache: BookCache = {
-      version: 1,
+      version: 2,
       rootName: index.rootName,
       scannedAt: index.scannedAt,
       books: index.books,
+      findings: index.findings,
     };
     writeFileSync(cacheFile, JSON.stringify(cache), "utf8");
   } catch (error) {
