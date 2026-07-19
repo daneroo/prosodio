@@ -69,9 +69,12 @@ Goal: <one line>.
   not permanent: prune them once nothing depends on them, and don't index them
   by directory listing — the Closed section (newest first) is the index.
 
-Standing directive (Daniel; proven with Claude and Codex): for all coding tasks
-use your judgement to decide an appropriate lower power model and effort level
-and run that in a subagent. Account for this in your planning.
+Standing directive (Daniel; proven with Claude and Codex): for coding tasks, use
+your judgement to decide whether delegation is worthwhile — and when it is, pick
+an appropriate lower power model and effort level and run that in a subagent.
+Account for this in your planning. Delegation pays on substantial, spec-able
+tasks; small fixes found during wiring review are cheaper done directly by the
+orchestrator.
 
 Plan coding tasks for delegation and routing, not only sequencing. Each task
 should provide enough context to select an appropriate subagent model class and
