@@ -112,6 +112,9 @@ const BOOK_COLUMNS: Array<LabColumn<ScanReportBookRow>> = [
         {book.author && (
           <span className="text-slate-500"> — {book.author}</span>
         )}
+        {book.narrator && (
+          <span className="text-slate-500"> • {book.narrator}</span>
+        )}
       </span>
     ),
   },

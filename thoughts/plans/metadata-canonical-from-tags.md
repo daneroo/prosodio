@@ -121,9 +121,9 @@ directly; sequential, one commit per task, `bun run ci` green before each.
 
 ### S3 — surface series/narrator [tier: low]
 
-- [ ] Extend the lab row projections (`server/library.ts` `ScanReportBookRow`,
+- [x] Extend the lab row projections (`server/library.ts` `ScanReportBookRow`,
       `BookRow`) with series/narrator.
-- [ ] Audiobooks tab: show narrator; render series as `Name #pos` chips
+- [x] Audiobooks tab: show narrator; render series as `Name #pos` chips
       (multiple), in the row or its chevron detail (LabTable).
 - Acceptance: Discworld books show both series with positions; standalones show
   none; renders through the shared lab components.

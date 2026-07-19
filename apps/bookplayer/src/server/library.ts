@@ -41,6 +41,8 @@ export interface ScanReportBookRow {
   id: string;
   title: string;
   author: string | null;
+  narrator: string | null;
+  series: Array<{ name: string; position: number | null }>;
   relDir: string;
   basename: string;
   hasEpub: boolean;
@@ -77,6 +79,8 @@ function toScanReportRow(
     id: book.id,
     title: book.metadata.title,
     author: book.metadata.author,
+    narrator: book.metadata.narrator,
+    series: book.metadata.series,
     relDir: book.relDir,
     basename: book.basename,
     hasEpub: book.epubRelPath !== null,
