@@ -24,7 +24,16 @@ function LabRoute() {
   return <LabLayout />;
 }
 
-const RESERVED_TABS = ["Align", "Epub", "Parsers"] as const;
+const TABS = [
+  { to: "/lab/corpora", label: "Corpora" },
+  { to: "/lab/audiobooks", label: "Audiobooks" },
+  { to: "/lab/epub", label: "Epub" },
+  { to: "/lab/vtt", label: "VTT" },
+  { to: "/lab/alignment", label: "Alignment" },
+  { to: "/lab/locate", label: "Locate" },
+] as const;
+
+const RESERVED_TABS = ["Parsers"] as const;
 
 function LabLayout() {
   return (
@@ -41,13 +50,16 @@ function LabLayout() {
           </a>
         </div>
         <nav className="mx-auto mt-2 flex max-w-7xl gap-1 text-xs">
-          <Link
-            to="/lab/locate"
-            className="rounded px-2 py-1 text-slate-400 hover:text-white"
-            activeProps={{ className: "bg-slate-800 text-cyan-400" }}
-          >
-            Locate
-          </Link>
+          {TABS.map((tab) => (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              className="rounded px-2 py-1 text-slate-400 hover:text-white"
+              activeProps={{ className: "bg-slate-800 text-cyan-400" }}
+            >
+              {tab.label}
+            </Link>
+          ))}
           {RESERVED_TABS.map((label) => (
             <span
               key={label}

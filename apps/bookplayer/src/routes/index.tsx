@@ -99,6 +99,14 @@ function Home() {
         <div className="mx-auto flex max-w-7xl items-center gap-3">
           <BookOpenText className="h-6 w-6 shrink-0 text-cyan-400" />
           <h1 className="text-xl font-bold tracking-tight">BookPlayer</h1>
+          {import.meta.env.DEV && (
+            <a
+              href="/lab"
+              className="text-xs text-slate-400 underline hover:text-slate-300"
+            >
+              lab
+            </a>
+          )}
           <span className="ml-auto text-xs tabular-nums text-slate-500">
             {filtered.length}/{data.books.length} books · {data.rootName} ·{" "}
             {data.scanDurationMs}ms

@@ -27,18 +27,39 @@ interface SurfaceCard {
 
 const SURFACES: Array<SurfaceCard> = [
   {
+    title: "Corpora",
+    description:
+      "Scan findings and basename match quality — the canonical corpus diagnostics view (replaces server-log warnings).",
+    to: "/lab/corpora",
+  },
+  {
+    title: "Audiobooks",
+    description:
+      "Every m4b with ffprobe metadata (duration, size, codec, bitrate).",
+    to: "/lab/audiobooks",
+  },
+  {
+    title: "Epub",
+    description:
+      "Books with an ebook; validation later (epub-validate is the inspiration).",
+    to: "/lab/epub",
+  },
+  {
+    title: "VTT",
+    description: "Transcripts with cue counts and span durations.",
+    to: "/lab/vtt",
+  },
+  {
+    title: "Alignment",
+    description:
+      "Epub/vtt pairs with coverage metrics from cached artifacts, plus artifact-cache visibility.",
+    to: "/lab/alignment",
+  },
+  {
     title: "Locate",
     description:
       "Does every matched token produce a working epubcfi in the real epub.js? DOM-path resolve -> text guard -> CFI -> round-trip.",
     to: "/lab/locate",
-  },
-  {
-    title: "Align",
-    description: "Reserved: match-quality views (coverage, gaps, metrics).",
-  },
-  {
-    title: "Epub",
-    description: "Reserved: conformance checks.",
   },
   {
     title: "Parsers",

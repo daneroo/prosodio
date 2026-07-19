@@ -13,7 +13,12 @@ import { Route as LabRouteImport } from './routes/lab'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LabIndexRouteImport } from './routes/lab.index'
 import { Route as PlayerBookIdRouteImport } from './routes/player/$bookId'
+import { Route as LabVttIndexRouteImport } from './routes/lab.vtt.index'
 import { Route as LabLocateIndexRouteImport } from './routes/lab.locate.index'
+import { Route as LabEpubIndexRouteImport } from './routes/lab.epub.index'
+import { Route as LabCorporaIndexRouteImport } from './routes/lab.corpora.index'
+import { Route as LabAudiobooksIndexRouteImport } from './routes/lab.audiobooks.index'
+import { Route as LabAlignmentIndexRouteImport } from './routes/lab.alignment.index'
 import { Route as LabLocateBookIdRouteImport } from './routes/lab.locate.$bookId'
 
 const LabRoute = LabRouteImport.update({
@@ -36,9 +41,34 @@ const PlayerBookIdRoute = PlayerBookIdRouteImport.update({
   path: '/player/$bookId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabVttIndexRoute = LabVttIndexRouteImport.update({
+  id: '/vtt/',
+  path: '/vtt/',
+  getParentRoute: () => LabRoute,
+} as any)
 const LabLocateIndexRoute = LabLocateIndexRouteImport.update({
   id: '/locate/',
   path: '/locate/',
+  getParentRoute: () => LabRoute,
+} as any)
+const LabEpubIndexRoute = LabEpubIndexRouteImport.update({
+  id: '/epub/',
+  path: '/epub/',
+  getParentRoute: () => LabRoute,
+} as any)
+const LabCorporaIndexRoute = LabCorporaIndexRouteImport.update({
+  id: '/corpora/',
+  path: '/corpora/',
+  getParentRoute: () => LabRoute,
+} as any)
+const LabAudiobooksIndexRoute = LabAudiobooksIndexRouteImport.update({
+  id: '/audiobooks/',
+  path: '/audiobooks/',
+  getParentRoute: () => LabRoute,
+} as any)
+const LabAlignmentIndexRoute = LabAlignmentIndexRouteImport.update({
+  id: '/alignment/',
+  path: '/alignment/',
   getParentRoute: () => LabRoute,
 } as any)
 const LabLocateBookIdRoute = LabLocateBookIdRouteImport.update({
@@ -53,14 +83,24 @@ export interface FileRoutesByFullPath {
   '/player/$bookId': typeof PlayerBookIdRoute
   '/lab/': typeof LabIndexRoute
   '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/alignment/': typeof LabAlignmentIndexRoute
+  '/lab/audiobooks/': typeof LabAudiobooksIndexRoute
+  '/lab/corpora/': typeof LabCorporaIndexRoute
+  '/lab/epub/': typeof LabEpubIndexRoute
   '/lab/locate/': typeof LabLocateIndexRoute
+  '/lab/vtt/': typeof LabVttIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/player/$bookId': typeof PlayerBookIdRoute
   '/lab': typeof LabIndexRoute
   '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/alignment': typeof LabAlignmentIndexRoute
+  '/lab/audiobooks': typeof LabAudiobooksIndexRoute
+  '/lab/corpora': typeof LabCorporaIndexRoute
+  '/lab/epub': typeof LabEpubIndexRoute
   '/lab/locate': typeof LabLocateIndexRoute
+  '/lab/vtt': typeof LabVttIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,7 +109,12 @@ export interface FileRoutesById {
   '/player/$bookId': typeof PlayerBookIdRoute
   '/lab/': typeof LabIndexRoute
   '/lab/locate/$bookId': typeof LabLocateBookIdRoute
+  '/lab/alignment/': typeof LabAlignmentIndexRoute
+  '/lab/audiobooks/': typeof LabAudiobooksIndexRoute
+  '/lab/corpora/': typeof LabCorporaIndexRoute
+  '/lab/epub/': typeof LabEpubIndexRoute
   '/lab/locate/': typeof LabLocateIndexRoute
+  '/lab/vtt/': typeof LabVttIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -79,9 +124,24 @@ export interface FileRouteTypes {
     | '/player/$bookId'
     | '/lab/'
     | '/lab/locate/$bookId'
+    | '/lab/alignment/'
+    | '/lab/audiobooks/'
+    | '/lab/corpora/'
+    | '/lab/epub/'
     | '/lab/locate/'
+    | '/lab/vtt/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/player/$bookId' | '/lab' | '/lab/locate/$bookId' | '/lab/locate'
+  to:
+    | '/'
+    | '/player/$bookId'
+    | '/lab'
+    | '/lab/locate/$bookId'
+    | '/lab/alignment'
+    | '/lab/audiobooks'
+    | '/lab/corpora'
+    | '/lab/epub'
+    | '/lab/locate'
+    | '/lab/vtt'
   id:
     | '__root__'
     | '/'
@@ -89,7 +149,12 @@ export interface FileRouteTypes {
     | '/player/$bookId'
     | '/lab/'
     | '/lab/locate/$bookId'
+    | '/lab/alignment/'
+    | '/lab/audiobooks/'
+    | '/lab/corpora/'
+    | '/lab/epub/'
     | '/lab/locate/'
+    | '/lab/vtt/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,11 +193,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayerBookIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab/vtt/': {
+      id: '/lab/vtt/'
+      path: '/vtt'
+      fullPath: '/lab/vtt/'
+      preLoaderRoute: typeof LabVttIndexRouteImport
+      parentRoute: typeof LabRoute
+    }
     '/lab/locate/': {
       id: '/lab/locate/'
       path: '/locate'
       fullPath: '/lab/locate/'
       preLoaderRoute: typeof LabLocateIndexRouteImport
+      parentRoute: typeof LabRoute
+    }
+    '/lab/epub/': {
+      id: '/lab/epub/'
+      path: '/epub'
+      fullPath: '/lab/epub/'
+      preLoaderRoute: typeof LabEpubIndexRouteImport
+      parentRoute: typeof LabRoute
+    }
+    '/lab/corpora/': {
+      id: '/lab/corpora/'
+      path: '/corpora'
+      fullPath: '/lab/corpora/'
+      preLoaderRoute: typeof LabCorporaIndexRouteImport
+      parentRoute: typeof LabRoute
+    }
+    '/lab/audiobooks/': {
+      id: '/lab/audiobooks/'
+      path: '/audiobooks'
+      fullPath: '/lab/audiobooks/'
+      preLoaderRoute: typeof LabAudiobooksIndexRouteImport
+      parentRoute: typeof LabRoute
+    }
+    '/lab/alignment/': {
+      id: '/lab/alignment/'
+      path: '/alignment'
+      fullPath: '/lab/alignment/'
+      preLoaderRoute: typeof LabAlignmentIndexRouteImport
       parentRoute: typeof LabRoute
     }
     '/lab/locate/$bookId': {
@@ -148,13 +248,23 @@ declare module '@tanstack/react-router' {
 interface LabRouteChildren {
   LabIndexRoute: typeof LabIndexRoute
   LabLocateBookIdRoute: typeof LabLocateBookIdRoute
+  LabAlignmentIndexRoute: typeof LabAlignmentIndexRoute
+  LabAudiobooksIndexRoute: typeof LabAudiobooksIndexRoute
+  LabCorporaIndexRoute: typeof LabCorporaIndexRoute
+  LabEpubIndexRoute: typeof LabEpubIndexRoute
   LabLocateIndexRoute: typeof LabLocateIndexRoute
+  LabVttIndexRoute: typeof LabVttIndexRoute
 }
 
 const LabRouteChildren: LabRouteChildren = {
   LabIndexRoute: LabIndexRoute,
   LabLocateBookIdRoute: LabLocateBookIdRoute,
+  LabAlignmentIndexRoute: LabAlignmentIndexRoute,
+  LabAudiobooksIndexRoute: LabAudiobooksIndexRoute,
+  LabCorporaIndexRoute: LabCorporaIndexRoute,
+  LabEpubIndexRoute: LabEpubIndexRoute,
   LabLocateIndexRoute: LabLocateIndexRoute,
+  LabVttIndexRoute: LabVttIndexRoute,
 }
 
 const LabRouteWithChildren = LabRoute._addFileChildren(LabRouteChildren)
@@ -167,12 +277,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
