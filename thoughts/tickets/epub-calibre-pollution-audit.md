@@ -6,8 +6,8 @@ content. It already caused a fixture provenance break (Alice epub, restored
 2026-07-03).
 
 - detector: `scripts/find-calibre-bookmarks.sh` (read-only; iterates both
-  corpora roots, lists flagged epubs with mtime). Scan 2026-07-03: 141/591
-  flagged under the audiobooks root, 167/711 under the Dropbox Ebook root.
+  corpora roots, lists flagged epubs with mtime). Scan 2026-07-20: 141/608
+  flagged under the audiobooks root, 167/724 under the Dropbox Ebook root.
 - impact: book content intact (additive META-INF entry); the break is on
   whole-file sha256 provenance/dedup, NOT epub-validate spine hashes or
   alignment text extraction (META-INF is not a spine content document).
