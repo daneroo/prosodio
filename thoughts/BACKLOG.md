@@ -44,11 +44,6 @@ Charter: [docs/corpora/validation.md](../docs/corpora/validation.md) — one cor
 CLI + web skins, three corpora; milestones bootstrap -> nx-audiobook parity ->
 vtt/alignment.
 
-- [ ] merge-nx-audiobook-validation — charter milestone 2 (nx-audiobook parity):
-      port the `just checkfiles` + `apps/validate` rules VETTED, not copied
-      (Daniel vets; tighten or drop): perms 644/755, `.DS_Store`, xattr, mtime,
-      naming, metadata presence. Excludes repair modes (see charter Scope).
-      (Renamed from epoch3-audiobook-validation 2026-07-19.)
 - [ ] epub-calibre-pollution-audit — Calibre bookmark files silently change epub
       sha256 (141 + 167 flagged 2026-07-03); decide strip/prevent/CI-gate — a
       validation rule in waiting. ticket:
@@ -163,6 +158,14 @@ vtt/alignment.
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
+- 2026-07-20 merge-nx-audiobook-validation — charter milestone 2 done: the nx
+  rules vetted in (strays, hygiene trio with provenance tolerance, mtime hints
+  with `--record-mtimes`, duration, missing-author) and out (author/title +
+  cover superseded; naming deferred to the keyword-cue convention). Daniel
+  converted the modTimeDB (955 basename-keyed entries; 92 leaf-dir keys
+  remapped); all three corpora validate PASS. nx validator retirement = Daniel's
+  call after a real staging cycle.
+  [plans/archive/merge-nx-audiobook-validation.md](plans/archive/merge-nx-audiobook-validation.md)
 - 2026-07-19 validate-bootstrap — charter milestone 1 done: `packages/corpus`
   (scan/metadata/ffprobe + severity axis, extraction proven byte-identical
   against pre-refactor digests), scoped `packages/config` (named roots;

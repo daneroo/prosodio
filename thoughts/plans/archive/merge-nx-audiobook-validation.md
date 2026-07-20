@@ -1,7 +1,7 @@
 # merge-nx-audiobook-validation — charter milestone 2: vetted rule parity
 
-Status: active (2026-07-19) — decisions settled by interview (Daniel); branch
-`merge-nx-audiobook-validation`.
+Status: done (2026-07-20) — S1-S5 executed; all three corpora validate PASS
+(private 955/955 probed, 0/0). Books-array digests held throughout.
 
 Goal: port the `nx-audiobook` validation rules — VETTED, not copied — into
 `@prosodio/corpus` + `apps/validate-cli`, so `nx-audiobook`'s validator can
@@ -97,7 +97,7 @@ missing-author (+ existing basename-fallback).
       `data/validate/mtime/private.mtime-hints.json`. Remaining:
       `bun run validate private` — expect PASS (nx validated today); review any
       findings with Daniel. Record fixtures' hints via `--record-mtimes`.
-- [ ] S5 — docs + closure [tier: low, orchestrator]: charter milestone 2 -> done
+- [x] S5 — docs + closure [tier: low, orchestrator]: charter milestone 2 -> done
       (retirement of the nx validator is Daniel's call after a real staging
       cycle — noted, not gated); backlog updates; gitignore for data/validate/.
 
