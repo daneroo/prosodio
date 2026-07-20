@@ -20,7 +20,7 @@ URL -> server/handlers -> src/server/assets.ts -> src/lib/media.ts -> filesystem
 - `src/server/assets.ts` — book validation and safe path resolution.
 - `src/lib/media.ts` — shared file delivery and audio-range semantics.
 - Alignment stays in its handler because it generates, caches, and negotiates an
-  artifact.
+  artifact (cache contract: [../caching.md](../caching.md)).
 
 ## Runtime
 

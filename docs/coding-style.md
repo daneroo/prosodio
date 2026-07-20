@@ -41,6 +41,14 @@ async function tokenize(): Promise<void> {
 }
 ```
 
+## Staging: specific files, never `git add -A`
+
+Stage the files you changed, by name; never `git add -A`/`git add .`. A
+Calibre-modified fixture epub once rode into a code commit this way — a bookmark
+file silently changed the epub's sha256, caught only because the fixture
+manifest's hash check failed later. When a commit touches binaries or fixtures,
+read `git diff --cached` before committing.
+
 ## Reconciliation: desired vs actual
 
 Where it fits, model state as desired vs actual and converge — not one-shot

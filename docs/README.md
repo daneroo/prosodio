@@ -29,6 +29,8 @@ invariants. Grows by harvesting settled `thoughts/design/` docs.
     narrator come from (m4b tags are canonical; basename is a flagged fallback)
   - [corpora/validation.md](corpora/validation.md) — corpus validation: one
     core, CLI + web skins, three corpora; milestones to nx-audiobook parity
+- [caching.md](caching.md) — derived-artifact caching principles (keyed,
+  versioned, always-revalidated); the alignment artifact as the worked example
 
 ## Frameworks
 
