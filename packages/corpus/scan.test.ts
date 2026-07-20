@@ -277,6 +277,103 @@ describe("scanRoot grouping", () => {
   });
 });
 
+describe("scanRoot stray-file findings", () => {
+  test("an unrecognized file in a book dir is a stray-file warning", () => {
+    const root = makeRoot();
+    addBook(root, "Author - Book One", [
+      "Author - Book One.m4b",
+      "cover.jpg",
+      "notes.txt",
+    ]);
+
+    const { books, findings } = scanRoot(root);
+    expect(books).toHaveLength(1);
+    const stray = findings.find((f) => f.code === "stray-file");
+    expect(stray).toBeDefined();
+    expect(stray?.relDir).toBe("Author - Book One");
+    expect(stray?.detail).toContain("notes.txt");
+    expect(stray?.severity).toBe("warning");
+  });
+
+  test("a stray at root level and one in a series-level dir both fire, per directory level", () => {
+    const root = makeRoot();
+    writeFileSync(join(root.corporaDir, "root-stray.txt"), "");
+    addBook(root, join("Series", "Author - Book One"), [
+      "Author - Book One.m4b",
+      "cover.jpg",
+    ]);
+    writeFileSync(join(root.corporaDir, "Series", "series-stray.txt"), "");
+
+    const { findings } = scanRoot(root);
+    const strays = findings.filter((f) => f.code === "stray-file");
+    expect(strays).toHaveLength(2);
+    const rootStray = strays.find((f) => f.detail.includes("root-stray.txt"));
+    expect(rootStray?.relDir).toBe(".");
+    const seriesStray = strays.find((f) =>
+      f.detail.includes("series-stray.txt"),
+    );
+    expect(seriesStray?.relDir).toBe("Series");
+  });
+
+  test("uppercase .M4B extension is not stray, matching the existing case-insensitive extension match used for records", () => {
+    const root = makeRoot();
+    addBook(root, "upper-ext", ["Upper Ext.M4B", "cover.jpg"]);
+
+    const { books, findings } = scanRoot(root);
+    expect(findings.filter((f) => f.code === "stray-file")).toHaveLength(0);
+    // Documents existing behavior (unchanged by this feature): the .m4b
+    // extension check that feeds record-building already lowercases before
+    // comparing, so an uppercase .M4B is grouped into a book same as today.
+    expect(books).toHaveLength(1);
+    expect(books[0]?.basename).toBe("Upper Ext");
+  });
+
+  test('"Cover.JPG" is not stray (case-insensitive allowlist) but no-cover still fires: the record check stays exact-case', () => {
+    const root = makeRoot();
+    addBook(root, "wrong-case-cover", ["Wrong Case.m4b", "Cover.JPG"]);
+
+    const { books, findings } = scanRoot(root);
+    expect(findings.filter((f) => f.code === "stray-file")).toHaveLength(0);
+    expect(books).toHaveLength(0);
+    const noCover = findings.find((f) => f.code === "no-cover");
+    expect(noCover?.relDir).toBe("wrong-case-cover");
+  });
+
+  test("MD5SUM is ignored silently: not stray", () => {
+    const root = makeRoot();
+    addBook(root, "with-md5", ["With Md5.m4b", "cover.jpg", "MD5SUM"]);
+
+    const { findings } = scanRoot(root);
+    expect(findings.filter((f) => f.code === "stray-file")).toHaveLength(0);
+  });
+
+  test("metadata.json is recognized, not stray", () => {
+    const root = makeRoot();
+    addBook(root, "with-metadata", [
+      "With Metadata.m4b",
+      "cover.jpg",
+      "metadata.json",
+    ]);
+
+    const { findings } = scanRoot(root);
+    expect(findings.filter((f) => f.code === "stray-file")).toHaveLength(0);
+  });
+
+  test('a random .jpg ("back.jpg") is stray', () => {
+    const root = makeRoot();
+    addBook(root, "with-back-jpg", [
+      "With Back Jpg.m4b",
+      "cover.jpg",
+      "back.jpg",
+    ]);
+
+    const { findings } = scanRoot(root);
+    const stray = findings.find((f) => f.code === "stray-file");
+    expect(stray).toBeDefined();
+    expect(stray?.detail).toContain("back.jpg");
+  });
+});
+
 describe("makeBookId", () => {
   test("is a stable 12-hex digest of the normalized basename", () => {
     expect(makeBookId("My Book")).toBe(makeBookId("  my book ".trim()));

@@ -95,7 +95,8 @@ export type ScanFindingCode =
   | "multi-m4b" // >1 .m4b in a dir -> dir excluded
   | "no-cover" // .m4b without cover.jpg/png -> dir excluded
   | "duplicate-basename" // same normalized basename elsewhere -> excluded
-  | "metadata-basename-fallback"; // kept book; title tag absent -> basename used
+  | "metadata-basename-fallback" // kept book; title tag absent -> basename used
+  | "stray-file"; // unrecognized file — not part of any canonical book record
 
 /** Gate axis (plan validate-bootstrap D2): "failure" gates a validation run
  *  (PASS = zero failures); "warning" is informational only. Static per code —
@@ -111,6 +112,7 @@ export const FINDING_SEVERITY: Record<ScanFindingCode, Severity> = {
   "no-cover": "failure",
   "duplicate-basename": "failure",
   "metadata-basename-fallback": "warning",
+  "stray-file": "warning",
 };
 
 export interface ScanFinding {

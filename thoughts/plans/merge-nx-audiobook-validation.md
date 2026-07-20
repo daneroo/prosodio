@@ -74,7 +74,7 @@ missing-author (+ existing basename-fallback).
 
 ## Steps
 
-- [ ] S1 — strays in scanRoot [tier: med]: allowlist per vet (case-insensitive),
+- [x] S1 — strays in scanRoot [tier: med]: allowlist per vet (case-insensitive),
       `stray-file` finding code + severity; walk collects unrecognized files it
       currently ignores; tests incl. case variants. Books-array digests MUST
       match baseline (below).

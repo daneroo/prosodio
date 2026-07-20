@@ -51,6 +51,8 @@ const FINDING_CODE_ORDER: Array<ScanFindingCode> = [
   "multi-m4b",
   "no-cover",
   "duplicate-basename",
+  "stray-file",
+  "metadata-basename-fallback",
 ];
 
 function findingCounts(

@@ -4,7 +4,10 @@
  * cover.jpg|cover.png; .epub and a basename-matched .vtt are capabilities).
  * Orphan assets never become books. The walk is hidden-safe (dot entries
  * skipped), records a finding and continues on unreadable directories, and
- * does not follow directory symlinks.
+ * does not follow directory symlinks. Every visible file not recognized by
+ * the (case-insensitive) allowlist also gets a "stray-file" warning finding,
+ * at every directory level — recognition there is classification only and
+ * never affects which files become a book.
  */
 import { createHash } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
@@ -112,6 +115,33 @@ export function parseBasename(name: string): {
   return { author, title: title || rest || name };
 }
 
+// STRAY-FILE RECOGNITION
+
+/** Allowlisted per the vet (thoughts/plans/merge-nx-audiobook-validation.md,
+ *  "The vet"): m4b-only corpus, so mp3/m4a are deliberately excluded — a
+ *  mid-conversion staging dir should truthfully warn. */
+const STRAY_ALLOWED_EXTENSIONS = new Set([".m4b", ".epub", ".pdf"]);
+/** Exact filenames the allowlist recognizes, compared case-insensitively
+ *  below (nx's case-sensitive matching was the vetted bug this fixes). */
+const STRAY_ALLOWED_FILENAMES = new Set([
+  "cover.jpg",
+  "cover.png",
+  "metadata.json",
+]);
+
+/** Stray-file recognition only — case-insensitive, separate from the
+ *  case-sensitive cover.jpg/cover.png record logic in the walk below (a
+ *  "Cover.JPG" is not stray but still fails no-cover if it's the only
+ *  cover). MD5SUM is ignored silently: neither stray nor part of a record. */
+function isStrayFile(name: string): boolean {
+  const ext = extname(name).toLowerCase();
+  if (STRAY_ALLOWED_EXTENSIONS.has(ext)) return false;
+  const lower = name.toLowerCase();
+  if (STRAY_ALLOWED_FILENAMES.has(lower)) return false;
+  if (lower === "md5sum") return false;
+  return true;
+}
+
 // WALK
 
 function walkDirectory(
@@ -155,6 +185,18 @@ function walkDirectory(
     else if (ext === ".epub") epubNames.push(entry.name);
     else if (entry.name === "cover.jpg") hasJpg = true;
     else if (entry.name === "cover.png") hasPng = true;
+
+    // Stray classification is independent of the record-building branches
+    // above: it never changes which files become a book (D2b-style —
+    // detection only), it just flags what recognition didn't already claim.
+    if (isStrayFile(entry.name)) {
+      findings.push({
+        code: "stray-file",
+        relDir: relDir || ".",
+        detail: `stray file "${entry.name}" in "${relDir || "."}" is not part of any canonical book record`,
+        severity: FINDING_SEVERITY["stray-file"],
+      });
+    }
   }
 
   const record = groupDirectory(
