@@ -89,6 +89,15 @@
         "zod": "catalog:runtime",
       },
     },
+    "apps/validate-cli": {
+      "name": "@prosodio/validate-cli",
+      "version": "0.1.0",
+      "dependencies": {
+        "@prosodio/config": "workspace:*",
+        "@prosodio/corpus": "workspace:*",
+        "p-limit": "^7.3.0",
+      },
+    },
     "packages/align": {
       "name": "@prosodio/align",
       "version": "0.1.0",
@@ -292,6 +301,8 @@
     "@prosodio/epub-validate": ["@prosodio/epub-validate@workspace:apps/epub-validate"],
 
     "@prosodio/transcribe": ["@prosodio/transcribe@workspace:apps/transcribe"],
+
+    "@prosodio/validate-cli": ["@prosodio/validate-cli@workspace:apps/validate-cli"],
 
     "@prosodio/vtt": ["@prosodio/vtt@workspace:packages/vtt"],
 

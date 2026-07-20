@@ -1,0 +1,11 @@
+{
+  "name": "@prosodio/validate-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@prosodio/config": "workspace:*",
+    "@prosodio/corpus": "workspace:*",
+    "p-limit": "^7.3.0"
+  }
+}

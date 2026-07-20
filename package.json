@@ -29,6 +29,7 @@
     "ci": "bun run fmt:check && bun run lint && bun run check && bun run test",
     "outdated": "bun outdated -r",
     "outdated:fix": "bun update -i -r",
+    "validate": "bun apps/validate-cli/validate.ts",
     "sanity": "echo \"Validate environment ... coming to a script (very) near you\""
   },
   "devDependencies": {

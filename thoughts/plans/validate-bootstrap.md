@@ -38,7 +38,7 @@ by a standalone CLI and (unchanged) the bookplayer web server.
       types out of `apps/bookplayer/src/lib/` (tests move too); add severity +
       optional transcriptionsDir; bump BookCache v5; bookplayer imports from the
       package. Behavior identical (see Baseline).
-- [ ] S2 — `apps/validate-cli` [tier: med]: invocation/output per D4; root
+- [x] S2 — `apps/validate-cli` [tier: med]: invocation/output per D4; root
       `package.json` gains the `validate` script.
 - [ ] S3 — docs + closure [tier: low]: charter milestone 1 -> done; docs/README
       index; backlog Now/Closed updates.
