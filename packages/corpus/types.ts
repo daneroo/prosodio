@@ -96,7 +96,16 @@ export type ScanFindingCode =
   | "no-cover" // .m4b without cover.jpg/png -> dir excluded
   | "duplicate-basename" // same normalized basename elsewhere -> excluded
   | "metadata-basename-fallback" // kept book; title tag absent -> basename used
-  | "stray-file"; // unrecognized file — not part of any canonical book record
+  | "stray-file" // unrecognized file — not part of any canonical book record
+  | "ds-store" // a .DS_Store file exists
+  | "bad-perms" // file not 0644 / dir not 0755
+  | "xattr" // extended attributes present beyond a sole com.apple.provenance
+  | "mtime-absent" // book has no hint entry
+  | "mtime-mismatch" // m4b or book-dir mtime differs from the hint
+  | "orphan-hint" // hint entry matches no book
+  | "mtime-hints-missing" // the root has no hints DB at all (bootstrap state)
+  | "bad-duration" // probe succeeded but duration <= 0
+  | "metadata-missing-author"; // title tag present, artist absent
 
 /** Gate axis (plan validate-bootstrap D2): "failure" gates a validation run
  *  (PASS = zero failures); "warning" is informational only. Static per code —
@@ -113,6 +122,15 @@ export const FINDING_SEVERITY: Record<ScanFindingCode, Severity> = {
   "duplicate-basename": "failure",
   "metadata-basename-fallback": "warning",
   "stray-file": "warning",
+  "ds-store": "warning",
+  "bad-perms": "warning",
+  xattr: "warning",
+  "mtime-absent": "failure",
+  "mtime-mismatch": "failure",
+  "orphan-hint": "warning",
+  "mtime-hints-missing": "warning",
+  "bad-duration": "failure",
+  "metadata-missing-author": "warning",
 };
 
 export interface ScanFinding {
@@ -126,3 +144,10 @@ export interface ScanFinding {
    *  in persisted/serialized findings is unchanged (validate-bootstrap D2). */
   severity: Severity;
 }
+
+/** mtime hints DB shape (plan merge-nx-audiobook-validation, "Mtime hints
+ *  design"): keyed by m4b basename (one identity scheme; retags don't orphan
+ *  it), value = ISO 8601 seconds Z (e.g. "2026-07-19T19:22:59Z"). Flat
+ *  strings, no object/note wrapper — the package stays repo-ignorant; the
+ *  CLI (S3) owns loading this from `data/validate/mtime/<rootName>.mtime-hints.json`. */
+export type MtimeHints = Record<string, string>;

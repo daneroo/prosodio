@@ -37,13 +37,15 @@ lands in private.
 
 ## Mtime hints design (settled)
 
-- DB: `data/validate/mtime/<rootName>.mtime-hints.jsonc`, gitignored; the
+- DB: `data/validate/mtime/<rootName>.mtime-hints.json`, gitignored; the
   `data/validate/mtime/` dir may later become a nested local git repo (the
   epub-validate reports/ precedent) — that is the long-term persistence story,
-  recorded here.
-- Shape:
-  `{ "<m4b basename>": { "mtime": "2026-07-19T19:22:59Z", "note": "..." } }` —
-  basename-keyed (one identity scheme; retags don't orphan).
+  recorded here. PLAIN JSON, not jsonc (Daniel, 2026-07-20: comments cannot
+  survive programmatic rewrites, so don't pretend to support them).
+- Shape (Daniel's final): flat
+  `{ "<m4b basename>": "2026-07-19T19:22:59Z", ... }` — basename-keyed (one
+  identity scheme; retags don't orphan), value = ISO 8601 seconds Z. No note
+  field.
 - Compare at SECOND granularity; scope = the m4b file AND the book dir (nx
   parity; epub/cover were nx TODOs, not behavior).
 - Absent hint = FAILURE (nx parity). Mismatch = FAILURE. Orphaned hint (entry
@@ -78,7 +80,7 @@ missing-author (+ existing basename-fallback).
       `stray-file` finding code + severity; walk collects unrecognized files it
       currently ignores; tests incl. case variants. Books-array digests MUST
       match baseline (below).
-- [ ] S2 — deep rules in packages/corpus [tier: med]: `hygiene.ts` (walk:
+- [x] S2 — deep rules in packages/corpus [tier: med]: `hygiene.ts` (walk:
       ds-store / perms / xattr via `xattr -l` subprocess or node lstat mode
       bits; provenance tolerance), `mtime.ts` (pure: books + injected hints ->
       findings incl. orphan warnings), duration + missing-author checks as
@@ -88,15 +90,13 @@ missing-author (+ existing basename-fallback).
       merged into the severity-grouped output; extend --json. Tests: stub
       corpora in temp dirs, record-then-validate round-trip, orphan + absent +
       mismatch cases.
-- [ ] S4 — nx DB conversion + first real run [tier: med for the script;
-      orchestrator runs it]: `scripts/convert-nx-mtime-db.ts` reads nx's
-      modTime.ts, maps tag-derived keys ("artist - album") to basenames via the
-      private corpus probe (or the bookplayer cache), writes
-      `data/validate/mtime/private.mtime-hints.jsonc` + a report: unmappable nx
-      entries, uncovered books (896 entries vs 955 books — rabbits should be
-      present, Daniel validated today). Then `bun run validate private` — mtime
-      findings reviewed with Daniel; `--record-mtimes` for legitimately-new
-      books.
+- [ ] S4 — first real private run [orchestrator]: the conversion is DONE —
+      Daniel converted the nx DB himself (2026-07-20): 973 keys -> 955
+      basename-keyed entries (18 unused keys pruned — exactly what the
+      orphan-hint rule exists to catch; 0 missing books), now at
+      `data/validate/mtime/private.mtime-hints.json`. Remaining:
+      `bun run validate private` — expect PASS (nx validated today); review any
+      findings with Daniel. Record fixtures' hints via `--record-mtimes`.
 - [ ] S5 — docs + closure [tier: low, orchestrator]: charter milestone 2 -> done
       (retirement of the nx validator is Daniel's call after a real staging
       cycle — noted, not gated); backlog updates; gitignore for data/validate/.

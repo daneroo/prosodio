@@ -13,6 +13,7 @@ export type {
   CorpusRoot,
   Fingerprint,
   MatchClass,
+  MtimeHints,
   ScanFinding,
   ScanFindingCode,
   Severity,
@@ -37,4 +38,8 @@ export { probeFile } from "./ffprobe.ts";
 export type { ProbeFn, ProbeResult } from "./ffprobe.ts";
 
 // Findings
-export { basenameFallbackFinding } from "./findings.ts";
+export { basenameFallbackFinding, postProbeFindings } from "./findings.ts";
+
+// Deep rules (CLI-executed, S3): hygiene + mtime hints
+export { hygieneFindings } from "./hygiene.ts";
+export { mtimeFindings } from "./mtime.ts";
