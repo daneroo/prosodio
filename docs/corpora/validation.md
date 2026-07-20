@@ -77,11 +77,12 @@ validation. This is the seam that un-braids validation from the web app.
    over **vetted, not copied**. _(done 2026-07-20: strays [tightened
    case-insensitive, m4b-only corpus], hygiene trio [.DS_Store, perms 644/755,
    xattr with `com.apple.provenance` tolerance], mtime hints [basename-keyed
-   flat JSON in `data/validate/mtime/`, second granularity, absent/mismatch =
-   failure, orphan = warning, `--record-mtimes`], duration, missing-author;
-   author/title + cover checks retired as superseded; naming deferred to the
-   keyword-cue convention. Private corpus: PASS 955/955. Retiring the nx
-   validator itself is Daniel's call after a real staging cycle.)_
+   flat JSON in `data/validate/mtime/` — a nested local git repo, never pushed,
+   versions the hints; second granularity, absent/mismatch = failure, orphan =
+   warning, `--record-mtimes`], duration, missing-author; author/title + cover
+   checks retired as superseded; naming deferred to the keyword-cue convention.
+   Private corpus: PASS 955/955. Retiring the nx validator itself is Daniel's
+   call after a real staging cycle.)_
 3. **vtt / alignment** — validation extends to VTT and alignment artifacts.
    These sources live outside the audiobook corpora (`data/transcribe/output`,
    `VTT_DIR` override) and `nx-audiobook` has no knowledge of them — excluded
