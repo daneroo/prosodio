@@ -31,7 +31,7 @@ by a standalone CLI and (unchanged) the bookplayer web server.
 
 ## Steps
 
-- [ ] S0 — packages/config (scoped) [tier: med]: named-root model + env
+- [x] S0 — packages/config (scoped) [tier: med]: named-root model + env
       resolution extracted from `apps/bookplayer/src/lib/config.ts`; bookplayer
       consumes it; other apps untouched.
 - [ ] S1 — extract `packages/corpus` [tier: med]: move scan/metadata/ffprobe +

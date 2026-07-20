@@ -1,0 +1,10 @@
+{
+  "name": "@prosodio/config",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./roots.ts",
+  "types": "./roots.ts",
+  "exports": {
+    ".": "./roots.ts"
+  }
+}

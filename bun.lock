@@ -31,6 +31,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@prosodio/align": "workspace:*",
+        "@prosodio/config": "workspace:*",
         "@prosodio/vtt": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/react-router": "^1.170.17",
@@ -99,6 +100,10 @@
       "devDependencies": {
         "@types/jsdom": "^28.0.3",
       },
+    },
+    "packages/config": {
+      "name": "@prosodio/config",
+      "version": "0.1.0",
     },
     "packages/vtt": {
       "name": "@prosodio/vtt",
@@ -274,6 +279,8 @@
     "@prosodio/align-cli": ["@prosodio/align-cli@workspace:apps/align"],
 
     "@prosodio/bookplayer": ["@prosodio/bookplayer@workspace:apps/bookplayer"],
+
+    "@prosodio/config": ["@prosodio/config@workspace:packages/config"],
 
     "@prosodio/epub-validate": ["@prosodio/epub-validate@workspace:apps/epub-validate"],
 

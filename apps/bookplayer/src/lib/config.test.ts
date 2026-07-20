@@ -54,32 +54,13 @@ describe("resolveConfig", () => {
     expect(config.activeRoot.transcriptionsDir).toBe(vtts);
   });
 
-  test("selecting private with a missing corpora dir fails fast naming the variable", () => {
-    const repo = makeRepoSkeleton();
-    const vtts = mkdtempSync(join(tmpdir(), "bookplayer-vtts-"));
-    tempDirs.push(vtts);
-
-    expect(() =>
-      resolveConfig(repo, {
-        BOOKPLAYER_ROOT: "private",
-        AUDIOBOOKS_ROOT: join(repo, "no-such-volume"),
-        VTT_DIR: vtts,
-      }),
-    ).toThrow(/private root corporaDir .*AUDIOBOOKS_ROOT.*does not exist/);
-  });
-
-  test("an unknown BOOKPLAYER_ROOT value is rejected", () => {
+  // Root-model/validation cases (unknown name, missing dirs) moved to
+  // packages/config/roots.test.ts with resolveConfig's own composition
+  // (BOOKPLAYER_ROOT naming) covered separately below.
+  test("an unknown BOOKPLAYER_ROOT value is rejected, naming BOOKPLAYER_ROOT", () => {
     const repo = makeRepoSkeleton();
     expect(() => resolveConfig(repo, { BOOKPLAYER_ROOT: "corpus" })).toThrow(
       /BOOKPLAYER_ROOT="corpus" is not a known root/,
-    );
-  });
-
-  test("a broken fixtures root fails fast naming root and role", () => {
-    const repo = makeRepoSkeleton();
-    rmSync(join(repo, "fixtures", "transcriptions"), { recursive: true });
-    expect(() => resolveConfig(repo, {})).toThrow(
-      /fixtures root transcriptionsDir .*does not exist/,
     );
   });
 });
