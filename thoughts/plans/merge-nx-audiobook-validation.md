@@ -85,7 +85,7 @@ missing-author (+ existing basename-fallback).
       bits; provenance tolerance), `mtime.ts` (pure: books + injected hints ->
       findings incl. orphan warnings), duration + missing-author checks as
       post-probe helpers. All pure/injected, unit-tested with temp dirs.
-- [ ] S3 — CLI integration [tier: med]: hints loading for named roots (JSONC),
+- [x] S3 — CLI integration [tier: med]: hints loading for named roots (JSONC),
       deep-rule execution order, `--record-mtimes` (atomic append), findings
       merged into the severity-grouped output; extend --json. Tests: stub
       corpora in temp dirs, record-then-validate round-trip, orphan + absent +

@@ -5,8 +5,11 @@
 import process from "node:process";
 import { join } from "node:path";
 import {
+  HintsUsageError,
+  recordMtimes,
   renderHuman,
   renderJson,
+  renderRecordMtimes,
   resolvePlan,
   runValidation,
 } from "./lib/cli.ts";
@@ -18,6 +21,12 @@ if (import.meta.main) {
   try {
     await main();
   } catch (error) {
+    if (error instanceof HintsUsageError) {
+      // Same usage/config family as resolvePlan's exit 2 — only knowable
+      // once the hints file is actually read, so it can't be caught there.
+      console.error(`Error: ${error.message}`);
+      process.exit(2);
+    }
     const message =
       error instanceof Error
         ? error.message
@@ -34,7 +43,16 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  const result = await runValidation(plan.corpusRoot, { probe: plan.probe });
+  if (plan.kind === "record-mtimes") {
+    const result = await recordMtimes(plan.corpusRoot, plan.hintsPath);
+    console.log(renderRecordMtimes(result));
+    process.exit(0);
+  }
+
+  const result = await runValidation(plan.corpusRoot, {
+    probe: plan.probe,
+    hintsPath: plan.hintsPath,
+  });
   console.log(plan.json ? renderJson(result) : renderHuman(result));
   process.exit(result.pass ? 0 : 1);
 }
