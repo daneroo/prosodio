@@ -176,7 +176,6 @@ index. Prune old lines freely; git keeps everything.
   converted the modTimeDB (955 basename-keyed entries; 92 leaf-dir keys
   remapped); all three corpora validate PASS. nx validator retirement = Daniel's
   call after a real staging cycle.
-  [plans/archive/merge-nx-audiobook-validation.md](plans/archive/merge-nx-audiobook-validation.md)
 - 2026-07-19 validate-bootstrap — charter milestone 1 done: `packages/corpus`
   (scan/metadata/ffprobe + severity axis, extraction proven byte-identical
   against pre-refactor digests), scoped `packages/config` (named roots;
@@ -184,7 +183,6 @@ index. Prune old lines freely; git keeps everything.
   (`bun run validate <name-or-path>`, probe-by-default, --json, exit 0/1/2).
   Acceptance: fixtures 4/4 PASS, private 955/955 probed ~30s PASS, staging
   bare-path PASS. BookCache v5.
-  [plans/archive/validate-bootstrap.md](plans/archive/validate-bootstrap.md)
 - 2026-07-19 fixtures-into-shape — the Fixture Rabbits series landed: three
   faithful public pairs (clean tags, per-track narrators, VTTs, sha-pinned
   provenance in manifest.jsonc), alignment baselines narration 86-91% (accepted;
@@ -197,7 +195,6 @@ index. Prune old lines freely; git keeps everything.
   `metadata-basename-fallback` finding (rescan-proof via `metadata.source`);
   series/narrator on the Audiobooks tab; cache v4 re-probe verified 952/952
   source=tags, findings 0, 40 multi-series books.
-  [plans/archive/metadata-canonical-from-tags.md](plans/archive/metadata-canonical-from-tags.md)
 - 2026-07-19 align-better-fixture-pair — absorbed into `fixtures-into-shape`
   (broadened: faithful pairs + fixture re-tagging + jfk decision + provenance).
 
@@ -209,7 +206,6 @@ index. Prune old lines freely; git keeps everything.
   shared LabTable. The branch also carried the metadata-canonical-from-tags
   first stab (tags now canonical for title/author), the ISO 8601 date rule, and
   the delegation-doc updates.
-  [plans/archive/lab-routes-refined.md](plans/archive/lab-routes-refined.md)
 - 2026-07-19 document-delegation-tiers — standing delegation directive ("lower
   power model and effort in a subagent; account for it in planning") plus the
   proven `[tier: low|med]` scheme written into `docs/workflow.md`'s Plans
@@ -225,13 +221,12 @@ index. Prune old lines freely; git keeps everything.
   section deduped to a pointer, the "one named quality gate per repo" invariant
   added. Nix-hardy commit `8516003` was the source; review comments delivered to
   Codex separately.
-  [plans/archive/sync-repository-workflow.md](plans/archive/sync-repository-workflow.md)
 - 2026-07-12 player-sync-core — route-level `usePlayerSync` (follow works with
   the panel closed), EPUB dblclick reverse sync (srcdoc CFI bridge; the raw path
   lookup could never work), reader chrome colocated with the EPUB pane, panel
   word gesture = single click seek+show, EpubReader hardened against epub.js
   display wedges (latest-wins scheduler, non-blocking init, detached section
-  loads). [plans/archive/player-sync-core.md](plans/archive/player-sync-core.md)
+  loads).
 - 2026-07-12 lab-routes — `/dev/*` -> `/lab/*` with tabbed layout + landing
   (Locate live; Align/Epub/Parsers reserved); data-plane renamed
   `/api/locate-sweep` + `<bookId>.locate-sweep.json`. Same plan.
@@ -247,25 +242,20 @@ index. Prune old lines freely; git keeps everything.
 - 2026-07-10 bookplayer-epub-locator-hardening — predicted-mode mismatch class
   fixed (extension-driven parsing, schema v3); L2/L3 tooling + sweep persistence
   built; corpus 91/93 clean. Residual split to `bookplayer-calibre-html-locate`.
-  [plans/archive/bookplayer-locate-hardening.md](plans/archive/bookplayer-locate-hardening.md)
 - 2026-07-10 align-epub-parser-decisions — compromise 2 (parse mode) RESOLVED
   extension-driven, mirroring epub.js (evidence in the locate-hardening plan);
   compromise 1 (jsdom forced in-process) folded into `epubts-node-jsdom-always`.
 - 2026-07-09 bookplayer-align-refine-model — AlignmentArtifact v2: one versioned
   columnar artifact, deterministic bytes, cached and served as-is.
-  [plans/archive/bookplayer-align-refine-model.md](plans/archive/bookplayer-align-refine-model.md)
 - 2026-07-05 bookplayer-alignment-layout — AlignmentViewer panel, 50/50 split,
   show-in-book, playback-synced three-view follow; engine extracted to
   `packages/align`. Carried forward: follow requires the panel open — now the
   core of `player-sync-core`.
-  [plans/archive/bookplayer-align.md](plans/archive/bookplayer-align.md)
 - 2026-07-04 bookplayer — the Prosodio Bookplayer app (reader-first player over
   the canonical library), consolidating the ai-garden experiments.
   [plans/archive/bookplayer.md](plans/archive/bookplayer.md)
 - 2026-06-28 prettier-tables-vs-deno — prettier md tables byte-identical to deno
   fmt; doc-write folded into `document-prosewrap`.
-- earlier — epochs 0-4 of the consolidation: see
-  [plans/archive/](plans/archive/) (epoch1-transcribe, epoch2-epub,
-  epoch4-alignment) and the superseded align design records there
-  (bookplayer-align-bad-design, bookplayer-align-refine-model-codex-comments —
-  prune candidates).
+- earlier — epochs 0-4 of the consolidation (transcribe/epub/alignment ports)
+  and the align design iterations; harvested into docs/ and pruned 2026-07-20,
+  git keeps the history.

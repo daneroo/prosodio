@@ -3,7 +3,7 @@
 Status: refined proposal, rev 2 (2026-07-08) — incorporates Daniel's rulings (no
 backward compat; transport compression is a smell to remove, not
 institutionalize; cache under `data/bookplayer/cache/`). Executable plan:
-[plans/bookplayer-align-refine-model.md](../plans/archive/bookplayer-align-refine-model.md).
+`bookplayer-align-refine-model` (pruned 2026-07-20 after harvest; git history).
 
 The merged `bookplayer-align` branch proves token-level audio ↔ transcript ↔
 EPUB synchronization, but the data model is not the model we want to keep. It
