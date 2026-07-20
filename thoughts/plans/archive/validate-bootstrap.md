@@ -1,7 +1,9 @@
 # validate-bootstrap — pointable validation core + standalone CLI
 
-Status: active (2026-07-19) — decisions settled by interview (Daniel); branch
-`validate-bootstrap`; baseline captured. Execution not yet started.
+Status: done (2026-07-19) — S0-S3 executed on branch `validate-bootstrap`;
+extraction proven byte-identical against the baseline digests; all six
+acceptance checks passed (fixtures 4/4 PASS, private 955/955 probed ~30s PASS,
+staging bare-path PASS, --json clean, ci green, tests moved).
 
 Goal: charter milestone 1
 ([docs/corpora/validation.md](../../docs/corpora/validation.md)) — one
@@ -40,7 +42,7 @@ by a standalone CLI and (unchanged) the bookplayer web server.
       package. Behavior identical (see Baseline).
 - [x] S2 — `apps/validate-cli` [tier: med]: invocation/output per D4; root
       `package.json` gains the `validate` script.
-- [ ] S3 — docs + closure [tier: low]: charter milestone 1 -> done; docs/README
+- [x] S3 — docs + closure [tier: low]: charter milestone 1 -> done; docs/README
       index; backlog Now/Closed updates.
 
 Mechanics: sequential, one commit per step, `bun run ci` green before each

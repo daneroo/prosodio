@@ -9,9 +9,6 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
-1. `validate-bootstrap` (charter milestone 1; `promote-app-config` is its first
-   step; plan drafted, awaiting D1-D3)
-
 ## player-ux
 
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
@@ -47,11 +44,6 @@ Charter: [docs/corpora/validation.md](../docs/corpora/validation.md) — one cor
 CLI + web skins, three corpora; milestones bootstrap -> nx-audiobook parity ->
 vtt/alignment.
 
-- [ ] validate-bootstrap — charter milestone 1: a pointable validation core
-      package + standalone CLI over any corpus root, findings on the existing
-      Corpora channel. First step is `promote-app-config` (its `CORPORA_DIR`
-      override becomes real here). Needs a plan; the extraction seam is the
-      scary part — ground it in `library.ts`/`scan.ts` before writing steps.
 - [ ] merge-nx-audiobook-validation — charter milestone 2 (nx-audiobook parity):
       port the `just checkfiles` + `apps/validate` rules VETTED, not copied
       (Daniel vets; tighten or drop): perms 644/755, `.DS_Store`, xattr, mtime,
@@ -111,8 +103,11 @@ vtt/alignment.
       including alignment; pass burn-in and iPad ad-hoc checks in development
       and production, explicitly exercising Node and Bun execution rather than
       assuming `bun run` selects the runtime.
-- [ ] promote-app-config — shared `packages/config` (four consumers now); the
-      first brick of any future data-plane extraction. ticket:
+- [ ] promote-app-config — PARTIALLY LANDED via validate-bootstrap S0
+      (2026-07-19): `packages/config` exists (named-root model; bookplayer +
+      validate-cli consume it). REMAINING: migrate transcribe/align/
+      epub-validate and fold in their loose per-app values; the
+      `CORPORA_DIR`/`DATA_DIR` overrides. ticket:
       [promote-app-config](tickets/promote-app-config.md)
 - [ ] e2e-testing-harness — we need a full e2e test harness which will include a
       "real" server start, and run tests (including a burn-in equivalent on it
@@ -168,6 +163,14 @@ vtt/alignment.
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
 
+- 2026-07-19 validate-bootstrap — charter milestone 1 done: `packages/corpus`
+  (scan/metadata/ffprobe + severity axis, extraction proven byte-identical
+  against pre-refactor digests), scoped `packages/config` (named roots;
+  promote-app-config keeps the other apps), and `apps/validate-cli`
+  (`bun run validate <name-or-path>`, probe-by-default, --json, exit 0/1/2).
+  Acceptance: fixtures 4/4 PASS, private 955/955 probed ~30s PASS, staging
+  bare-path PASS. BookCache v5.
+  [plans/archive/validate-bootstrap.md](plans/archive/validate-bootstrap.md)
 - 2026-07-19 fixtures-into-shape — the Fixture Rabbits series landed: three
   faithful public pairs (clean tags, per-track narrators, VTTs, sha-pinned
   provenance in manifest.jsonc), alignment baselines narration 86-91% (accepted;

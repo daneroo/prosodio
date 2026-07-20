@@ -70,7 +70,9 @@ validation. This is the seam that un-braids validation from the web app.
 ## Milestones
 
 1. **Bootstrap** — the CLI exists and validates a corpus root, emitting
-   findings. _(not started)_
+   findings. _(done 2026-07-19: `bun run validate <name-or-path>` —
+   `apps/validate-cli` over `packages/corpus` + `packages/config`; findings
+   carry `severity`, pass = zero failures)_
 2. **nx-audiobook parity** — the `checkfiles` + `apps/validate` rules brought
    over **vetted, not copied**: each rule tightened or dropped (Daniel vets the
    set): perms 644/755, `.DS_Store`, macOS xattr cleanup, mtime sanity, naming
