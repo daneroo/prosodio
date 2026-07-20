@@ -48,6 +48,17 @@ vtt/alignment.
       sha256 (141 + 167 flagged 2026-07-03); decide strip/prevent/CI-gate — a
       validation rule in waiting. ticket:
       [epub-calibre-pollution-audit](tickets/epub-calibre-pollution-audit.md)
+- [ ] validate-fix-apply — the gated repair step (charter Scope: Reconciliation
+      convention, desired -> actual). Candidates: .DS_Store removal, perms
+      chmod, xattr strip, apply-hints (touch corpus mtimes to the DB),
+      `--record-mtimes` per-entry confirmation, hints-file normalization
+      (Daniel: "the rewrite/fix phase"). Each fix explicitly gated/confirmed;
+      kin to `sanity-reconcilers`.
+- [ ] validate-cli-ux — progress + verbosity for validate-cli (Daniel
+      2026-07-20): consider opentui for the probe pass progress (~30s on
+      private, currently silent); `-v`/`-vv` verbosity tiers (nx precedent:
+      quiet default, failures-only, everything); decide how `--json` respects
+      verbosity (finding filtering vs always-complete).
 - [ ] align-known-mismatch-convention — validation exceptions/expectations:
       declared deviations (file-naming keyword cues like `Omnibus`, `reference`,
       `abridged`) so a legitimately non-faithful pair reads as acknowledged, not
