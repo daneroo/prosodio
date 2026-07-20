@@ -90,7 +90,7 @@ missing-author (+ existing basename-fallback).
       merged into the severity-grouped output; extend --json. Tests: stub
       corpora in temp dirs, record-then-validate round-trip, orphan + absent +
       mismatch cases.
-- [ ] S4 — first real private run [orchestrator]: the conversion is DONE —
+- [x] S4 — first real private run [orchestrator]: the conversion is DONE —
       Daniel converted the nx DB himself (2026-07-20): 973 keys -> 955
       basename-keyed entries (18 unused keys pruned — exactly what the
       orphan-hint rule exists to catch; 0 missing books), now at

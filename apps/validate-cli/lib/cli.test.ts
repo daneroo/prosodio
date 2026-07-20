@@ -250,19 +250,25 @@ describe("runValidation", () => {
     }
   });
 
-  // Deep-rule findings on the real fixtures/audiobooks tree (a committed
-  // .DS_Store, possible provenance xattrs from fixture setup) are
-  // environment-dependent, so this only pins the behavioral guarantee
-  // (acceptance #1: PASS survives the "no hints DB yet" bootstrap warning) —
-  // not an exact findings count.
+  // Deep-rule findings on the real fixtures/audiobooks tree (stray Finder
+  // litter, provenance xattrs) are environment-dependent, so this only pins
+  // the behavioral guarantee (acceptance #1: PASS survives the "no hints DB
+  // yet" bootstrap warning) — not an exact findings count. The hints path is
+  // a HERMETIC nonexistent temp path, never the repo's real (gitignored) DB:
+  // a developer who has legitimately run --record-mtimes locally must not
+  // fail this test.
   test("end-to-end: the committed fixtures root scans 4 books and PASSes (hints DB not yet recorded)", async () => {
     const plan = resolvePlan(["fixtures"], REPO_ROOT, NO_ENV);
     expect(plan.kind).toBe("run");
     if (plan.kind !== "run") return;
+    const hermeticHints = join(
+      mkdtempSync(join(tmpdir(), "validate-cli-e2e-")),
+      "fixtures.mtime-hints.json",
+    );
     const result = await runValidation(plan.corpusRoot, {
       probe: true,
       probeFn: stubProbeOk,
-      hintsPath: plan.hintsPath,
+      hintsPath: hermeticHints,
     });
     expect(result.books).toBe(4);
     expect(result.failures).toBe(0);
