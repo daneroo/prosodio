@@ -17,11 +17,11 @@ not a normal path.
 | series   | `grouping` tag               | `[]`               |
 | narrator | `composer` tag               | `null`             |
 
-One dedicated pure extractor applies this —
-`apps/bookplayer/src/lib/metadata.ts` (`extractMetadata` + `parseGrouping`) —
-called from `library.ts` enrich; nobody else re-interprets tags. A present title
-tag gates the whole basename parse: the basename never backfills a null author.
-`BookMetadata.source` records which path won
+One dedicated pure extractor applies this — `packages/corpus/metadata.ts`
+(`extractMetadata` + `parseGrouping`, `@prosodio/corpus`) — called from
+bookplayer's `library.ts` enrich; nobody else re-interprets tags. A present
+title tag gates the whole basename parse: the basename never backfills a null
+author. `BookMetadata.source` records which path won
 (`"tags" | "basename" | "pending"`).
 
 Prevalence (private corpus, 2026-07-19): `title` and `artist` **952/952** (the

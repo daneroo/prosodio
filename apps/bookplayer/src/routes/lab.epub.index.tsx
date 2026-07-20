@@ -13,8 +13,8 @@ import { fetchScanReport } from "#/server/library";
 import { formatBytes } from "#/components/lab/format";
 import { LabTable } from "#/components/lab/LabTable";
 import { MatchBadge } from "#/components/lab/MatchBadge";
+import type { MatchClass } from "@prosodio/corpus";
 import type { ScanReportBookRow } from "#/server/library";
-import type { MatchClass } from "#/lib/types";
 import type { LabColumn } from "#/components/lab/LabTable";
 
 export const Route = createFileRoute("/lab/epub/")({

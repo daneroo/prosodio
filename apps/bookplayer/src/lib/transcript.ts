@@ -9,7 +9,7 @@ import { parseVtt, vttTimeToSeconds } from "@prosodio/vtt";
 
 import { assetPath } from "./media.ts";
 import type { BookplayerConfig } from "./config.ts";
-import type { BookRecord } from "./types.ts";
+import type { BookRecord } from "@prosodio/corpus";
 
 export interface TranscriptCue {
   startSec: number;

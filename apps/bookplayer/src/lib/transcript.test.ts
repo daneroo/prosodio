@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { scanRoot } from "./scan.ts";
+import { scanRoot } from "@prosodio/corpus";
 import { loadTranscript } from "./transcript.ts";
 import type { BookplayerConfig } from "./config.ts";
 

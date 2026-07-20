@@ -10,8 +10,8 @@ import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
 import { assetPath, BOOK_ID_RE } from "#/lib/media";
 import { loadTranscript } from "#/lib/transcript";
+import type { BookRecord, MatchClass } from "@prosodio/corpus";
 import type { BookplayerConfig } from "#/lib/config";
-import type { BookRecord, MatchClass } from "#/lib/types";
 
 export interface BookRow {
   id: string;

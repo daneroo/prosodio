@@ -19,8 +19,8 @@ import {
   writeArtifactCache,
 } from "./artifact-cache.ts";
 import type { ArtifactCacheKey, ComputeArtifact } from "./artifact-cache.ts";
+import type { BookRecord } from "@prosodio/corpus";
 import type { BookplayerConfig } from "./config.ts";
-import type { BookRecord } from "./types.ts";
 
 const tempDirs: Array<string> = [];
 afterEach(() => {

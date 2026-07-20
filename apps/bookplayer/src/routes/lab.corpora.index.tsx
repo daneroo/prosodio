@@ -22,7 +22,7 @@ import { BookDetail } from "#/components/lab/BookDetail";
 import { formatBytes, formatTimestamp } from "#/components/lab/format";
 import { LabTable } from "#/components/lab/LabTable";
 import { MatchBadge } from "#/components/lab/MatchBadge";
-import type { ScanFinding, ScanFindingCode } from "#/lib/types";
+import type { ScanFinding, ScanFindingCode } from "@prosodio/corpus";
 import type { ScanReportBookRow } from "#/server/library";
 import type { LabColumn } from "#/components/lab/LabTable";
 

@@ -22,9 +22,9 @@ import { artifactPaths } from "#/lib/artifact-cache";
 import { getConfig } from "#/lib/config";
 import { getLibrary } from "#/lib/library";
 import { BOOK_ID_RE } from "#/lib/media";
+import type { BookRecord } from "@prosodio/corpus";
 import type { ArtifactCacheKey } from "#/lib/artifact-cache";
 import type { BookplayerConfig } from "#/lib/config";
-import type { BookRecord } from "#/lib/types";
 
 /** Lean 4-field projection of packages/align's much larger
  *  `AlignmentMetrics` (metrics.ts) — the only fields a list row needs (D9

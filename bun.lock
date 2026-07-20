@@ -32,6 +32,7 @@
       "dependencies": {
         "@prosodio/align": "workspace:*",
         "@prosodio/config": "workspace:*",
+        "@prosodio/corpus": "workspace:*",
         "@prosodio/vtt": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/react-router": "^1.170.17",
@@ -103,6 +104,10 @@
     },
     "packages/config": {
       "name": "@prosodio/config",
+      "version": "0.1.0",
+    },
+    "packages/corpus": {
+      "name": "@prosodio/corpus",
       "version": "0.1.0",
     },
     "packages/vtt": {
@@ -281,6 +286,8 @@
     "@prosodio/bookplayer": ["@prosodio/bookplayer@workspace:apps/bookplayer"],
 
     "@prosodio/config": ["@prosodio/config@workspace:packages/config"],
+
+    "@prosodio/corpus": ["@prosodio/corpus@workspace:packages/corpus"],
 
     "@prosodio/epub-validate": ["@prosodio/epub-validate@workspace:apps/epub-validate"],
 

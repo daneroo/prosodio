@@ -3,7 +3,7 @@
  * decision D2b). Extracted out of lab.corpora.index.tsx unchanged so
  * Corpora, Epub, and VTT render the same exact/near/mismatch/absent chip.
  */
-import type { MatchClass } from "#/lib/types";
+import type { MatchClass } from "@prosodio/corpus";
 
 export function MatchBadge({ match }: { match: MatchClass }) {
   if (match === "absent") {

@@ -10,8 +10,8 @@ import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { assetPath } from "./media.ts";
+import type { BookRecord } from "@prosodio/corpus";
 import type { BookplayerConfig } from "./config.ts";
-import type { BookRecord } from "./types.ts";
 
 export interface ArtifactCacheKey {
   schemaVersion: number;

@@ -34,7 +34,7 @@ by a standalone CLI and (unchanged) the bookplayer web server.
 - [x] S0 — packages/config (scoped) [tier: med]: named-root model + env
       resolution extracted from `apps/bookplayer/src/lib/config.ts`; bookplayer
       consumes it; other apps untouched.
-- [ ] S1 — extract `packages/corpus` [tier: med]: move scan/metadata/ffprobe +
+- [x] S1 — extract `packages/corpus` [tier: med]: move scan/metadata/ffprobe +
       types out of `apps/bookplayer/src/lib/` (tests move too); add severity +
       optional transcriptionsDir; bump BookCache v5; bookplayer imports from the
       package. Behavior identical (see Baseline).

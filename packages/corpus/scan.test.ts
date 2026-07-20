@@ -16,12 +16,17 @@ import {
   parseBasename,
   scanRoot,
 } from "./scan.ts";
-import type { RootSet } from "./config.ts";
-import type { ScanFindingCode } from "./types.ts";
+import type { CorpusRoot, ScanFindingCode } from "./types.ts";
 
 const tempDirs: Array<string> = [];
 
-function makeRoot(): RootSet {
+// Concrete (non-optional transcriptionsDir) so callers below can join() into
+// it directly; still structurally a CorpusRoot when passed to scanRoot.
+function makeRoot(): {
+  name: string;
+  corporaDir: string;
+  transcriptionsDir: string;
+} {
   const base = mkdtempSync(join(tmpdir(), "bookplayer-scan-"));
   tempDirs.push(base);
   const corporaDir = join(base, "audiobooks");
@@ -31,7 +36,7 @@ function makeRoot(): RootSet {
   return { name: "fixtures", corporaDir, transcriptionsDir };
 }
 
-function addBook(root: RootSet, relDir: string, files: Array<string>): void {
+function addBook(root: CorpusRoot, relDir: string, files: Array<string>): void {
   const dir = join(root.corporaDir, relDir);
   mkdirSync(dir, { recursive: true });
   for (const file of files) writeFileSync(join(dir, file), "");
@@ -113,6 +118,7 @@ describe("scanRoot grouping", () => {
     const finding = findings.find((f) => f.relDir === "no-cover");
     expect(finding?.code).toBe("no-cover");
     expect(finding?.detail).toContain("no cover");
+    expect(finding?.severity).toBe("failure");
   });
 
   test("multiple m4b files exclude the directory with a finding", () => {
@@ -125,6 +131,7 @@ describe("scanRoot grouping", () => {
     expect(findings[0]?.code).toBe("multi-m4b");
     expect(findings[0]?.relDir).toBe("double");
     expect(findings[0]?.detail).toContain("single-m4b invariant");
+    expect(findings[0]?.severity).toBe("failure");
   });
 
   // Skipped when running as root (e.g. some container CI images): root
@@ -146,6 +153,7 @@ describe("scanRoot grouping", () => {
         const finding = findings.find((f) => f.relDir === "blocked");
         expect(finding?.code).toBe("unreadable-dir");
         expect(finding?.detail).toContain("unreadable directory");
+        expect(finding?.severity).toBe("failure");
       } finally {
         chmodSync(blockedDir, 0o755);
       }
@@ -214,6 +222,16 @@ describe("scanRoot grouping", () => {
     expect(books[0]?.hasVtt).toBe(false);
   });
 
+  test("CorpusRoot with no transcriptionsDir: every book reads vttMatch absent (bare-path staging)", () => {
+    const { name, corporaDir } = makeRoot();
+    const root: CorpusRoot = { name, corporaDir };
+    addBook(root, "no-vtt-dir", ["No Vtt Dir.m4b", "cover.jpg"]);
+
+    const { books } = scanRoot(root);
+    expect(books[0]?.vttMatch).toBe("absent");
+    expect(books[0]?.hasVtt).toBe(false);
+  });
+
   test("hidden files and directories are skipped", () => {
     const root = makeRoot();
     addBook(root, ".hidden-dir", ["Ghost.m4b", "cover.jpg"]);
@@ -246,6 +264,7 @@ describe("scanRoot grouping", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0]?.code).toBe("duplicate-basename");
     expect(findings[0]?.detail).toContain("duplicate basename");
+    expect(findings[0]?.severity).toBe("failure");
   });
 
   test("output is sorted by basename", () => {

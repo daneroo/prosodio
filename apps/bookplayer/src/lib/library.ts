@@ -9,17 +9,15 @@ import { dirname, join } from "node:path";
 
 import pLimit from "p-limit";
 
-import { probeFile } from "./ffprobe.ts";
-import { extractMetadata } from "./metadata.ts";
-import { scanRoot } from "./scan.ts";
+import {
+  basenameFallbackFinding,
+  extractMetadata,
+  probeFile,
+  scanRoot,
+} from "@prosodio/corpus";
+import type { BookRecord, ProbeFn, ScanFinding } from "@prosodio/corpus";
 import type { BookplayerConfig } from "./config.ts";
-import type { ProbeFn } from "./ffprobe.ts";
-import type {
-  BookCache,
-  BookRecord,
-  LibraryIndex,
-  ScanFinding,
-} from "./types.ts";
+import type { BookCache, LibraryIndex } from "./types.ts";
 
 export interface Library {
   getIndex: () => LibraryIndex;
@@ -141,19 +139,6 @@ export function createLibrary(
   };
 }
 
-// FINDINGS
-
-/** Single construction site for the fallback finding so scanNow (re-deriving
- *  it for carried-over books) and enrich (emitting it fresh) cannot drift. */
-function basenameFallbackFinding(book: BookRecord): ScanFinding {
-  return {
-    code: "metadata-basename-fallback",
-    relDir: book.relDir,
-    bookId: book.id,
-    detail: `"${book.relDir}" has no title tag; used the basename "${book.basename}" instead`,
-  };
-}
-
 // CACHE
 
 function restoreCache(config: BookplayerConfig): LibraryIndex | null {
@@ -171,11 +156,11 @@ function restoreCache(config: BookplayerConfig): LibraryIndex | null {
     // Older caches predate schema/semantic changes (v2: typed findings +
     // graded match quality; v3: title/author sourced from tags, not the
     // basename; v4: series/narrator/source fields plus the
-    // metadata-basename-fallback finding). The version bump is the intended
-    // invalidation — an unchanged fingerprint would otherwise keep stale
-    // metadata via carryOverMetadata, so a full rescan/re-probe is required,
-    // not a field-by-field migration.
-    cache.version !== 4 ||
+    // metadata-basename-fallback finding; v5: findings carry severity). The
+    // version bump is the intended invalidation — an unchanged fingerprint
+    // would otherwise keep stale metadata via carryOverMetadata, so a full
+    // rescan/re-probe is required, not a field-by-field migration.
+    cache.version !== 5 ||
     cache.rootName !== config.activeRoot.name ||
     !Array.isArray(cache.books)
   ) {
@@ -196,7 +181,7 @@ function persistCache(cacheFile: string, index: LibraryIndex): void {
   try {
     mkdirSync(dirname(cacheFile), { recursive: true });
     const cache: BookCache = {
-      version: 4,
+      version: 5,
       rootName: index.rootName,
       scannedAt: index.scannedAt,
       books: index.books,

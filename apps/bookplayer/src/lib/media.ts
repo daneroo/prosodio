@@ -14,8 +14,8 @@ import { extname, resolve, sep } from "node:path";
 
 import type { FileHandle } from "node:fs/promises";
 
+import type { BookRecord } from "@prosodio/corpus";
 import type { BookplayerConfig } from "./config.ts";
-import type { BookRecord } from "./types.ts";
 
 export const BOOK_ID_RE = /^[a-f0-9]{12}$/;
 

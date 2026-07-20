@@ -10,9 +10,10 @@ import { createHash } from "node:crypto";
 import { readdirSync, statSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
-import type { RootSet } from "./config.ts";
+import { FINDING_SEVERITY } from "./types.ts";
 import type {
   BookRecord,
+  CorpusRoot,
   Fingerprint,
   MatchClass,
   ScanFinding,
@@ -31,7 +32,7 @@ interface VttIndex {
 }
 
 // ENTRY POINT
-export function scanRoot(root: RootSet): ScanResult {
+export function scanRoot(root: CorpusRoot): ScanResult {
   const books: Array<BookRecord> = [];
   const findings: Array<ScanFinding> = [];
   const vttIndex = buildVttIndex(root.transcriptionsDir);
@@ -41,9 +42,13 @@ export function scanRoot(root: RootSet): ScanResult {
   return { books, findings };
 }
 
-function buildVttIndex(transcriptionsDir: string): VttIndex {
+/** transcriptionsDir is optional on CorpusRoot (bare-path staging has none):
+ *  absent means an empty index, same as an unreadable dir — every book reads
+ *  vttMatch "absent". */
+function buildVttIndex(transcriptionsDir: string | undefined): VttIndex {
   const exact = new Set<string>();
   const normalized = new Map<string, string>();
+  if (transcriptionsDir === undefined) return { exact, normalized };
   let entries;
   try {
     entries = readdirSync(transcriptionsDir, { withFileTypes: true });
@@ -110,7 +115,7 @@ export function parseBasename(name: string): {
 // WALK
 
 function walkDirectory(
-  root: RootSet,
+  root: CorpusRoot,
   relDir: string,
   books: Array<BookRecord>,
   findings: Array<ScanFinding>,
@@ -125,6 +130,7 @@ function walkDirectory(
       code: "unreadable-dir",
       relDir: relDir || ".",
       detail: `unreadable directory "${relDir || "."}": ${String(error)}`,
+      severity: FINDING_SEVERITY["unreadable-dir"],
     });
     return;
   }
@@ -175,7 +181,7 @@ interface DirectoryFiles {
 }
 
 function groupDirectory(
-  root: RootSet,
+  root: CorpusRoot,
   relDir: string,
   files: DirectoryFiles,
   findings: Array<ScanFinding>,
@@ -188,6 +194,7 @@ function groupDirectory(
       code: "multi-m4b",
       relDir,
       detail: `"${relDir}" holds ${m4bNames.length} .m4b files; the single-m4b invariant excludes it`,
+      severity: FINDING_SEVERITY["multi-m4b"],
     });
     return null;
   }
@@ -196,6 +203,7 @@ function groupDirectory(
       code: "no-cover",
       relDir,
       detail: `"${relDir}" has an .m4b but no cover.jpg/cover.png; skipped`,
+      severity: FINDING_SEVERITY["no-cover"],
     });
     return null;
   }
@@ -293,6 +301,7 @@ function dropDuplicateIds(
         code: "duplicate-basename",
         relDir: book.relDir,
         detail: `duplicate basename "${book.basename}" in "${book.relDir}"; keeping "${first.relDir}"`,
+        severity: FINDING_SEVERITY["duplicate-basename"],
       });
       continue;
     }

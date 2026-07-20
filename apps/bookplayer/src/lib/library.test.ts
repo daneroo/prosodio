@@ -12,8 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createLibrary } from "./library.ts";
+import type { ProbeFn, ProbeResult } from "@prosodio/corpus";
 import type { BookplayerConfig } from "./config.ts";
-import type { ProbeFn, ProbeResult } from "./ffprobe.ts";
 import type { BookCache } from "./types.ts";
 
 const tempDirs: Array<string> = [];
@@ -200,7 +200,7 @@ describe("library lifecycle", () => {
     const cache = JSON.parse(
       readFileSync(config.cacheFile, "utf8"),
     ) as BookCache;
-    expect(cache.version).toBe(4);
+    expect(cache.version).toBe(5);
     expect(cache.findings.length).toBe(firstIndex.findings.length);
     expect(cache.findings[0]?.code).toBe("multi-m4b");
 
@@ -358,6 +358,29 @@ describe("library lifecycle", () => {
     const index = library.getIndex();
     // v4 added series/narrator/source plus the fallback finding; the version
     // bump invalidates the cache wholesale, same as the v1 case above.
+    expect(index.books).toHaveLength(1);
+    expect(index.scanDurationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  test("a v4 cache on disk is rejected and rescanned", () => {
+    const config = makeConfig();
+    addBook(config, "one", "Book One");
+    mkdirSync(join(config.dataDir, "cache"), { recursive: true });
+    // v4 shape: findings lack severity.
+    writeFileSync(
+      config.cacheFile,
+      JSON.stringify({
+        version: 4,
+        rootName: "fixtures",
+        scannedAt: "2020-01-01T00:00:00.000Z",
+        books: [],
+      }),
+    );
+
+    const library = createLibrary(config, stubProbe({}, []));
+    const index = library.getIndex();
+    // v5 (validate-bootstrap S1) added severity to findings; the version
+    // bump invalidates the cache wholesale, same as the v1/v3 cases above.
     expect(index.books).toHaveLength(1);
     expect(index.scanDurationMs).toBeGreaterThanOrEqual(0);
   });
