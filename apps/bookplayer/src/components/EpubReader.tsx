@@ -751,7 +751,37 @@ export function EpubReader({
                   if (n > 4) return;
                   const target = event.target as Element | null;
                   const tag = target?.tagName ?? "?";
-                  logTouchDebug(`PROBE ${key} #${n} target=${tag}`);
+                  // WHERE did it land? The host document seeing P/SPAN
+                  // targets is the surprise — events inside a same-origin
+                  // iframe do not bubble to the parent, so either the tap
+                  // missed the book pane entirely, or the book is not in an
+                  // iframe on this device. Log the point against the
+                  // iframe's rect and say which.
+                  const point = event as Partial<MouseEvent>;
+                  const iframe = document.querySelector(
+                    '[data-testid="epub-reader"] iframe',
+                  );
+                  const r = iframe?.getBoundingClientRect();
+                  const x = point.clientX;
+                  const y = point.clientY;
+                  const inside =
+                    r && x !== undefined && y !== undefined
+                      ? x >= r.left &&
+                        x <= r.right &&
+                        y >= r.top &&
+                        y <= r.bottom
+                      : null;
+                  const where =
+                    r === undefined
+                      ? "NO-IFRAME"
+                      : `iframe=${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)} inside=${inside}`;
+                  const at =
+                    x === undefined || y === undefined
+                      ? "no-coords"
+                      : `at=${Math.round(x)},${Math.round(y)}`;
+                  logTouchDebug(
+                    `PROBE ${key} #${n} target=${tag} ${at} ${where}`,
+                  );
                 },
                 { passive: true, capture: true },
               );
