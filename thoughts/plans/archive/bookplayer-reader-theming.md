@@ -1,6 +1,6 @@
 # bookplayer-reader-theming — reader theming + iPad word gesture
 
-Status: active
+Status: done
 
 Goal: control the EPUB reading surface (book default / light / dark + a chosen
 reading font) from the reader toolbar, and make the reverse-sync word gesture
@@ -64,10 +64,8 @@ Tiered up from low: two controls, a second persisted preference, a new
 controller method and an asset removal is no longer mechanical.
 
 - [x] implement
-- [ ] acceptance: both cycles persist across reload and are correct on first
-      paint; font applies under light/dark but not book default; no dev overlay
-      and no Literata asset remain; `bun run ci` green — awaiting Daniel's
-      on-device pass
+- [x] acceptance: confirmed on iPad ("looks great"). Font control also had to
+      read "Book" and disable under book default, where no override applies.
 
 ## T3 — iPad word gesture [tier: med]
 
@@ -89,10 +87,10 @@ a seek re-syncs playback, follow stays engaged. Do not change it.
 
 - [x] confirm the mechanism (does any touch event reach the content document?)
 - [x] implement the touch path, reusing `resolveDblClickPoint`
-- [ ] acceptance: verified in Chrome via synthetic touch (double-tap seeks,
-      swipe/slow-tap don't, desktop dblclick unchanged, hybrid fires once);
-      `bun run ci` green — awaiting Daniel's real-iPad pass, which is the only
-      way to settle Safari double-tap-to-zoom
+- [x] acceptance: works on all surfaces on iPad. NOT the gesture code that was
+      broken — WebKit bug 218086: no events reach a sandboxed iframe's document
+      without `allow-scripts`. Three confident fixes failed before instrumenting
+      the device settled it; see the retro note below.
 
 ## T4 — DROPPED (Daniel, 2026-08-19)
 
@@ -101,3 +99,26 @@ Daniel may keep the three-way cycle indefinitely, and if he ever does want it
 reduced that's a new backlog item, not scheduled work here.
 
 Sequencing: T1 (done) -> T2 (done) -> T3. Nothing follows T3.
+
+## Retro (kept deliberately — the expensive lesson)
+
+Three fixes were written and shipped for this gesture before anyone looked at
+the device: a touch double-tap detector, `touch-action: manipulation`, and a
+`user-select: none` change premised on an on-device report that was never
+actually made. All three were plausible, all three were wrong, and desktop
+Chrome passed every time — synthetic touch exercises our own logic and says
+nothing about WebKit's iframe event gating.
+
+What worked was instrumenting the real device: an on-screen readout plus a
+beacon to the dev server, which showed the host document receiving every event
+and the content document receiving none. That pointed straight at the sandbox,
+and a web search then found the WebKit bug in one hit. Daniel had asked for
+external references early; doing that first would have saved the whole detour.
+
+Rules earned here, worth carrying into `bookplayer-public-acceptance`:
+
+- A desktop browser cannot validate an iOS gesture. Don't claim it can.
+- A diagnostic you can't distinguish from a missing diagnostic is worse than
+  none — the first overlay was an empty 8px sliver, invisible everywhere, and
+  cost a round trip proving nothing.
+- Search for prior art on platform quirks BEFORE writing the fix.

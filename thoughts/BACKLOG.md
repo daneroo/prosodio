@@ -9,30 +9,16 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
-1. bookplayer-reader-theming
-2. bookplayer-word-gesture-ipad
-
 ## player-ux
 
-- [ ] bookplayer-reader-theming — control the EPUB render surface: light/dark,
-      and override the book font with a chosen reading face. Today
-      `EpubReader.tsx` hardcodes one `rendition.themes.default` (slate text on
-      the dark shell) and books keep their own fonts. Wants a style control in
-      the reader toolbar beside chapters/pager/search — minimally custom (forced
-      theme + our font) vs book default. Font shortlist to try before picking
-      ONE: Iowan Old Style (Daniel's preference; ships on macOS/iOS), Charter,
-      Literata, Georgia. Open: injecting/serving the face into the epub.js
-      content iframe, and availability on iPad/Brave. Theming was the named
-      revisit trigger for `bookplayer-ebook-renderer`.
-- [ ] bookplayer-word-gesture-ipad — CONFIRMED dead on iPad (Daniel 2026-08-18:
-      double-tap does nothing). `EpubReader.tsx` registers `dblclick` per
-      content document; touch never delivers it — needs a touch equivalent.
-      Watch out: `resolveDblClickPoint` leans on dblclick NATIVELY selecting the
-      word, which touch does not do (needs caret-from-point), and Safari's
-      double-tap-to-zoom. Follow-disengage on word activate was considered and
-      DECLINED (Daniel 2026-08-18): keep the deliberate behavior at
-      `routes/player/$bookId.tsx` — a seek re-syncs playback, follow stays
-      engaged. Ships in one plan with `bookplayer-reader-theming`.
+- [ ] epub-script-posture-validation — the reader now runs with `allow-scripts`
+      (WebKit 218086 forces it for ANY content-document listener) and blocks
+      book scripts via a serialize-hook sanitizer (`lib/epub-sanitize.ts`).
+      Unit-tested and checked against markup extracted from the corpus, but NOT
+      yet exercised by opening the 7 script-bearing books in the reader: Rigor
+      of Angels (12 onload= + book.js), Mirror Dance, Redemption Ark
+      (javascript: links), Existential Psychotherapy, Breakneck, Sparks, Jade
+      Legacy (Kobo shims). Confirm they render correctly and nothing executes.
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
       emitting warnings. Separate from the resolved OOM and locate-sweep console
@@ -190,6 +176,25 @@ vtt/alignment.
 
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
+
+- 2026-08-19 bookplayer-word-gesture-ipad — double-tap a word to seek now works
+  on iPad. The gesture code was never the problem: WebKit bug 218086 means
+  Safari/iPadOS delivers NO events to listeners bound on a sandboxed iframe's
+  document without `allow-scripts`, which killed epub.js's own event forwarding
+  too. Enabled via `allowScriptedContent`, with book scripts neutralized in a
+  spine serialize hook so the reversal buys event delivery and nothing else
+  (Daniel's condition). Follow-disengage stayed declined. Follow-up:
+  `epub-script-posture-validation`.
+  [plans/archive/bookplayer-reader-theming.md](plans/archive/bookplayer-reader-theming.md)
+- 2026-08-19 bookplayer-reader-theming — three reading surfaces (book default /
+  light / dark) plus a three-way font cycle (Iowan / Charter / Georgia), both
+  persisted and both in the reader toolbar. Book default is a true no-injection
+  off-state; the font rides the epub.js override channel so it never leaks into
+  it. Literata dropped (only non-system face). Daniel kept the font cycle as a
+  permanent feature rather than collapsing to one face. Two real bugs found on
+  device: `themes.select()` only adds rules (fixed by class-scoping), and the
+  font label lied under book default.
+  [plans/archive/bookplayer-reader-theming.md](plans/archive/bookplayer-reader-theming.md)
 
 - 2026-07-20 merge-nx-audiobook-validation — charter milestone 2 done: the nx
   rules vetted in (strays, hygiene trio with provenance tolerance, mtime hints
