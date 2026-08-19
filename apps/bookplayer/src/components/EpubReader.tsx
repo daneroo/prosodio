@@ -720,6 +720,46 @@ export function EpubReader({
           contents.document.documentElement.style.touchAction = "manipulation";
           contents.document.body.style.touchAction = "manipulation";
 
+          // TEMPORARY broad probe (Daniel's call: "try something simpler,
+          // another event"). OBSERVED on his iPad: the component mounts and
+          // beacons fine, but tapping produces NO touchstart/touchend on
+          // this content document at all — so the question is no longer
+          // "is our double-tap logic right" but "which document, and which
+          // event family, does iOS actually deliver a tap to". Listen
+          // broadly on BOTH the content document and the host document,
+          // log the first few of each kind with their target, and let the
+          // device answer. Remove with the rest of the diagnostics.
+          const probeCounts = new Map<string, number>();
+          const probe = (label: string, doc: Document) => {
+            for (const type of [
+              "touchstart",
+              "touchend",
+              "pointerdown",
+              "pointerup",
+              "mousedown",
+              "click",
+              "dblclick",
+              "selectstart",
+            ] as const) {
+              doc.addEventListener(
+                type,
+                (event) => {
+                  const key = `${label}:${type}`;
+                  const n = (probeCounts.get(key) ?? 0) + 1;
+                  probeCounts.set(key, n);
+                  // Cap per kind so a scroll can't flood the log.
+                  if (n > 4) return;
+                  const target = event.target as Element | null;
+                  const tag = target?.tagName ?? "?";
+                  logTouchDebug(`PROBE ${key} #${n} target=${tag}`);
+                },
+                { passive: true, capture: true },
+              );
+            }
+          };
+          probe("content", contents.document);
+          probe("host", document);
+
           // Shared by both gesture paths: resolve a DOM point (already
           // computed by either resolveDblClickPoint call site below) to a
           // WordActivatePoint via the CFI bridge and report it.
