@@ -59,9 +59,45 @@ word-level follow, a coarse "you are around here" indicator, or not viable.
 - **Pull initial** — `GET /api/me/progress/{libraryItemId}`, bearer token.
   Claimed fields: `currentTime`, `duration`, `progress` (0..1), `isFinished`,
   `lastUpdate`, `startedAt`, `libraryItemId`, `episodeId`.
-- **Subscribe** — Socket.io for playback/session/progress events. **Event names
-  unknown**; read them off the official web client or a network inspector.
 - **Token security** — don't ship a token in a public client bundle.
+
+### Subscribe (Socket.io) — the core of this idea
+
+This is the read path the whole feature rests on, so the handover's shape is
+kept verbatim rather than summarized. Still unverified.
+
+```js
+import { io } from "socket.io-client";
+
+const socket = io("https://your-abs-server.com", {
+  auth: { token: "YOUR_ABS_API_TOKEN" },
+});
+
+socket.on("connect", () => {
+  console.log("Connected to Audiobookshelf socket server");
+});
+```
+
+Event categories the handover names (not actual event names — it explicitly says
+these must be confirmed against the official ABS web client's source or by
+watching the network inspector while it runs):
+
+- **progress update / session sync** — broadcast when a client updates its
+  playback position. This is the tick that would drive the timeline.
+- **stream open / close** — session lifecycle, i.e. when active playback starts
+  and stops. Directly relevant to the play/pause problem above: if these are the
+  only pause signal, extrapolation has to key off them.
+
+Note the transport assumption baked in here: **Socket.io, not raw WebSocket.**
+That implies a client dependency (`socket.io-client`) and a protocol handshake
+that must match the server's Socket.io major version. Confirm before adding the
+dependency — a version mismatch fails at connect time.
+
+The handover also offers a **polling fallback**: if the socket drops or its
+events are too coarse, throttle a REST read instead. Under the read-only
+decision that means re-polling `GET /api/me/progress/{libraryItemId}`, not
+pushing — and it inherits the same granularity question, since polling every
+10-30s is no finer than a 10-30s tick.
 
 The handover also described pushing progress back via
 `PATCH /api/me/progress/{libraryItemId}`. **Out of scope** — see the read-only
