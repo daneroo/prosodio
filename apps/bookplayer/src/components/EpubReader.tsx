@@ -12,6 +12,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+import { logTouchBeacon } from "#/server/touch-debug";
+
 import {
   checkSectionParity,
   diagnoseRangeFromDomPath,
@@ -349,9 +351,15 @@ export function EpubReader({
   const logTouchDebug = (line: string) => {
     if (!import.meta.env.DEV) return;
     const el = touchDebugRef.current;
-    if (!el) return;
-    const stamp = new Date().toISOString().slice(11, 23);
-    el.textContent = `${stamp} ${line}\n${el.textContent}`.slice(0, 4000);
+    if (el) {
+      const stamp = new Date().toISOString().slice(11, 23);
+      el.textContent = `${stamp} ${line}\n${el.textContent}`.slice(0, 4000);
+    }
+    // Also beacon to the dev server, so the iPad's behavior can be read from
+    // a file instead of transcribed off a tiny overlay by hand. Deliberately
+    // fire-and-forget: a failed beacon must never disturb the gesture it is
+    // measuring.
+    void logTouchBeacon({ data: line }).catch(() => {});
   };
   const callbacksRef = useRef({
     onController,
