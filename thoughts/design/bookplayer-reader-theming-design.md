@@ -234,11 +234,28 @@ without a separate control. **Chosen.**
    Switching is `rendition.themes.select(name)`. This uses `select`, not
    `override`+`default`, so book default has genuinely zero injected CSS.
 
-2. **Font is not an independent preference.** Once the shortlist evaluation
-   picks one face, its `font-family` value is written directly into the
-   `light`/`dark` theme rule objects in `EpubReader.tsx`. No UI ships for
-   choosing among the four candidates; the other three are deleted from wherever
-   the comparison harness put them (§8).
+2. **Font IS an independent preference — REVISED 2026-08-18 after Daniel's
+   on-device pass.** The original decision was that one face wins and gets
+   hardcoded, no font UI. Daniel tried all four in the reader and liked several:
+   Charter best (denser), Iowan good, Georgia "a bit too serif'y", Literata "a
+   bit too spread out". No obvious winner, so rather than force a premature
+   pick, the font cycle is PROMOTED from the dev-only affordance to a real
+   toolbar control and lives in production while he reads with it for a few
+   days.
+
+   - **Literata is dropped** (Daniel's call): it is the only non-system face, so
+     keeping it would mean shipping a woff2 plus OFL attribution, and it carries
+     the font-load reflow gap from §2 — not worth it for the candidate he rated
+     lowest. Delete `public/fonts/literata-regular.woff2` and its dev-only
+     `@font-face` content hook.
+   - Shipping cycle is therefore three system faces: **Iowan -> Charter ->
+     Georgia**.
+   - The font override applies only under `light`/`dark`, never under book
+     default, so the off-state stays honest. NOTE this differs from the dev
+     affordance, where `themes.font()` layered over any state including default.
+   - Collapsing to a single face later stays open (see §10 task 4), but is no
+     longer part of this plan's scope — it needs Daniel's verdict after real
+     use, not a design decision now.
 
 3. **Persistence — global, not per-book**, one new localStorage key alongside
    the existing per-book `cfiKey` helper (`EpubReader.tsx:169-171`):
@@ -248,6 +265,13 @@ without a separate control. **Chosen.**
      return "bookplayer:reader-theme";
    }
    ```
+
+   REVISED 2026-08-18: the promoted font cycle (decision 2) needs the same
+   treatment — a second global key `bookplayer:reader-font` holding the chosen
+   face's label, read by the same kind of lazy `useState` initializer. It does
+   NOT need the wrapper-repaint coupling that the theme key has (§4), since a
+   font affects only content inside the iframe, so there is no first-paint flash
+   to avoid — but reading it lazily keeps the two preferences symmetrical.
 
    storing the bare string `"default" | "light" | "dark"`. Global because a
    reading-face/theme preference is a property of the reader, not the book —

@@ -34,16 +34,39 @@ Same task adds the `import.meta.env.DEV`-gated tap control cycling
 - [ ] acceptance: theme switch mid-read keeps position; no flash on a dark first
       paint; book-default shows genuinely unstyled book CSS; `bun run ci`
 
-## T2 — production toolbar control + route plumbing [tier: low]
+## T2 — production toolbar controls + route plumbing [tier: med]
 
-`ReaderToolbar.tsx` gains the 3-way cycle button beside Chapters/pager/search;
-`routes/player/$bookId.tsx` holds the theme state and passes it down, same shape
-as `toc`/`controller`. Design §10 task 2. Independent of which font wins — needs
-only T1's `setTheme`, so it can run while Daniel reviews on the iPad.
+REVISED after Daniel's on-device pass (design §6 decision 2): TWO controls, not
+one, and the font cycle is now production rather than dev-only.
+
+`ReaderToolbar.tsx` gains, beside Chapters/pager/search:
+
+- a **theme cycle** — book default -> light -> dark. All three states stay
+  (Daniel confirmed): book default is the escape hatch when a theme breaks a
+  book.
+- a **font cycle** — Iowan -> Charter -> Georgia. Literata DROPPED: the only
+  non-system face, so keeping it means shipping a woff2 + OFL attribution and
+  carrying the §2 reflow gap, for the candidate Daniel rated lowest. Delete
+  `apps/bookplayer/public/fonts/literata-regular.woff2` and its dev-only
+  `@font-face` content hook in this task.
+
+Promote the control out of `EpubReader.tsx` and delete the dev overlay — it
+lived in the pane only because T1 was scoped out of the toolbar. Font choice
+persists under `bookplayer:reader-font` with the same lazy-initializer shape as
+the theme key; `setFont` on `ReaderController` mirrors `setTheme` including the
+post-change redisplay. Font applies under light/dark ONLY, never book default,
+unlike the dev affordance which layered over every state.
+
+`routes/player/$bookId.tsx` holds both bits of state and passes them down, same
+shape as `toc`/`controller`.
+
+Tiered up from low: two controls, a second persisted preference, a new
+controller method and an asset removal is no longer mechanical.
 
 - [ ] implement
-- [ ] acceptance: cycles and persists across reload, correct on first paint;
-      `bun run ci`
+- [ ] acceptance: both cycles persist across reload and are correct on first
+      paint; font applies under light/dark but not book default; no dev overlay
+      and no Literata asset remain; `bun run ci`
 
 ## T3 — iPad word gesture [tier: med]
 
@@ -68,18 +91,21 @@ a seek re-syncs playback, follow stays engaged. Do not change it.
 - [ ] acceptance: Daniel taps a word on the iPad and the audio seeks there;
       desktop dblclick still works unchanged; `bun run ci`
 
-## T4 — cleanup, after Daniel's pick [tier: low]
+## T4 — collapse or keep, after Daniel lives with it [tier: low]
 
-Design §10 task 3: delete the dev-only font cycle and its content hook, drop
-non-winning font assets, hardcode the chosen stack into the `light`/`dark` rule
-objects (no runtime font lever ships), harvest anything durable from the design
-into `EpubReader.tsx` comments, then delete the design per the workflow's Design
-closing convention.
+REVISED: the dev overlay and the Literata asset come out in T2, so T4 is only
+the optional collapse. After a few days of real reading Daniel either (a) names
+a clear winner — the cycle collapses to that one face hardcoded in the
+`light`/`dark` rules and the toolbar font control goes away — or (b) keeps the
+three-way cycle as a shipped feature. Either way: harvest anything durable from
+the design into `EpubReader.tsx` comments, then delete the design per the
+workflow's Design closing convention.
 
-- [ ] Daniel picks the font and confirms the palettes on device
-- [ ] implement
-- [ ] acceptance: no dev-only code paths left; `bun run ci`
+T4 is NOT blocking. T1+T2 are a complete, shippable state on their own.
 
-Sequencing: T1 -> (T2 ‖ Daniel's device review) -> T3 -> T4 last, since T4 is
-gated on the font pick. T3 is independent of the theming work and could move
-earlier if the device pass is convenient to combine.
+- [ ] Daniel reads with it for a few days and decides: collapse or keep
+- [ ] implement whichever
+- [ ] acceptance: `bun run ci`
+
+Sequencing: T1 (done) -> T2 -> T3. T4 last and non-blocking, gated on Daniel
+living with the font cycle. T3 is independent of the theming work throughout.
