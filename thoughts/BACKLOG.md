@@ -20,8 +20,11 @@ Scheduled items go here (leave this comment)
       granularity — word-level follow needs sub-second, ABS is believed to emit
       every 10-30s, so it likely needs interpolation (and therefore playback
       rate + play/pause in the payload). READ-ONLY by decision — never writes
-      back, ABS owns the position. Measure tick behaviour first; it decides
-      whether this is viable at all. All ABS specifics unverified. ticket:
+      back, ABS owns the position; push-based, polling only as a last resort.
+      All ABS specifics unverified — FIRST STEP is a throwaway spike against the
+      real server + token (event names, tick interval, whether rate and
+      play/pause are in the payload), which decides whether this is viable at
+      all. ticket:
       [bookplayer-abs-progress-sync](tickets/bookplayer-abs-progress-sync.md)
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,

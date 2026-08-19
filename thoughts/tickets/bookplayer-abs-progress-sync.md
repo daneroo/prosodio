@@ -18,6 +18,13 @@ This is not bookmark sync. It is an **alternative transport**: the remote
 position replaces the local `<audio>` element as the time source. Bookplayer
 becomes a follow-along reading surface for audio it does not own.
 
+**PUSH, NOT POLL (Daniel, 2026-08-19).** The point of the socket is that ABS
+tells us when position changes. Polling is a fallback of last resort, not the
+design — if event-driven delivery can be established, drop polling entirely.
+Note it buys nothing on granularity anyway: polling every 10-30s is no finer
+than a 10-30s tick. A standing poll against a server the user isn't even
+listening on is pure waste.
+
 **READ-ONLY, decided (Daniel, 2026-08-19).** Bookplayer consumes ABS events and
 never writes back. No PATCH, no progress push, no session creation — ABS remains
 the sole owner of listening position. This removes conflict policy, last-writer
@@ -102,6 +109,45 @@ pushing — and it inherits the same granularity question, since polling every
 The handover also described pushing progress back via
 `PATCH /api/me/progress/{libraryItemId}`. **Out of scope** — see the read-only
 decision above. Recorded only so nobody re-derives it as a missing piece.
+
+## Step 1 — prove the API with a spike, before any integration
+
+Nothing above is known. The first piece of work is not integration but a
+throwaway POC against Daniel's real ABS server with a real token, answering
+whether this is possible at all.
+
+**Where.** `scripts/` already holds one-off operational scripts
+(`fetch-and-check-fixtures.ts`, `mismatched-corpora.sh`), so a
+`scripts/abs-probe.ts` fits the existing convention and keeps the work in-repo
+where its findings can be reviewed. Out-of-band is fine too — the deliverable is
+the ANSWERS, not the script.
+
+**Token handling.** Read from the environment, never a literal, never committed;
+`.env` and `.env.local` are already gitignored (and see
+[docs/privacy.md](../../docs/privacy.md)). Any captured output is derived from a
+private library — it carries titles and listening habits — so it belongs under
+gitignored `data/`, not in the repo.
+
+**Questions it must answer, in priority order:**
+
+1. **Does the socket connect at all** with token auth, and which
+   `socket.io-client` major version does the server's handshake require?
+2. **What are the real event names?** Log every event the socket emits (a
+   catch-all listener) while playing on another device, rather than guessing.
+3. **What is the actual tick interval** during continuous playback? This is the
+   number the whole idea lives or dies on.
+4. **What is in the payload?** Specifically: is playback RATE present, and is
+   play/pause state present or only inferable from stream open/close events?
+5. **What arrives on a seek**, and can it be told apart from normal drift?
+6. **What happens on pause, and on stopping the app entirely** — does the socket
+   go quiet, or send a close event?
+7. Confirm `GET /api/me/progress/{libraryItemId}` and its field names.
+8. **Can Bookplayer's runtime reach the ABS server** at all, and from where —
+   server-side or browser?
+
+**Done when** those are written down as observed facts (with a sample event
+dump), and the ticket's unverified sections are replaced by what was measured.
+That evidence decides whether this becomes a plan or gets closed as not viable.
 
 ## Also to settle
 
