@@ -25,6 +25,7 @@ import type {
 import type { Book, Contents, NavItem, Rendition } from "epubjs";
 
 import { neutralizeScripts } from "#/lib/epub-sanitize";
+import { READER_THEME_ATTR, READER_THEME_KEY } from "#/lib/reader-theme";
 import { createLatestWins } from "#/lib/latest-wins";
 
 export interface TocItem {
@@ -252,9 +253,11 @@ function cfiKey(bookId: string): string {
 
 // Global, not per-book (design §6 decision 3): a reading-face/theme
 // preference is a property of the reader, not the book — unlike CFI
-// position, which is inherently book-scoped.
+// position, which is inherently book-scoped. The key itself lives in
+// lib/reader-theme.ts because the pre-hydration script in __root.tsx reads
+// the same storage before this module ever loads.
 function themeKey(): string {
-  return "bookplayer:reader-theme";
+  return READER_THEME_KEY;
 }
 
 export const THEME_NAMES: ReadonlyArray<ThemeName> = [
@@ -1135,6 +1138,15 @@ export function EpubReader({
             // persist once the user cycles to `default` (see `applyFont`).
             applyFont(name, fontRef.current);
             setThemeState(name);
+            // Keep the <html> attribute in step: it, not React state, drives
+            // the wrapper background (see the return statement below and the
+            // pre-hydration script in routes/__root.tsx). `default` and
+            // `light` share the light surface, so only `dark` sets it.
+            if (name === "dark") {
+              document.documentElement.setAttribute(READER_THEME_ATTR, name);
+            } else {
+              document.documentElement.removeAttribute(READER_THEME_ATTR);
+            }
             try {
               localStorage.setItem(themeKey(), name);
             } catch {
@@ -1226,18 +1238,25 @@ export function EpubReader({
     // Lifecycle keyed to the asset identity only (experiment lesson).
   }, [epubUrl]);
 
-  // Outer clipping only, plus the wrapper background (design §4): epub.js
-  // themes only reach the content iframe, never this element, so `dark`
-  // needs its own class here or a themed page would float inside a
-  // permanently white frame. `default`/`light` both keep today's `bg-white`
-  // — only `dark` needs a different wrapper color (design §6 decision 1).
+  // Outer clipping only. The wrapper still needs its own background (epub.js
+  // themes reach the content iframe, never this element, so a dark page would
+  // otherwise float in a permanently white frame) — but that background is NOT
+  // rendered from React state. It comes from CSS keyed on the
+  // `data-reader-theme` attribute the pre-hydration script in `__root.tsx`
+  // stamps on <html>.
+  //
+  // Why: the theme is read from localStorage, which the SERVER cannot see, so
+  // a state-driven className renders `bg-white` on the server and `bg-slate-900`
+  // on the client. React makes no guarantee that attribute mismatches are
+  // patched up (react.dev/reference/react-dom/client/hydrateRoot), so the
+  // server's white survived hydration — the exact white-frame flash the stored
+  // preference was meant to prevent. Setting the attribute before first paint
+  // takes the decision out of the hydration path entirely.
   return (
     <div className="relative h-full w-full">
       <div
         ref={containerRef}
-        className={`h-full w-full overflow-hidden ${
-          theme === "dark" ? "bg-slate-900" : "bg-white"
-        }`}
+        className="reader-surface h-full w-full overflow-hidden"
         data-testid="epub-reader"
       />
     </div>

@@ -13,3 +13,19 @@ body,
 body {
   margin: 0;
 }
+
+/* Reader surface background (see docs/bookplayer/reader-iframe.md and the
+   pre-hydration script in routes/__root.tsx). Driven by an attribute on
+   <html>, not by React state: the stored theme lives in localStorage, which
+   the server cannot read, and React does not guarantee that hydration patches
+   up attribute mismatches — so a state-rendered background kept the server's
+   white behind a dark page. `light` and `default` both keep white; only `dark`
+   differs, and it matches the app chrome exactly so the pane and the toolbar
+   read as one surface. */
+.reader-surface {
+  background: #fff;
+}
+
+:root[data-reader-theme="dark"] .reader-surface {
+  background: #0f172a;
+}
