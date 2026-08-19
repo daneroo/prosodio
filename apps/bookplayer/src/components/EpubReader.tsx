@@ -12,8 +12,6 @@
  */
 import { useEffect, useRef, useState } from "react";
 
-import { logTouchBeacon } from "#/server/touch-debug";
-
 import {
   checkSectionParity,
   diagnoseRangeFromDomPath,
@@ -26,6 +24,7 @@ import type {
 } from "@prosodio/align/browser";
 import type { Book, Contents, NavItem, Rendition } from "epubjs";
 
+import { neutralizeScripts } from "#/lib/epub-sanitize";
 import { createLatestWins } from "#/lib/latest-wins";
 
 export interface TocItem {
@@ -342,32 +341,6 @@ export function EpubReader({
   onFontChange,
 }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // TEMPORARY diagnostic (plan T3, remove once the iPad gesture is
-  // confirmed working): direct-DOM log of raw touch events reaching the
-  // content document, bypassing React state so it can't be lost to a stale
-  // HMR closure. DEV-gated; visible on-device without Safari remote
-  // debugging (which needs a USB/trust setup the iPad may not have).
-  const touchDebugRef = useRef<HTMLPreElement>(null);
-  const logTouchDebug = (line: string) => {
-    if (!import.meta.env.DEV) return;
-    const el = touchDebugRef.current;
-    if (el) {
-      const stamp = new Date().toISOString().slice(11, 23);
-      el.textContent = `${stamp} ${line}\n${el.textContent}`.slice(0, 4000);
-    }
-    // Also beacon to the dev server, so the iPad's behavior can be read from
-    // a file instead of transcribed off a tiny overlay by hand. Deliberately
-    // fire-and-forget: a failed beacon must never disturb the gesture it is
-    // measuring.
-    void logTouchBeacon({ data: line }).catch(() => {});
-  };
-  // Announce itself on mount. Without this the overlay is an EMPTY 8px
-  // sliver — invisible on every device, which cost a round of "is the strip
-  // there?" that proved nothing. A diagnostic you can't tell apart from a
-  // missing diagnostic is worse than none.
-  useEffect(() => {
-    logTouchDebug("touch debug ready — double-tap a word");
-  }, []);
   const callbacksRef = useRef({
     onController,
     onToc,
@@ -619,7 +592,41 @@ export function EpubReader({
           height: "100%",
           flow: "paginated",
           spread: "auto",
+          // Required for ANY event listener on the content document to fire
+          // in Safari/iPadOS — WebKit bug 218086: events in a same-origin
+          // sandboxed iframe are blocked from parent-bound listeners unless
+          // `allow-scripts` is present. epub.js sets
+          // sandbox="allow-same-origin" and adds allow-scripts only for this
+          // flag (iframe.js:93-97), so without it not just OUR dblclick/touch
+          // handlers are dead on iPad but epub.js's own event forwarding too
+          // (contents.js:895 binds identically). Observed on Daniel's iPad:
+          // zero content-document events of any kind, while the host document
+          // saw everything.
+          //
+          // The sandbox bit is all-or-nothing — WebKit gates our listeners
+          // and the BOOK's own scripts behind the same flag, so this alone
+          // would reverse the standing "keep EPUB script execution
+          // sandboxed" decision (bookplayer-ebook-renderer ticket).
+          //
+          // DECISION (Daniel, 2026-08-19): that reversal is permitted ONLY
+          // to make events work, never to let book scripts run. Since the
+          // flag can't express that, the serialize hook below enforces it
+          // instead — every EPUB script is neutralized before the content
+          // ever reaches the iframe, so allow-scripts buys event delivery
+          // and nothing else.
+          allowScriptedContent: true,
         });
+
+        // Enforces the decision above, at the one point that runs BEFORE the
+        // content becomes the iframe's srcdoc (section.js:109 triggers this
+        // on the serialized string; book.js:686 uses the same hook for URL
+        // substitution). Rules and reasoning live with the transform, which
+        // is unit-tested — see lib/epub-sanitize.ts.
+        book.spine.hooks.serialize.register(
+          (output: string, section: { output?: string }) => {
+            section.output = neutralizeScripts(output);
+          },
+        );
 
         // Three-state theme model (plan T1, design §6 decision 1): `default`
         // has NO rules — book CSS fully governs, replacing the old always-on
@@ -718,66 +725,6 @@ export function EpubReader({
           contents.document.documentElement.style.touchAction = "manipulation";
           contents.document.body.style.touchAction = "manipulation";
 
-          // TEMPORARY broad probe (Daniel's call: "try something simpler,
-          // another event"). OBSERVED on his iPad: the component mounts and
-          // beacons fine, but tapping produces NO touchstart/touchend on
-          // this content document at all — so the question is no longer
-          // "is our double-tap logic right" but "which document, and which
-          // event family, does iOS actually deliver a tap to". Listen
-          // broadly on BOTH the content document and the host document,
-          // log the first few of each kind with their target, and let the
-          // device answer. Remove with the rest of the diagnostics.
-          const probeCounts = new Map<string, number>();
-          const probe = (label: string, doc: Document) => {
-            for (const type of [
-              "touchstart",
-              "touchend",
-              "pointerdown",
-              "pointerup",
-              "mousedown",
-              "click",
-              "dblclick",
-              "selectstart",
-            ] as const) {
-              doc.addEventListener(
-                type,
-                (event) => {
-                  const key = `${label}:${type}`;
-                  const n = (probeCounts.get(key) ?? 0) + 1;
-                  probeCounts.set(key, n);
-                  // Cap per kind so a scroll can't flood the log.
-                  if (n > 4) return;
-                  const target = event.target as Element | null;
-                  const tag = target?.tagName ?? "?";
-                  // NAME the element instead of guessing: tag, classes,
-                  // and the nearest data-testid ancestor say exactly which
-                  // surface was touched. (The previous rect test was
-                  // useless — epub.js's paginated iframe is ~13500px wide
-                  // and clipped by its container, so "inside the iframe"
-                  // is true almost everywhere.)
-                  const cls =
-                    typeof target?.className === "string"
-                      ? target.className.slice(0, 40)
-                      : "";
-                  const named = target?.closest("[data-testid]");
-                  const testid = named?.getAttribute("data-testid") ?? "none";
-                  const sameDoc = target?.ownerDocument === document;
-                  const point = event as Partial<MouseEvent>;
-                  const at =
-                    point.clientX === undefined || point.clientY === undefined
-                      ? "no-coords"
-                      : `at=${Math.round(point.clientX)},${Math.round(point.clientY)}`;
-                  logTouchDebug(
-                    `PROBE ${key} #${n} <${tag}> testid=${testid} hostDoc=${sameDoc} cls="${cls}" ${at}`,
-                  );
-                },
-                { passive: true, capture: true },
-              );
-            }
-          };
-          probe("content", contents.document);
-          probe("host", document);
-
           // Shared by both gesture paths: resolve a DOM point (already
           // computed by either resolveDblClickPoint call site below) to a
           // WordActivatePoint via the CFI bridge and report it.
@@ -786,18 +733,12 @@ export function EpubReader({
           ) => {
             const activateWord = callbacksRef.current.onWordActivate;
             if (!activateWord || !book || !point) {
-              logTouchDebug(
-                `activatePoint bailed: activateWord=${!!activateWord} book=${!!book} point=${!!point}`,
-              );
               return;
             }
             // spineItems (below), not book.spine.get: its type honestly
             // reflects that an out-of-range sectionIndex has no entry.
             const section = spineItems(book)[contents.sectionIndex];
             if (!section) {
-              logTouchDebug(
-                "activatePoint bailed: no section for sectionIndex",
-              );
               return;
             }
             // CFI bridge (see WordActivatePoint): the rendered view is an
@@ -839,9 +780,6 @@ export function EpubReader({
               // Fallback on any bridge failure: deliver the RENDERED-doc
               // point — downstream fails node-not-located and the route's
               // notice still gives feedback (no silent dead clicks).
-              logTouchDebug(
-                `activateWord() called, bridged=${!!bridged}, sectionHref=${section.href}`,
-              );
               activateWord({
                 sectionHref: section.href,
                 node: bridged?.node ?? point.node,
@@ -898,18 +836,12 @@ export function EpubReader({
               event.touches.length === 1 && touch
                 ? { x: touch.clientX, y: touch.clientY }
                 : null;
-            logTouchDebug(
-              `touchstart n=${event.touches.length} ${touchStart ? `(${Math.round(touchStart.x)},${Math.round(touchStart.y)})` : "ignored"}`,
-            );
           };
           const handleTouchEnd = (event: TouchEvent) => {
             const start = touchStart;
             touchStart = null;
             const end = event.changedTouches.item(0);
             if (event.changedTouches.length !== 1 || !end) {
-              logTouchDebug(
-                `touchend REJECTED changedTouches.length=${event.changedTouches.length}`,
-              );
               lastTap = null;
               return;
             }
@@ -920,9 +852,6 @@ export function EpubReader({
               ? tapDistance(start.x, start.y, end.clientX, end.clientY)
               : null;
             if (!start || (moved !== null && moved > TAP_MOVE_PX)) {
-              logTouchDebug(
-                `touchend REJECTED moved=${moved === null ? "no-start" : moved.toFixed(1)}px (limit ${TAP_MOVE_PX})`,
-              );
               lastTap = null;
               return;
             }
@@ -938,9 +867,6 @@ export function EpubReader({
               gapMs <= DOUBLE_TAP_MS &&
               gapPx !== null &&
               gapPx <= TAP_MOVE_PX;
-            logTouchDebug(
-              `touchend (${Math.round(end.clientX)},${Math.round(end.clientY)}) moved=${moved?.toFixed(1)}px prevTap=${prev ? `${gapMs}ms/${gapPx?.toFixed(1)}px` : "none"} -> ${isDoubleTap ? "DOUBLE-TAP FIRING" : "single, armed"}`,
-            );
             if (isDoubleTap) {
               lastTap = null;
               // preventDefault on the second tap's touchend is the primary
@@ -952,11 +878,6 @@ export function EpubReader({
                 contents.window,
                 end.clientX,
                 end.clientY,
-              );
-              logTouchDebug(
-                point
-                  ? `resolved point ok, offset=${point.offset}`
-                  : "resolveDblClickPoint returned null — nothing to activate",
               );
               activatePoint(point);
             } else {
@@ -1319,18 +1240,6 @@ export function EpubReader({
         }`}
         data-testid="epub-reader"
       />
-      {/* TEMPORARY diagnostic (plan T3, see touchDebugRef/logTouchDebug
-          above): on-device visibility into raw touch events reaching the
-          content document, since the iPad can't easily get Safari remote
-          debugging. Remove once the double-tap gesture is confirmed working
-          on-device. */}
-      {import.meta.env.DEV && (
-        <pre
-          ref={touchDebugRef}
-          data-testid="touch-debug"
-          className="pointer-events-none absolute bottom-0 left-0 z-50 max-h-40 min-h-12 w-full overflow-hidden whitespace-pre-wrap bg-black/80 p-1 text-[11px] leading-tight text-lime-300"
-        />
-      )}
     </div>
   );
 }
