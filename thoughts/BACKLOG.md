@@ -11,6 +11,17 @@ Scheduled items go here (leave this comment)
 
 ## player-ux
 
+- [ ] bookplayer-abs-progress-sync — UNVERIFIED IDEA: let audiobookshelf be the
+      TIMELINE SOURCE. ABS plays the audiobook independently (phone, car) and
+      Bookplayer plays no audio at all — it subscribes to ABS progress events
+      and uses the remote position as the clock driving the alignment, so the
+      EPUB follows along. An alternative transport behind the
+      `useAudioTransport` seam, not bookmark sync. Critical unknown: tick
+      granularity — word-level follow needs sub-second, ABS is believed to emit
+      every 10-30s, so it likely needs interpolation (and therefore playback
+      rate + play/pause in the payload). Measure that first; it decides whether
+      this is viable at all. ticket:
+      [bookplayer-abs-progress-sync](tickets/bookplayer-abs-progress-sync.md)
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
       emitting warnings. Separate from the resolved OOM and locate-sweep console
