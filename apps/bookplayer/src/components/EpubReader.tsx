@@ -361,6 +361,15 @@ export function EpubReader({
     // measuring.
     void logTouchBeacon({ data: line }).catch(() => {});
   };
+  // Announce itself on mount. Without this the overlay is an EMPTY 8px
+  // sliver — invisible on every device, which cost a round of "is the strip
+  // there?" that proved nothing. A diagnostic you can't tell apart from a
+  // missing diagnostic is worse than none.
+  useEffect(() => {
+    logTouchDebug("touch debug ready — double-tap a word");
+    // Mount-only: this is a liveness banner, not a subscription.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const callbacksRef = useRef({
     onController,
     onToc,
@@ -1261,7 +1270,7 @@ export function EpubReader({
         <pre
           ref={touchDebugRef}
           data-testid="touch-debug"
-          className="pointer-events-none absolute bottom-0 left-0 z-50 max-h-40 w-full overflow-hidden whitespace-pre-wrap bg-black/80 p-1 text-[9px] leading-tight text-lime-300"
+          className="pointer-events-none absolute bottom-0 left-0 z-50 max-h-40 min-h-12 w-full overflow-hidden whitespace-pre-wrap bg-black/80 p-1 text-[11px] leading-tight text-lime-300"
         />
       )}
     </div>
