@@ -13,7 +13,7 @@ import type { FormEvent } from "react";
 import { epubLocatorAt } from "@prosodio/align/browser";
 
 import { AlignmentViewer } from "#/components/AlignmentViewer";
-import { EMPTY_SEARCH } from "#/components/EpubReader";
+import { EMPTY_SEARCH, FONT_NAMES, THEME_NAMES } from "#/components/EpubReader";
 import { PlayerDock } from "#/components/PlayerDock";
 import { ReaderToolbar } from "#/components/ReaderToolbar";
 import { SearchPanel } from "#/components/SearchPanel";
@@ -22,9 +22,11 @@ import { seekTargetForBookPoint, usePlayerSync } from "#/lib/player-sync";
 import { fetchBook } from "#/server/library";
 import type { ActiveTokenInfo } from "#/lib/player-sync";
 import type {
+  FontName,
   LocateResult,
   ReaderController,
   SearchState,
+  ThemeName,
   TocItem,
   WordActivatePoint,
 } from "#/components/EpubReader";
@@ -48,6 +50,28 @@ function PlayerPage() {
   const [controller, setController] = useState<ReaderController | null>(null);
   const [toc, setToc] = useState<Array<TocItem>>([]);
   const [searchState, setSearchState] = useState<SearchState>(EMPTY_SEARCH);
+  // Reading theme/font (plan T2): fed by EpubReader's onThemeChange/
+  // onFontChange (fired once on init with the localStorage-derived value,
+  // and again on every setTheme/setFont), same shape as toc/controller
+  // above. "default"/"iowan" are placeholder initial values only — the real
+  // first-paint-correct value comes from the init callback, same reasoning
+  // as EpubReader's own lazy initializers (design §4, §6 decision 3).
+  const [theme, setTheme] = useState<ThemeName>("default");
+  const [font, setFont] = useState<FontName>("iowan");
+  const cycleTheme = useCallback(() => {
+    // `?? "default"` is defensive only (noUncheckedIndexedAccess): `theme`
+    // always came from THEME_NAMES itself, so the modulo index is always in
+    // range.
+    const next =
+      THEME_NAMES[(THEME_NAMES.indexOf(theme) + 1) % THEME_NAMES.length] ??
+      "default";
+    controller?.setTheme(next);
+  }, [controller, theme]);
+  const cycleFont = useCallback(() => {
+    const next =
+      FONT_NAMES[(FONT_NAMES.indexOf(font) + 1) % FONT_NAMES.length] ?? "iowan";
+    controller?.setFont(next);
+  }, [controller, font]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [queryInput, setQueryInput] = useState("");
   const [readerError, setReaderError] = useState<string | null>(null);
@@ -323,6 +347,10 @@ function PlayerPage() {
                 onOpenSearch={() => setPanelOpen(true)}
                 onCloseSearch={closeSearch}
                 onDisengageFollow={() => setFollowReader(false)}
+                theme={theme}
+                onCycleTheme={cycleTheme}
+                font={font}
+                onCycleFont={cycleFont}
               />
               <div className="relative min-h-0 flex-1">
                 <Suspense
@@ -342,6 +370,8 @@ function PlayerPage() {
                     onSearchState={setSearchState}
                     onError={setReaderError}
                     onWordActivate={canAlign ? onWordActivate : undefined}
+                    onThemeChange={setTheme}
+                    onFontChange={setFont}
                   />
                 </Suspense>
                 <SearchPanel

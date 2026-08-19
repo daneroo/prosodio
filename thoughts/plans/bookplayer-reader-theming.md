@@ -63,10 +63,11 @@ shape as `toc`/`controller`.
 Tiered up from low: two controls, a second persisted preference, a new
 controller method and an asset removal is no longer mechanical.
 
-- [ ] implement
+- [x] implement
 - [ ] acceptance: both cycles persist across reload and are correct on first
       paint; font applies under light/dark but not book default; no dev overlay
-      and no Literata asset remain; `bun run ci`
+      and no Literata asset remain; `bun run ci` green — awaiting Daniel's
+      on-device pass
 
 ## T3 — iPad word gesture [tier: med]
 

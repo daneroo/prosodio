@@ -37,6 +37,13 @@ export interface TocItem {
  * reader preference, not a book property (design §6 decision 3). */
 export type ThemeName = "default" | "light" | "dark";
 
+/** The three reading faces Daniel is living with for a few days (plan T2,
+ * design §6 decision 2 REVISED): no clear winner on-device, so all three
+ * system faces ship as a real toolbar preference instead of collapsing to
+ * one. Literata dropped — the only non-system face, not worth the woff2 +
+ * reflow gap for the candidate he rated lowest. */
+export type FontName = "iowan" | "charter" | "georgia";
+
 export interface SearchResult {
   cfi: string;
   excerpt: string;
@@ -112,6 +119,25 @@ export interface ReaderController {
    * can't leave stale pagination or lose the reading position.
    */
   setTheme: (name: ThemeName) => void;
+  /**
+   * Switch the reading font (plan T2, mirrors `setTheme` exactly): updates
+   * React state, persists globally, reports via `onFontChange`, and
+   * redisplays the current position — same four-things-atomically shape as
+   * `setTheme`, same reasoning (design §6 decision 6).
+   *
+   * The one place this differs from `setTheme`: whether the change is
+   * actually INJECTED depends on the current theme. `themes.font()` is
+   * `themes.override("font-family", ..., true)` under the hood
+   * (themes.js:254-256) — override state is global and independent of
+   * `themes.select`, re-applied to every future content load by its own
+   * content hook regardless of which theme is selected. Left unguarded, a
+   * font choice made once would leak into `default` forever, breaking the
+   * "book default is genuinely unstyled" guarantee (design §3, §6 decision
+   * 1). So the font is only ever handed to `themes.font()` while `light`/
+   * `dark` is selected; under `default` the standing override is actively
+   * cleared instead. See `applyFont` below.
+   */
+  setFont: (name: FontName) => void;
 }
 
 export const EMPTY_SEARCH: SearchState = {
@@ -154,6 +180,9 @@ interface EpubReaderProps {
    * Optional: T1 wires the model, T2 wires the toolbar control that consumes
    * this. */
   onThemeChange?: (name: ThemeName) => void;
+  /** Same shape as `onThemeChange`, for the font preference (plan T2): fired
+   * once on init and again on every `ReaderController.setFont` call. */
+  onFontChange?: (name: FontName) => void;
 }
 
 /**
@@ -200,7 +229,11 @@ function themeKey(): string {
   return "bookplayer:reader-theme";
 }
 
-const THEME_NAMES: ReadonlyArray<ThemeName> = ["default", "light", "dark"];
+export const THEME_NAMES: ReadonlyArray<ThemeName> = [
+  "default",
+  "light",
+  "dark",
+];
 
 /** Synchronous localStorage read for the `useState` lazy initializer (design
  * §4): must run before first paint so a dark preference never flashes white.
@@ -218,31 +251,55 @@ function readStoredTheme(): ThemeName {
   return "default";
 }
 
-// Iowan Old Style is Daniel's stated preference (from Apple Books) and a
-// genuine system face on both his reading devices (macOS + iOS) — no
-// webfont, no font-load reflow gap (design §2, §7). Starting point for the
-// light/dark themes below; the dev-only font-cycle affordance further down
-// lets Daniel compare it live against three alternatives before one gets
-// hardcoded for good (plan T4).
-const READING_FONT =
-  '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif';
+// Global, not per-book (same reasoning as themeKey above): a reading-face
+// preference is a property of the reader, not the book.
+function fontKey(): string {
+  return "bookplayer:reader-font";
+}
 
-// Dev-only font comparison (plan T1, design §8): the four shortlisted
-// candidates, cycled live via `rendition.themes.font()` against a real open
-// book/chapter, independent of the light/dark/default lever. Literata is not
-// a system face anywhere and needs the self-hosted @font-face registered
-// below. Delete this whole affordance in T4 once Daniel picks one (design §10
-// task 3) — only the winner's stack survives, hardcoded into the light/dark
-// theme rules above.
-const DEV_FONT_STACKS: ReadonlyArray<{ label: string; stack: string }> = [
-  { label: "Iowan", stack: READING_FONT },
-  {
-    label: "Charter",
-    stack: 'Charter, "Bitstream Charter", "Sitka Text", Cambria, serif',
-  },
-  { label: "Georgia", stack: 'Georgia, "Nimbus Roman No9 L", serif' },
-  { label: "Literata", stack: "Literata, Georgia, serif" },
+export const FONT_NAMES: ReadonlyArray<FontName> = [
+  "iowan",
+  "charter",
+  "georgia",
 ];
+
+/** Synchronous localStorage read for the font `useState` lazy initializer,
+ * same shape as `readStoredTheme` — no first-paint flash concern here (a
+ * font only affects iframe content, design §6 decision 3), read lazily
+ * anyway for symmetry with the theme preference. */
+function readStoredFont(): FontName {
+  try {
+    const stored = localStorage.getItem(fontKey());
+    if (stored && (FONT_NAMES as ReadonlyArray<string>).includes(stored)) {
+      return stored as FontName;
+    }
+  } catch {
+    /* storage blocked — fall through to the default */
+  }
+  return "iowan";
+}
+
+// Shipping cycle (plan T2, design §6 decision 2 REVISED): three system
+// faces, Iowan -> Charter -> Georgia. Iowan is Daniel's stated preference
+// (from Apple Books) and a genuine system face on both his reading devices
+// (macOS + iOS); Charter and Georgia are also bundled on those platforms —
+// no webfont, no font-load reflow gap (design §2, §7) for any of the three.
+// Literata dropped: the only non-system face, so keeping it in the cycle
+// would mean shipping a woff2 + OFL attribution and carrying the reflow gap,
+// for the candidate Daniel rated lowest ("a bit too spread out").
+const FONT_STACKS: Record<FontName, string> = {
+  iowan: '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
+  charter: 'Charter, "Bitstream Charter", "Sitka Text", Cambria, serif',
+  georgia: 'Georgia, "Nimbus Roman No9 L", serif',
+};
+
+// Toolbar display label per face (plan T2): the user is on an iPad with no
+// tooltip, so the toolbar button must show the current pick as visible text.
+export const FONT_LABELS: Record<FontName, string> = {
+  iowan: "Iowan",
+  charter: "Charter",
+  georgia: "Georgia",
+};
 
 export function EpubReader({
   bookId,
@@ -253,6 +310,7 @@ export function EpubReader({
   onError,
   onWordActivate,
   onThemeChange,
+  onFontChange,
 }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({
@@ -262,6 +320,7 @@ export function EpubReader({
     onError,
     onWordActivate,
     onThemeChange,
+    onFontChange,
   });
   callbacksRef.current = {
     onController,
@@ -270,6 +329,7 @@ export function EpubReader({
     onError,
     onWordActivate,
     onThemeChange,
+    onFontChange,
   };
   const bookIdRef = useRef(bookId);
   bookIdRef.current = bookId;
@@ -283,11 +343,13 @@ export function EpubReader({
   const themeRef = useRef(theme);
   themeRef.current = theme;
 
-  // Dev-only font comparison (design §8): set inside init() once the
-  // rendition exists, cleared on teardown; the on-screen tap control below
-  // calls through this ref since it lives outside the effect closure.
-  const devCycleFontRef = useRef<((index: number) => void) | null>(null);
-  const [devFontIndex, setDevFontIndex] = useState(0);
+  // Lazy initializer, same shape as theme's (no first-paint flash concern
+  // for a font — it only reaches iframe content, design §6 decision 3).
+  // `fontRef` lets `setTheme` read the current font choice when it decides
+  // whether to (re)inject or clear the override (see `applyFont`).
+  const [font, setFontState] = useState<FontName>(() => readStoredFont());
+  const fontRef = useRef(font);
+  fontRef.current = font;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -352,6 +414,27 @@ export function EpubReader({
         });
       } catch {
         /* currentLocation can throw early in the lifecycle; nothing to redisplay */
+      }
+    };
+    // Keeps book-default honest (plan T2, `ReaderController.setFont` doc
+    // above): `themes.font()` is `themes.override("font-family", ..., true)`
+    // — override state is global, independent of `themes.select`, and
+    // re-applied to every future content load regardless of which theme is
+    // current (themes.js:22,145-150,232-240). So the font is only ever
+    // handed to `themes.font()` while `light`/`dark` is selected; switching
+    // TO `default` actively clears the standing override instead of leaving
+    // it to leak through. `removeOverride` exists at runtime (themes.js:218)
+    // but isn't in epubjs's .d.ts, hence the cast.
+    const applyFont = (themeName: ThemeName, fontName: FontName) => {
+      if (!rendition) return;
+      if (themeName === "default") {
+        (
+          rendition.themes as unknown as {
+            removeOverride: (name: string) => void;
+          }
+        ).removeOverride("font-family");
+      } else {
+        rendition.themes.font(FONT_STACKS[fontName]);
       }
     };
     const cacheSection = (href: string, document: Document) => {
@@ -494,64 +577,33 @@ export function EpubReader({
         rendition.themes.register({
           default: {},
           light: {
-            body: {
-              color: "#1e293b !important",
-              "font-family": `${READING_FONT} !important`,
-            },
+            body: { color: "#1e293b !important" },
             "a, a:link, a:visited": { color: "#0e7490 !important" },
           },
           dark: {
             body: {
               background: "#0f172a !important",
               color: "#e2e8f0 !important",
-              "font-family": `${READING_FONT} !important`,
             },
             "a, a:link, a:visited": { color: "#22d3ee !important" },
           },
         });
-        // themeRef, not a fresh localStorage read (design §4): the lazy
-        // `useState` initializer already read it once, synchronously, before
-        // first paint — re-reading here would risk racing a `setTheme` call
-        // that landed between mount and this async init() resuming.
+        // Font-family is intentionally NOT part of these rule objects: it's
+        // applied separately below via `applyFont`, as a `themes.font()`
+        // override gated on the current theme (see the doc on
+        // `ReaderController.setFont`) — that's the only way to keep
+        // `default` genuinely un-injected while still letting the font cycle
+        // independently of the theme cycle.
+        //
+        // themeRef/fontRef, not a fresh localStorage read (design §4): the
+        // lazy `useState` initializers already read them once,
+        // synchronously, before first paint — re-reading here would risk
+        // racing a `setTheme`/`setFont` call that landed between mount and
+        // this async init() resuming.
         rendition.themes.select(themeRef.current);
+        applyFont(themeRef.current, fontRef.current);
         callbacksRef.current.onThemeChange?.(themeRef.current);
-
-        if (import.meta.env.DEV) {
-          // Dev-only font comparison (plan T1, design §8): Literata is not a
-          // system face anywhere, so its candidate needs a self-hosted
-          // @font-face — injected into every loaded section's <head>,
-          // independent of which theme/font is currently active, same
-          // per-content-load mechanism as the dblclick hook below. Deleted in
-          // T4 unless Literata wins the on-device comparison.
-          rendition.hooks.content.register((contents: Contents) => {
-            const style = contents.document.createElement("style");
-            style.textContent = `
-              @font-face {
-                font-family: "Literata";
-                src: url("/fonts/literata-regular.woff2") format("woff2");
-                font-weight: 400;
-                font-style: normal;
-                font-display: swap;
-              }
-            `;
-            contents.document.head.appendChild(style);
-          });
-
-          // On-screen tap control lives in the JSX below (§ return); it
-          // calls through this ref since it's outside the effect closure.
-          // `themes.font()` is a real epub.js primitive (themes.js:254-256,
-          // `override("font-family", f, true)`) — it layers on top of
-          // whichever theme is currently selected, so Daniel can try a
-          // candidate against book-default/light/dark without the two levers
-          // interfering (design §8).
-          devCycleFontRef.current = (index) => {
-            if (!rendition) return;
-            const candidate = DEV_FONT_STACKS[index];
-            if (!candidate) return;
-            rendition.themes.font(candidate.stack);
-            redisplayCurrentPosition();
-          };
-        }
+        callbacksRef.current.onFontChange?.(fontRef.current);
 
         rendition.on("relocated", (location: { start: { cfi: string } }) => {
           try {
@@ -855,6 +907,10 @@ export function EpubReader({
           setTheme: (name) => {
             if (!rendition) return;
             rendition.themes.select(name);
+            // Re-apply (or clear) the standing font override for the NEW
+            // theme — a font choice made under `light` must not silently
+            // persist once the user cycles to `default` (see `applyFont`).
+            applyFont(name, fontRef.current);
             setThemeState(name);
             try {
               localStorage.setItem(themeKey(), name);
@@ -862,6 +918,23 @@ export function EpubReader({
               /* storage full/blocked — preference just won't persist */
             }
             callbacksRef.current.onThemeChange?.(name);
+            redisplayCurrentPosition();
+          },
+          setFont: (name) => {
+            if (!rendition) return;
+            // Gated the same way as the theme-change path above: under
+            // `default` this clears the override rather than injecting the
+            // new font, so book-default stays honest even while the
+            // preference itself is recorded for when the user next picks
+            // `light`/`dark`.
+            applyFont(themeRef.current, name);
+            setFontState(name);
+            try {
+              localStorage.setItem(fontKey(), name);
+            } catch {
+              /* storage full/blocked — preference just won't persist */
+            }
+            callbacksRef.current.onFontChange?.(name);
             redisplayCurrentPosition();
           },
         });
@@ -921,7 +994,6 @@ export function EpubReader({
       resizeObserver?.disconnect();
       callbacksRef.current.onController(null);
       callbacksRef.current.onSearchState(EMPTY_SEARCH);
-      devCycleFontRef.current = null;
       try {
         book?.destroy();
       } catch {
@@ -945,27 +1017,6 @@ export function EpubReader({
         }`}
         data-testid="epub-reader"
       />
-      {import.meta.env.DEV && (
-        // Temporary dev-only font comparison control (plan T1, design §8):
-        // on-screen tap, not a query param — Daniel's iPad has no keyboard
-        // and no console, and a query param would reload the page and lose
-        // the exact spot being compared. Cycles the four candidate stacks
-        // independently of the theme lever; reuses the same post-change
-        // redisplay so page position survives. Delete in T4 (design §10
-        // task 3).
-        <button
-          type="button"
-          onClick={() => {
-            const next = (devFontIndex + 1) % DEV_FONT_STACKS.length;
-            devCycleFontRef.current?.(next);
-            setDevFontIndex(next);
-          }}
-          className="absolute bottom-4 right-4 z-50 rounded bg-slate-900/85 px-3 py-2 text-xs text-cyan-300 shadow-lg"
-          data-testid="dev-font-cycle"
-        >
-          Font: {DEV_FONT_STACKS[devFontIndex]?.label}
-        </button>
-      )}
     </div>
   );
 }
