@@ -92,21 +92,10 @@ a seek re-syncs playback, follow stays engaged. Do not change it.
 - [ ] acceptance: Daniel taps a word on the iPad and the audio seeks there;
       desktop dblclick still works unchanged; `bun run ci`
 
-## T4 — collapse or keep, after Daniel lives with it [tier: low]
+## T4 — DROPPED (Daniel, 2026-08-19)
 
-REVISED: the dev overlay and the Literata asset come out in T2, so T4 is only
-the optional collapse. After a few days of real reading Daniel either (a) names
-a clear winner — the cycle collapses to that one face hardcoded in the
-`light`/`dark` rules and the toolbar font control goes away — or (b) keeps the
-three-way cycle as a shipped feature. Either way: harvest anything durable from
-the design into `EpubReader.tsx` comments, then delete the design per the
-workflow's Design closing convention.
+The font cycle ships as a permanent feature. No collapse-to-one-face task:
+Daniel may keep the three-way cycle indefinitely, and if he ever does want it
+reduced that's a new backlog item, not scheduled work here.
 
-T4 is NOT blocking. T1+T2 are a complete, shippable state on their own.
-
-- [ ] Daniel reads with it for a few days and decides: collapse or keep
-- [ ] implement whichever
-- [ ] acceptance: `bun run ci`
-
-Sequencing: T1 (done) -> T2 -> T3. T4 last and non-blocking, gated on Daniel
-living with the font cycle. T3 is independent of the theming work throughout.
+Sequencing: T1 (done) -> T2 (done) -> T3. Nothing follows T3.
