@@ -117,8 +117,12 @@ export function ReaderToolbar({
           <option value="" disabled>
             Chapters…
           </option>
-          {toc.map((item) => (
-            <option key={item.href} value={item.href}>
+          {/* Keyed by index, not href: a TOC can legitimately point several
+              entries at the same file (chapters split inside one XHTML doc),
+              which made React warn about duplicate keys. The value stays the
+              href — that's what `goTo` needs. */}
+          {toc.map((item, index) => (
+            <option key={`${index}-${item.href}`} value={item.href}>
               {item.label}
             </option>
           ))}
