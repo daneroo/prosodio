@@ -340,6 +340,19 @@ export function EpubReader({
   onFontChange,
 }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // TEMPORARY diagnostic (plan T3, remove once the iPad gesture is
+  // confirmed working): direct-DOM log of raw touch events reaching the
+  // content document, bypassing React state so it can't be lost to a stale
+  // HMR closure. DEV-gated; visible on-device without Safari remote
+  // debugging (which needs a USB/trust setup the iPad may not have).
+  const touchDebugRef = useRef<HTMLPreElement>(null);
+  const logTouchDebug = (line: string) => {
+    if (!import.meta.env.DEV) return;
+    const el = touchDebugRef.current;
+    if (!el) return;
+    const stamp = new Date().toISOString().slice(11, 23);
+    el.textContent = `${stamp} ${line}\n${el.textContent}`.slice(0, 4000);
+  };
   const callbacksRef = useRef({
     onController,
     onToc,
@@ -697,11 +710,21 @@ export function EpubReader({
             point: { node: Node; offset: number } | null,
           ) => {
             const activateWord = callbacksRef.current.onWordActivate;
-            if (!activateWord || !book || !point) return;
+            if (!activateWord || !book || !point) {
+              logTouchDebug(
+                `activatePoint bailed: activateWord=${!!activateWord} book=${!!book} point=${!!point}`,
+              );
+              return;
+            }
             // spineItems (below), not book.spine.get: its type honestly
             // reflects that an out-of-range sectionIndex has no entry.
             const section = spineItems(book)[contents.sectionIndex];
-            if (!section) return;
+            if (!section) {
+              logTouchDebug(
+                "activatePoint bailed: no section for sectionIndex",
+              );
+              return;
+            }
             // CFI bridge (see WordActivatePoint): the rendered view is an
             // about:srcdoc iframe, ALWAYS HTML-parsed — even a .xhtml
             // section gets the HTML parser's whitespace handling (e.g. the
@@ -741,6 +764,9 @@ export function EpubReader({
               // Fallback on any bridge failure: deliver the RENDERED-doc
               // point — downstream fails node-not-located and the route's
               // notice still gives feedback (no silent dead clicks).
+              logTouchDebug(
+                `activateWord() called, bridged=${!!bridged}, sectionHref=${section.href}`,
+              );
               activateWord({
                 sectionHref: section.href,
                 node: bridged?.node ?? point.node,
@@ -797,33 +823,49 @@ export function EpubReader({
               event.touches.length === 1 && touch
                 ? { x: touch.clientX, y: touch.clientY }
                 : null;
+            logTouchDebug(
+              `touchstart n=${event.touches.length} ${touchStart ? `(${Math.round(touchStart.x)},${Math.round(touchStart.y)})` : "ignored"}`,
+            );
           };
           const handleTouchEnd = (event: TouchEvent) => {
             const start = touchStart;
             touchStart = null;
             const end = event.changedTouches.item(0);
             if (event.changedTouches.length !== 1 || !end) {
+              logTouchDebug(
+                `touchend REJECTED changedTouches.length=${event.changedTouches.length}`,
+              );
               lastTap = null;
               return;
             }
             // A tap that MOVED is a swipe/page-turn or a scroll (epub.js
             // paginated flow uses swipes), never a word activation — reset
             // rather than let it count as either tap of a double-tap.
-            if (
-              !start ||
-              tapDistance(start.x, start.y, end.clientX, end.clientY) >
-                TAP_MOVE_PX
-            ) {
+            const moved = start
+              ? tapDistance(start.x, start.y, end.clientX, end.clientY)
+              : null;
+            if (!start || (moved !== null && moved > TAP_MOVE_PX)) {
+              logTouchDebug(
+                `touchend REJECTED moved=${moved === null ? "no-start" : moved.toFixed(1)}px (limit ${TAP_MOVE_PX})`,
+              );
               lastTap = null;
               return;
             }
             const now = Date.now();
             const prev = lastTap;
+            const gapMs = prev ? now - prev.time : null;
+            const gapPx = prev
+              ? tapDistance(prev.x, prev.y, end.clientX, end.clientY)
+              : null;
             const isDoubleTap =
               prev !== null &&
-              now - prev.time <= DOUBLE_TAP_MS &&
-              tapDistance(prev.x, prev.y, end.clientX, end.clientY) <=
-                TAP_MOVE_PX;
+              gapMs !== null &&
+              gapMs <= DOUBLE_TAP_MS &&
+              gapPx !== null &&
+              gapPx <= TAP_MOVE_PX;
+            logTouchDebug(
+              `touchend (${Math.round(end.clientX)},${Math.round(end.clientY)}) moved=${moved?.toFixed(1)}px prevTap=${prev ? `${gapMs}ms/${gapPx?.toFixed(1)}px` : "none"} -> ${isDoubleTap ? "DOUBLE-TAP FIRING" : "single, armed"}`,
+            );
             if (isDoubleTap) {
               lastTap = null;
               // preventDefault on the second tap's touchend is the primary
@@ -831,9 +873,17 @@ export function EpubReader({
               // on any element the `touch-action` rule above didn't reach.
               event.preventDefault();
               armDblClickSuppression();
-              activatePoint(
-                resolveDblClickPoint(contents.window, end.clientX, end.clientY),
+              const point = resolveDblClickPoint(
+                contents.window,
+                end.clientX,
+                end.clientY,
               );
+              logTouchDebug(
+                point
+                  ? `resolved point ok, offset=${point.offset}`
+                  : "resolveDblClickPoint returned null — nothing to activate",
+              );
+              activatePoint(point);
             } else {
               lastTap = { time: now, x: end.clientX, y: end.clientY };
             }
@@ -1194,6 +1244,18 @@ export function EpubReader({
         }`}
         data-testid="epub-reader"
       />
+      {/* TEMPORARY diagnostic (plan T3, see touchDebugRef/logTouchDebug
+          above): on-device visibility into raw touch events reaching the
+          content document, since the iPad can't easily get Safari remote
+          debugging. Remove once the double-tap gesture is confirmed working
+          on-device. */}
+      {import.meta.env.DEV && (
+        <pre
+          ref={touchDebugRef}
+          data-testid="touch-debug"
+          className="pointer-events-none absolute bottom-0 left-0 z-50 max-h-40 w-full overflow-hidden whitespace-pre-wrap bg-black/80 p-1 text-[9px] leading-tight text-lime-300"
+        />
+      )}
     </div>
   );
 }
