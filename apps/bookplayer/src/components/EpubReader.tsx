@@ -10,7 +10,7 @@
  * - on resize, the active search target is re-displayed so a reflow cannot
  *   lose the match (the desktop-to-mobile bug from visual review)
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   checkSectionParity,
@@ -24,12 +24,26 @@ import type {
 } from "@prosodio/align/browser";
 import type { Book, Contents, NavItem, Rendition } from "epubjs";
 
+import { neutralizeScripts } from "#/lib/epub-sanitize";
 import { createLatestWins } from "#/lib/latest-wins";
 
 export interface TocItem {
   label: string;
   href: string;
 }
+
+/** Three-state reading surface (plan T1, design §6 decision 1): `default` is
+ * the book's own CSS with nothing injected; `light`/`dark` layer proven
+ * colors + the reading font as `!important` overrides. Not per-book — a
+ * reader preference, not a book property (design §6 decision 3). */
+export type ThemeName = "default" | "light" | "dark";
+
+/** The three reading faces Daniel is living with for a few days (plan T2,
+ * design §6 decision 2 REVISED): no clear winner on-device, so all three
+ * system faces ship as a real toolbar preference instead of collapsing to
+ * one. Literata dropped — the only non-system face, not worth the woff2 +
+ * reflow gap for the candidate he rated lowest. */
+export type FontName = "iowan" | "charter" | "georgia";
 
 export interface SearchResult {
   cfi: string;
@@ -95,6 +109,36 @@ export interface ReaderController {
    * not a failure.
    */
   locate: (locator: EpubTokenLocate) => Promise<LocateResult>;
+  /**
+   * Switch the reading theme (design §6 decision 5). Does all four things
+   * atomically so they can never drift apart: selects the epub.js theme
+   * (`themes.select`), repaints the wrapper `<div>` (React state — the
+   * wrapper's background is app-side and outside anything `rendition.themes`
+   * can reach, design §4), persists the choice globally, and reports it via
+   * `onThemeChange`. Redisplays the current position through the existing
+   * `displayScheduler` afterward (design §6 decision 6) so a font/color swap
+   * can't leave stale pagination or lose the reading position.
+   */
+  setTheme: (name: ThemeName) => void;
+  /**
+   * Switch the reading font (plan T2, mirrors `setTheme` exactly): updates
+   * React state, persists globally, reports via `onFontChange`, and
+   * redisplays the current position — same four-things-atomically shape as
+   * `setTheme`, same reasoning (design §6 decision 6).
+   *
+   * The one place this differs from `setTheme`: whether the change is
+   * actually INJECTED depends on the current theme. `themes.font()` is
+   * `themes.override("font-family", ..., true)` under the hood
+   * (themes.js:254-256) — override state is global and independent of
+   * `themes.select`, re-applied to every future content load by its own
+   * content hook regardless of which theme is selected. Left unguarded, a
+   * font choice made once would leak into `default` forever, breaking the
+   * "book default is genuinely unstyled" guarantee (design §3, §6 decision
+   * 1). So the font is only ever handed to `themes.font()` while `light`/
+   * `dark` is selected; under `default` the standing override is actively
+   * cleared instead. See `applyFont` below.
+   */
+  setFont: (name: FontName) => void;
 }
 
 export const EMPTY_SEARCH: SearchState = {
@@ -131,18 +175,40 @@ interface EpubReaderProps {
    * clicked word's DOM point. Optional — omit to disable the listener
    * entirely (e.g. when the book has no alignment to map against). */
   onWordActivate?: (point: WordActivatePoint) => void;
+  /** Fired once on init (with the localStorage-derived initial theme) and
+   * again on every `ReaderController.setTheme` call — mirrors how `onToc`
+   * reports state the toolbar needs to render (design §6 decision 5).
+   * Optional: T1 wires the model, T2 wires the toolbar control that consumes
+   * this. */
+  onThemeChange?: (name: ThemeName) => void;
+  /** Same shape as `onThemeChange`, for the font preference (plan T2): fired
+   * once on init and again on every `ReaderController.setFont` call. */
+  onFontChange?: (name: FontName) => void;
 }
 
 /**
- * Resolve the DOM point a dblclick landed on, inside one section's content
- * window (plan S4): dblclick natively selects the clicked word, so prefer
- * the selection's start point; fall back to `caretRangeFromPoint` for
- * browsers/cases where the selection didn't land on a text node (e.g. the
- * click missed text). Null means there's nothing resolvable to report.
+ * Resolve the DOM point a dblclick (or double-tap, plan T3) landed on,
+ * inside one section's content window (plan S4): dblclick natively selects
+ * the clicked word, so prefer the selection's start point; fall back to
+ * `caretRangeFromPoint` for browsers/cases where the selection didn't land
+ * on a text node (e.g. the click missed text, or the caller is the touch
+ * path below, which never produces a selection at all). Null means there's
+ * nothing resolvable to report.
+ *
+ * Takes raw coordinates rather than a `MouseEvent` (plan T3) specifically so
+ * the touch path can feed tap coordinates through this SAME machinery
+ * instead of growing parallel coordinate-resolution logic — `dblclick` and
+ * double-tap both bottom out here.
+ *
+ * `caretRangeFromPoint` only (no `caretPositionFromPoint` companion): that
+ * matches what this function already did for the desktop `dblclick` path
+ * pre-T3 (Safari/Chrome only, no Firefox fallback) — T3 doesn't widen that
+ * gap, it just gives touch the same coverage desktop already had.
  */
 function resolveDblClickPoint(
   win: Window,
-  event: MouseEvent,
+  clientX: number,
+  clientY: number,
 ): { node: Node; offset: number } | null {
   const selection = win.getSelection();
   if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
@@ -153,7 +219,7 @@ function resolveDblClickPoint(
   }
   const doc = win.document;
   if (typeof doc.caretRangeFromPoint === "function") {
-    const range = doc.caretRangeFromPoint(event.clientX, event.clientY);
+    const range = doc.caretRangeFromPoint(clientX, clientY);
     if (
       range &&
       range.startContainer.nodeType === range.startContainer.TEXT_NODE
@@ -164,11 +230,104 @@ function resolveDblClickPoint(
   return null;
 }
 
+// Double-tap thresholds (plan T3): a second `touchend` within this window
+// and this close to the first counts as a double-tap. 350ms sits between
+// the ~300ms legacy tap-delay browsers used to use to disambiguate
+// double-tap-to-zoom (so genuine double-taps aren't missed) and long enough
+// to be a deliberate gesture, not two touches during a drag. 30px tolerates
+// a finger not landing on the exact same pixel twice, while still failing a
+// swipe/page-turn (epub.js paginated flow) or scroll, which move far more.
+const DOUBLE_TAP_MS = 350;
+const TAP_MOVE_PX = 30;
+
+function tapDistance(ax: number, ay: number, bx: number, by: number): number {
+  return Math.hypot(ax - bx, ay - by);
+}
+
 const MAX_RESULTS = 100;
 
 function cfiKey(bookId: string): string {
   return `bookplayer:${bookId}:cfi`;
 }
+
+// Global, not per-book (design §6 decision 3): a reading-face/theme
+// preference is a property of the reader, not the book — unlike CFI
+// position, which is inherently book-scoped.
+function themeKey(): string {
+  return "bookplayer:reader-theme";
+}
+
+export const THEME_NAMES: ReadonlyArray<ThemeName> = [
+  "default",
+  "light",
+  "dark",
+];
+
+/** Synchronous localStorage read for the `useState` lazy initializer (design
+ * §4): must run before first paint so a dark preference never flashes white.
+ * Any unrecognized/missing value falls back to "default" (today's book-CSS
+ * baseline minus the old forced slate/cyan, see design §3). */
+function readStoredTheme(): ThemeName {
+  try {
+    const stored = localStorage.getItem(themeKey());
+    if (stored && (THEME_NAMES as ReadonlyArray<string>).includes(stored)) {
+      return stored as ThemeName;
+    }
+  } catch {
+    /* storage blocked — fall through to the default */
+  }
+  return "default";
+}
+
+// Global, not per-book (same reasoning as themeKey above): a reading-face
+// preference is a property of the reader, not the book.
+function fontKey(): string {
+  return "bookplayer:reader-font";
+}
+
+export const FONT_NAMES: ReadonlyArray<FontName> = [
+  "iowan",
+  "charter",
+  "georgia",
+];
+
+/** Synchronous localStorage read for the font `useState` lazy initializer,
+ * same shape as `readStoredTheme` — no first-paint flash concern here (a
+ * font only affects iframe content, design §6 decision 3), read lazily
+ * anyway for symmetry with the theme preference. */
+function readStoredFont(): FontName {
+  try {
+    const stored = localStorage.getItem(fontKey());
+    if (stored && (FONT_NAMES as ReadonlyArray<string>).includes(stored)) {
+      return stored as FontName;
+    }
+  } catch {
+    /* storage blocked — fall through to the default */
+  }
+  return "iowan";
+}
+
+// Shipping cycle (plan T2, design §6 decision 2 REVISED): three system
+// faces, Iowan -> Charter -> Georgia. Iowan is Daniel's stated preference
+// (from Apple Books) and a genuine system face on both his reading devices
+// (macOS + iOS); Charter and Georgia are also bundled on those platforms —
+// no webfont, no font-load reflow gap (design §2, §7) for any of the three.
+// Literata dropped: the only non-system face, so keeping it in the cycle
+// would mean shipping a woff2 + OFL attribution and carrying the reflow gap,
+// for the candidate Daniel rated lowest ("a bit too spread out").
+const FONT_STACKS: Record<FontName, string> = {
+  iowan: '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
+  charter: 'Charter, "Bitstream Charter", "Sitka Text", Cambria, serif',
+  georgia: 'Georgia, "Nimbus Roman No9 L", serif',
+};
+
+// Toolbar display label per face (plan T2): the user is on an iPad with no
+// tooltip, so the toolbar button must show the current pick as visible text.
+export const FONT_LABELS: Record<FontName, string> = {
+  iowan: "Iowan",
+  charter: "Charter",
+  georgia: "Georgia",
+};
 
 export function EpubReader({
   bookId,
@@ -178,6 +337,8 @@ export function EpubReader({
   onSearchState,
   onError,
   onWordActivate,
+  onThemeChange,
+  onFontChange,
 }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({
@@ -186,6 +347,8 @@ export function EpubReader({
     onSearchState,
     onError,
     onWordActivate,
+    onThemeChange,
+    onFontChange,
   });
   callbacksRef.current = {
     onController,
@@ -193,9 +356,28 @@ export function EpubReader({
     onSearchState,
     onError,
     onWordActivate,
+    onThemeChange,
+    onFontChange,
   };
   const bookIdRef = useRef(bookId);
   bookIdRef.current = bookId;
+
+  // Lazy initializer (design §4): runs synchronously on first render, before
+  // anything paints, so the wrapper `<div>`'s className below is already
+  // correct on the very first frame — a dark preference never flashes white.
+  // `themeRef` hands this same value into the imperative init() effect
+  // (mirrors `bookIdRef` above) so the effect doesn't re-read localStorage.
+  const [theme, setThemeState] = useState<ThemeName>(() => readStoredTheme());
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+
+  // Lazy initializer, same shape as theme's (no first-paint flash concern
+  // for a font — it only reaches iframe content, design §6 decision 3).
+  // `fontRef` lets `setTheme` read the current font choice when it decides
+  // whether to (re)inject or clear the override (see `applyFont`).
+  const [font, setFontState] = useState<FontName>(() => readStoredFont());
+  const fontRef = useRef(font);
+  fontRef.current = font;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -223,12 +405,12 @@ export function EpubReader({
     // document itself: computed once per href, evicted together with its
     // sectionCache entry so a re-loaded section always gets a fresh check.
     const parityCache = new Map<string, SectionParityResult>();
-    // dblclick listeners are per-content-document (plan S4): registered via
-    // rendition.hooks.content on every section load, torn down via
-    // rendition.hooks.unloaded on that same view's removal, keyed by
-    // document so a section can be loaded/unloaded/reloaded repeatedly
-    // without leaking listeners.
-    const dblClickCleanup = new Map<Document, () => void>();
+    // Word-activate listeners (dblclick + touch double-tap, plan S4/T3) are
+    // per-content-document: registered via rendition.hooks.content on every
+    // section load, torn down via rendition.hooks.unloaded on that same
+    // view's removal, keyed by document so a section can be
+    // loaded/unloaded/reloaded repeatedly without leaking listeners.
+    const wordActivateCleanup = new Map<Document, () => void>();
     // All follow/locate-driven displays go through ONE latest-wins scheduler:
     // overlapping rendition.display() calls wedge epub.js's internal queue
     // (observed: locate promises that never settle while follow fires 2-3
@@ -239,6 +421,50 @@ export function EpubReader({
     const displayScheduler = createLatestWins<string>((cfi) =>
       rendition ? rendition.display(cfi) : Promise.resolve(),
     );
+    // Shared by theme switches and the dev-only font cycle (design §6
+    // decision 6): `themes.select`/`themes.font` inject CSS into already-
+    // rendered content but never repaginate — a theme/font change alone can
+    // clip text or (for a webfont) never even notice the swap, since epub.js's
+    // font-load-listener repagination hook is commented out upstream (design
+    // §2). Redisplaying the current position through the existing
+    // latest-wins scheduler fixes both, and keeps the reading position (no
+    // scroll-to-top surprise) — same mechanism already used to re-show
+    // `resumeTarget.cfi` after a container resize, below.
+    const redisplayCurrentPosition = () => {
+      if (!rendition) return;
+      try {
+        const location = rendition.currentLocation() as unknown as
+          { start?: { cfi?: string } } | undefined;
+        const cfi = location?.start?.cfi;
+        if (!cfi) return;
+        void displayScheduler(cfi).catch(() => {
+          /* display is best-effort here; the theme/font change already applied */
+        });
+      } catch {
+        /* currentLocation can throw early in the lifecycle; nothing to redisplay */
+      }
+    };
+    // Keeps book-default honest (plan T2, `ReaderController.setFont` doc
+    // above): `themes.font()` is `themes.override("font-family", ..., true)`
+    // — override state is global, independent of `themes.select`, and
+    // re-applied to every future content load regardless of which theme is
+    // current (themes.js:22,145-150,232-240). So the font is only ever
+    // handed to `themes.font()` while `light`/`dark` is selected; switching
+    // TO `default` actively clears the standing override instead of leaving
+    // it to leak through. `removeOverride` exists at runtime (themes.js:218)
+    // but isn't in epubjs's .d.ts, hence the cast.
+    const applyFont = (themeName: ThemeName, fontName: FontName) => {
+      if (!rendition) return;
+      if (themeName === "default") {
+        (
+          rendition.themes as unknown as {
+            removeOverride: (name: string) => void;
+          }
+        ).removeOverride("font-family");
+      } else {
+        rendition.themes.font(FONT_STACKS[fontName]);
+      }
+    };
     const cacheSection = (href: string, document: Document) => {
       sectionCache.delete(href);
       sectionCache.set(href, document);
@@ -366,13 +592,104 @@ export function EpubReader({
           height: "100%",
           flow: "paginated",
           spread: "auto",
+          // Required for ANY event listener on the content document to fire
+          // in Safari/iPadOS — WebKit bug 218086: events in a same-origin
+          // sandboxed iframe are blocked from parent-bound listeners unless
+          // `allow-scripts` is present. epub.js sets
+          // sandbox="allow-same-origin" and adds allow-scripts only for this
+          // flag (iframe.js:93-97), so without it not just OUR dblclick/touch
+          // handlers are dead on iPad but epub.js's own event forwarding too
+          // (contents.js:895 binds identically). Observed on Daniel's iPad:
+          // zero content-document events of any kind, while the host document
+          // saw everything.
+          //
+          // The sandbox bit is all-or-nothing — WebKit gates our listeners
+          // and the BOOK's own scripts behind the same flag, so this alone
+          // would reverse the standing "keep EPUB script execution
+          // sandboxed" decision (bookplayer-ebook-renderer ticket).
+          //
+          // DECISION (Daniel, 2026-08-19): that reversal is permitted ONLY
+          // to make events work, never to let book scripts run. Since the
+          // flag can't express that, the serialize hook below enforces it
+          // instead — every EPUB script is neutralized before the content
+          // ever reaches the iframe, so allow-scripts buys event delivery
+          // and nothing else.
+          allowScriptedContent: true,
         });
 
-        // High-contrast reading surface on the dark shell.
-        rendition.themes.default({
-          body: { color: "#1e293b !important" },
-          "a, a:link, a:visited": { color: "#0e7490 !important" },
+        // Enforces the decision above, at the one point that runs BEFORE the
+        // content becomes the iframe's srcdoc (section.js:109 triggers this
+        // on the serialized string; book.js:686 uses the same hook for URL
+        // substitution). Rules and reasoning live with the transform, which
+        // is unit-tested — see lib/epub-sanitize.ts.
+        book.spine.hooks.serialize.register(
+          (output: string, section: { output?: string }) => {
+            section.output = neutralizeScripts(output);
+          },
+        );
+
+        // Three-state theme model (plan T1, design §6 decision 1): `default`
+        // has NO rules — book CSS fully governs, replacing the old always-on
+        // forced slate/cyan. `light` is that old forced palette (proven
+        // legible), `dark` is a new inverted palette matching the app
+        // chrome's own bg-slate-900 (design §7). `register`, not `override`,
+        // so `default` genuinely injects zero CSS. `select` (below) swaps
+        // between them; only `select` changes what's on the page, so book
+        // default stays byte-for-byte the book's own stylesheet.
+        // Selectors are CLASS-SCOPED (`body.light`, `body.dark`), and that is
+        // load-bearing, not cosmetic. epub.js `themes.select()` only ADDS the
+        // new theme's rules — `add()` writes into a per-key <style> node
+        // (`contents._getStylesheetNode`) that is never removed, so the
+        // previous theme's CSS stays in the document forever. With unscoped
+        // `body {}` selectors, dark's `background` survived a switch to light
+        // (which sets no background) and to default (which sets nothing at
+        // all), so the page stayed dark until a fresh section load happened to
+        // inject only the current theme. What makes switching work is the
+        // class `select()` toggles on body (`removeClass(prev)`/
+        // `addClass(name)`) — scoping to it renders the stale stylesheets
+        // inert. `default` keeps zero rules and gets no class, so book default
+        // stays genuinely un-injected.
+        //
+        // `light` therefore states its background explicitly rather than
+        // relying on the book's own: it must be able to win against whatever
+        // the book sets, exactly as `dark` does.
+        rendition.themes.register({
+          default: {},
+          light: {
+            "body.light": {
+              background: "#ffffff !important",
+              color: "#1e293b !important",
+            },
+            "body.light a, body.light a:link, body.light a:visited": {
+              color: "#0e7490 !important",
+            },
+          },
+          dark: {
+            "body.dark": {
+              background: "#0f172a !important",
+              color: "#e2e8f0 !important",
+            },
+            "body.dark a, body.dark a:link, body.dark a:visited": {
+              color: "#22d3ee !important",
+            },
+          },
         });
+        // Font-family is intentionally NOT part of these rule objects: it's
+        // applied separately below via `applyFont`, as a `themes.font()`
+        // override gated on the current theme (see the doc on
+        // `ReaderController.setFont`) — that's the only way to keep
+        // `default` genuinely un-injected while still letting the font cycle
+        // independently of the theme cycle.
+        //
+        // themeRef/fontRef, not a fresh localStorage read (design §4): the
+        // lazy `useState` initializers already read them once,
+        // synchronously, before first paint — re-reading here would risk
+        // racing a `setTheme`/`setFont` call that landed between mount and
+        // this async init() resuming.
+        rendition.themes.select(themeRef.current);
+        applyFont(themeRef.current, fontRef.current);
+        callbacksRef.current.onThemeChange?.(themeRef.current);
+        callbacksRef.current.onFontChange?.(fontRef.current);
 
         rendition.on("relocated", (location: { start: { cfi: string } }) => {
           try {
@@ -382,22 +699,48 @@ export function EpubReader({
           }
         });
 
-        // Reverse-sync gesture (plan S4): dblclick natively selects the
-        // clicked word in the iframe content document. `hooks.content` fires
-        // once per section content load with the Contents instance for that
-        // section; `hooks.unloaded` fires once per view removal — used here
-        // only to remove the listener this content hook added, keyed by
-        // document so repeated load/unload of the same section never leaks.
+        // Reverse-sync gesture (plan S4, touch added T3): dblclick natively
+        // selects the clicked word in the iframe content document; touch has
+        // no `dblclick` at all (CONFIRMED dead on iPad, Daniel 2026-08-18 —
+        // double-tap did nothing), so a same-shape double-tap detector runs
+        // alongside it below. `hooks.content` fires once per section content
+        // load with the Contents instance for that section; `hooks.unloaded`
+        // fires once per view removal — used here only to remove the
+        // listeners this content hook added, keyed by document so repeated
+        // load/unload of the same section never leaks.
         rendition.hooks.content.register((contents: Contents) => {
-          const handleDblClick = (event: MouseEvent) => {
+          // Hazard 2 (plan T3): Safari's double-tap-to-zoom competes for
+          // this exact gesture. `touch-action: manipulation` on the content
+          // document's root disables JUST the double-tap-to-zoom heuristic
+          // (pan and pinch-zoom stay live) — the standard fix, and simpler/
+          // more reliable than viewport-meta tricks (`user-scalable=no` is
+          // widely ignored by modern Safari for accessibility). Applied
+          // unconditionally, not gated by theme: it's a gesture fix, not a
+          // reading-surface preference. Residual risk: touch-action doesn't
+          // inherit through a descendant that sets its OWN more permissive
+          // value, so if a book's CSS explicitly overrides touch-action on
+          // some element, double-tap-zoom could still fire there — the
+          // `preventDefault` on the detected second tap below is the
+          // belt-and-suspenders backstop for that case.
+          contents.document.documentElement.style.touchAction = "manipulation";
+          contents.document.body.style.touchAction = "manipulation";
+
+          // Shared by both gesture paths: resolve a DOM point (already
+          // computed by either resolveDblClickPoint call site below) to a
+          // WordActivatePoint via the CFI bridge and report it.
+          const activatePoint = (
+            point: { node: Node; offset: number } | null,
+          ) => {
             const activateWord = callbacksRef.current.onWordActivate;
-            if (!activateWord || !book) return;
-            const point = resolveDblClickPoint(contents.window, event);
-            if (!point) return;
+            if (!activateWord || !book || !point) {
+              return;
+            }
             // spineItems (below), not book.spine.get: its type honestly
             // reflects that an out-of-range sectionIndex has no entry.
             const section = spineItems(book)[contents.sectionIndex];
-            if (!section) return;
+            if (!section) {
+              return;
+            }
             // CFI bridge (see WordActivatePoint): the rendered view is an
             // about:srcdoc iframe, ALWAYS HTML-parsed — even a .xhtml
             // section gets the HTML parser's whitespace handling (e.g. the
@@ -444,18 +787,129 @@ export function EpubReader({
               });
             })();
           };
+
+          // Hybrid-device guard: a touch-capable laptop can synthesize a
+          // `dblclick` from the same physical gesture the touch handler
+          // below already acted on. Set right before acting on a detected
+          // double-tap, cleared either by the next `dblclick` (consuming
+          // it) or by the timeout (so a stale flag can never suppress a
+          // LATER, genuine mouse dblclick).
+          let suppressNextDblClick = false;
+          let suppressTimer: ReturnType<typeof setTimeout> | null = null;
+          const armDblClickSuppression = () => {
+            suppressNextDblClick = true;
+            if (suppressTimer) clearTimeout(suppressTimer);
+            suppressTimer = setTimeout(() => {
+              suppressNextDblClick = false;
+            }, 500);
+          };
+
+          const handleDblClick = (event: MouseEvent) => {
+            if (suppressNextDblClick) {
+              suppressNextDblClick = false;
+              if (suppressTimer) clearTimeout(suppressTimer);
+              return;
+            }
+            activatePoint(
+              resolveDblClickPoint(
+                contents.window,
+                event.clientX,
+                event.clientY,
+              ),
+            );
+          };
           contents.document.addEventListener("dblclick", handleDblClick);
-          dblClickCleanup.set(contents.document, () => {
+
+          // Touch double-tap (plan T3): touch delivers no `dblclick`, so
+          // detect the gesture by hand from raw touch events and feed the
+          // resolved tap point through the SAME `resolveDblClickPoint` ->
+          // `activatePoint` path `dblclick` uses above — no parallel
+          // coordinate-resolution or CFI-bridging logic.
+          let touchStart: { x: number; y: number } | null = null;
+          let lastTap: { time: number; x: number; y: number } | null = null;
+          const handleTouchStart = (event: TouchEvent) => {
+            // Only a single, stationary touch counts toward a tap — a
+            // second simultaneous touch is a pinch, not part of a double-
+            // tap sequence.
+            const touch = event.touches.item(0);
+            touchStart =
+              event.touches.length === 1 && touch
+                ? { x: touch.clientX, y: touch.clientY }
+                : null;
+          };
+          const handleTouchEnd = (event: TouchEvent) => {
+            const start = touchStart;
+            touchStart = null;
+            const end = event.changedTouches.item(0);
+            if (event.changedTouches.length !== 1 || !end) {
+              lastTap = null;
+              return;
+            }
+            // A tap that MOVED is a swipe/page-turn or a scroll (epub.js
+            // paginated flow uses swipes), never a word activation — reset
+            // rather than let it count as either tap of a double-tap.
+            const moved = start
+              ? tapDistance(start.x, start.y, end.clientX, end.clientY)
+              : null;
+            if (!start || (moved !== null && moved > TAP_MOVE_PX)) {
+              lastTap = null;
+              return;
+            }
+            const now = Date.now();
+            const prev = lastTap;
+            const gapMs = prev ? now - prev.time : null;
+            const gapPx = prev
+              ? tapDistance(prev.x, prev.y, end.clientX, end.clientY)
+              : null;
+            const isDoubleTap =
+              prev !== null &&
+              gapMs !== null &&
+              gapMs <= DOUBLE_TAP_MS &&
+              gapPx !== null &&
+              gapPx <= TAP_MOVE_PX;
+            if (isDoubleTap) {
+              lastTap = null;
+              // preventDefault on the second tap's touchend is the primary
+              // cancel for Safari's pending double-tap-to-zoom (hazard 2)
+              // on any element the `touch-action` rule above didn't reach.
+              event.preventDefault();
+              armDblClickSuppression();
+              const point = resolveDblClickPoint(
+                contents.window,
+                end.clientX,
+                end.clientY,
+              );
+              activatePoint(point);
+            } else {
+              lastTap = { time: now, x: end.clientX, y: end.clientY };
+            }
+          };
+          // touchend must be non-passive: the double-tap branch above calls
+          // preventDefault to cancel Safari's zoom.
+          contents.document.addEventListener("touchstart", handleTouchStart, {
+            passive: true,
+          });
+          contents.document.addEventListener("touchend", handleTouchEnd, {
+            passive: false,
+          });
+
+          wordActivateCleanup.set(contents.document, () => {
             contents.document.removeEventListener("dblclick", handleDblClick);
+            contents.document.removeEventListener(
+              "touchstart",
+              handleTouchStart,
+            );
+            contents.document.removeEventListener("touchend", handleTouchEnd);
+            if (suppressTimer) clearTimeout(suppressTimer);
           });
         });
         rendition.hooks.unloaded.register((view: { contents?: Contents }) => {
           const doc = view.contents?.document;
           if (!doc) return;
-          const cleanup = dblClickCleanup.get(doc);
+          const cleanup = wordActivateCleanup.get(doc);
           if (cleanup) {
             cleanup();
-            dblClickCleanup.delete(doc);
+            wordActivateCleanup.delete(doc);
           }
         });
 
@@ -673,6 +1127,39 @@ export function EpubReader({
               activeIndex: null,
             });
           },
+          setTheme: (name) => {
+            if (!rendition) return;
+            rendition.themes.select(name);
+            // Re-apply (or clear) the standing font override for the NEW
+            // theme — a font choice made under `light` must not silently
+            // persist once the user cycles to `default` (see `applyFont`).
+            applyFont(name, fontRef.current);
+            setThemeState(name);
+            try {
+              localStorage.setItem(themeKey(), name);
+            } catch {
+              /* storage full/blocked — preference just won't persist */
+            }
+            callbacksRef.current.onThemeChange?.(name);
+            redisplayCurrentPosition();
+          },
+          setFont: (name) => {
+            if (!rendition) return;
+            // Gated the same way as the theme-change path above: under
+            // `default` this clears the override rather than injecting the
+            // new font, so book-default stays honest even while the
+            // preference itself is recorded for when the user next picks
+            // `light`/`dark`.
+            applyFont(themeRef.current, name);
+            setFontState(name);
+            try {
+              localStorage.setItem(fontKey(), name);
+            } catch {
+              /* storage full/blocked — preference just won't persist */
+            }
+            callbacksRef.current.onFontChange?.(name);
+            redisplayCurrentPosition();
+          },
         });
 
         // Initial position, NON-BLOCKING, through the same latest-wins
@@ -739,13 +1226,21 @@ export function EpubReader({
     // Lifecycle keyed to the asset identity only (experiment lesson).
   }, [epubUrl]);
 
-  // Outer clipping only — no styles on epub.js internals.
+  // Outer clipping only, plus the wrapper background (design §4): epub.js
+  // themes only reach the content iframe, never this element, so `dark`
+  // needs its own class here or a themed page would float inside a
+  // permanently white frame. `default`/`light` both keep today's `bg-white`
+  // — only `dark` needs a different wrapper color (design §6 decision 1).
   return (
-    <div
-      ref={containerRef}
-      className="h-full w-full overflow-hidden bg-white"
-      data-testid="epub-reader"
-    />
+    <div className="relative h-full w-full">
+      <div
+        ref={containerRef}
+        className={`h-full w-full overflow-hidden ${
+          theme === "dark" ? "bg-slate-900" : "bg-white"
+        }`}
+        data-testid="epub-reader"
+      />
+    </div>
   );
 }
 
