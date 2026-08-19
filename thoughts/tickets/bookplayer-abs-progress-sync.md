@@ -1,8 +1,11 @@
 # bookplayer-abs-progress-sync — audiobookshelf as a remote timeline source
 
-UNVERIFIED IDEA (Daniel, 2026-08-19). Nothing here has been checked against a
-running audiobookshelf (ABS) server or its source; every endpoint, field and
-event name is a claim to verify, not a contract.
+UNVERIFIED IDEA (Daniel, 2026-08-19). The ABS specifics below came from a
+handover that was never checked against a running audiobookshelf server or its
+source. **None of it can be considered accurate yet** — endpoints, payload
+fields, event names, tick behaviour. They are a starting point for verification
+and may simply be wrong. The IDEA is Daniel's and stands on its own; the API
+sketch does not.
 
 ## The actual idea
 
@@ -14,6 +17,12 @@ follows along with whatever is being listened to elsewhere.
 This is not bookmark sync. It is an **alternative transport**: the remote
 position replaces the local `<audio>` element as the time source. Bookplayer
 becomes a follow-along reading surface for audio it does not own.
+
+**READ-ONLY, decided (Daniel, 2026-08-19).** Bookplayer consumes ABS events and
+never writes back. No PATCH, no progress push, no session creation — ABS remains
+the sole owner of listening position. This removes conflict policy, last-writer
+races and the risk of corrupting real listening state from the design entirely;
+it is not an open question to revisit during implementation.
 
 The existing seam is `useAudioTransport` (`lib/audio-transport.ts`), which today
 wraps a hidden `<audio>` and exposes `currentTime`, `seek`, speed, play/pause.
@@ -52,10 +61,11 @@ word-level follow, a coarse "you are around here" indicator, or not viable.
   `lastUpdate`, `startedAt`, `libraryItemId`, `episodeId`.
 - **Subscribe** — Socket.io for playback/session/progress events. **Event names
   unknown**; read them off the official web client or a network inspector.
-- **Push back** — `PATCH /api/me/progress/{libraryItemId}` with `currentTime`,
-  `duration`, `progress`. Only relevant if Bookplayer ever drives position;
-  under the follow-along model it may push nothing at all.
 - **Token security** — don't ship a token in a public client bundle.
+
+The handover also described pushing progress back via
+`PATCH /api/me/progress/{libraryItemId}`. **Out of scope** — see the read-only
+decision above. Recorded only so nobody re-derives it as a missing piece.
 
 ## Also to settle
 
@@ -63,13 +73,10 @@ word-level follow, a coarse "you are around here" indicator, or not viable.
   `libraryItemId`; nothing maps them today. Relates to `book-metadata-identity`,
   which is open and already contemplates changing what a bookId IS — settle that
   before building a mapping onto a moving target.
-- **Which direction, if any, writes.** Follow-along is read-only and much
-  cheaper. Two-way sync brings a conflict policy (`lastUpdate` implies
-  last-write-wins, and a stale tick overwriting a real position loses the
-  listener's place). Price them separately.
 - **Reachability and token custody.** Whether Bookplayer's runtime can reach the
   ABS server, and whether the token is held server-side — check
-  [docs/privacy.md](../../docs/privacy.md).
+  [docs/privacy.md](../../docs/privacy.md). Read-only access narrows this: a
+  token that cannot write is a much smaller thing to hold.
 - **Alignment is still required.** This only works for books that HAVE an
   alignment artifact; without one there is no map from audio seconds to a place
   in the EPUB.

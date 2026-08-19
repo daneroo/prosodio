@@ -19,8 +19,9 @@ Scheduled items go here (leave this comment)
       `useAudioTransport` seam, not bookmark sync. Critical unknown: tick
       granularity — word-level follow needs sub-second, ABS is believed to emit
       every 10-30s, so it likely needs interpolation (and therefore playback
-      rate + play/pause in the payload). Measure that first; it decides whether
-      this is viable at all. ticket:
+      rate + play/pause in the payload). READ-ONLY by decision — never writes
+      back, ABS owns the position. Measure tick behaviour first; it decides
+      whether this is viable at all. All ABS specifics unverified. ticket:
       [bookplayer-abs-progress-sync](tickets/bookplayer-abs-progress-sync.md)
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
