@@ -367,8 +367,6 @@ export function EpubReader({
   // missing diagnostic is worse than none.
   useEffect(() => {
     logTouchDebug("touch debug ready — double-tap a word");
-    // Mount-only: this is a liveness banner, not a subscription.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const callbacksRef = useRef({
     onController,
@@ -751,36 +749,26 @@ export function EpubReader({
                   if (n > 4) return;
                   const target = event.target as Element | null;
                   const tag = target?.tagName ?? "?";
-                  // WHERE did it land? The host document seeing P/SPAN
-                  // targets is the surprise — events inside a same-origin
-                  // iframe do not bubble to the parent, so either the tap
-                  // missed the book pane entirely, or the book is not in an
-                  // iframe on this device. Log the point against the
-                  // iframe's rect and say which.
+                  // NAME the element instead of guessing: tag, classes,
+                  // and the nearest data-testid ancestor say exactly which
+                  // surface was touched. (The previous rect test was
+                  // useless — epub.js's paginated iframe is ~13500px wide
+                  // and clipped by its container, so "inside the iframe"
+                  // is true almost everywhere.)
+                  const cls =
+                    typeof target?.className === "string"
+                      ? target.className.slice(0, 40)
+                      : "";
+                  const named = target?.closest("[data-testid]");
+                  const testid = named?.getAttribute("data-testid") ?? "none";
+                  const sameDoc = target?.ownerDocument === document;
                   const point = event as Partial<MouseEvent>;
-                  const iframe = document.querySelector(
-                    '[data-testid="epub-reader"] iframe',
-                  );
-                  const r = iframe?.getBoundingClientRect();
-                  const x = point.clientX;
-                  const y = point.clientY;
-                  const inside =
-                    r && x !== undefined && y !== undefined
-                      ? x >= r.left &&
-                        x <= r.right &&
-                        y >= r.top &&
-                        y <= r.bottom
-                      : null;
-                  const where =
-                    r === undefined
-                      ? "NO-IFRAME"
-                      : `iframe=${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)} inside=${inside}`;
                   const at =
-                    x === undefined || y === undefined
+                    point.clientX === undefined || point.clientY === undefined
                       ? "no-coords"
-                      : `at=${Math.round(x)},${Math.round(y)}`;
+                      : `at=${Math.round(point.clientX)},${Math.round(point.clientY)}`;
                   logTouchDebug(
-                    `PROBE ${key} #${n} target=${tag} ${at} ${where}`,
+                    `PROBE ${key} #${n} <${tag}> testid=${testid} hostDoc=${sameDoc} cls="${cls}" ${at}`,
                   );
                 },
                 { passive: true, capture: true },
