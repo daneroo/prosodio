@@ -186,15 +186,28 @@ interface EpubReaderProps {
 }
 
 /**
- * Resolve the DOM point a dblclick landed on, inside one section's content
- * window (plan S4): dblclick natively selects the clicked word, so prefer
- * the selection's start point; fall back to `caretRangeFromPoint` for
- * browsers/cases where the selection didn't land on a text node (e.g. the
- * click missed text). Null means there's nothing resolvable to report.
+ * Resolve the DOM point a dblclick (or double-tap, plan T3) landed on,
+ * inside one section's content window (plan S4): dblclick natively selects
+ * the clicked word, so prefer the selection's start point; fall back to
+ * `caretRangeFromPoint` for browsers/cases where the selection didn't land
+ * on a text node (e.g. the click missed text, or the caller is the touch
+ * path below, which never produces a selection at all). Null means there's
+ * nothing resolvable to report.
+ *
+ * Takes raw coordinates rather than a `MouseEvent` (plan T3) specifically so
+ * the touch path can feed tap coordinates through this SAME machinery
+ * instead of growing parallel coordinate-resolution logic — `dblclick` and
+ * double-tap both bottom out here.
+ *
+ * `caretRangeFromPoint` only (no `caretPositionFromPoint` companion): that
+ * matches what this function already did for the desktop `dblclick` path
+ * pre-T3 (Safari/Chrome only, no Firefox fallback) — T3 doesn't widen that
+ * gap, it just gives touch the same coverage desktop already had.
  */
 function resolveDblClickPoint(
   win: Window,
-  event: MouseEvent,
+  clientX: number,
+  clientY: number,
 ): { node: Node; offset: number } | null {
   const selection = win.getSelection();
   if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
@@ -205,7 +218,7 @@ function resolveDblClickPoint(
   }
   const doc = win.document;
   if (typeof doc.caretRangeFromPoint === "function") {
-    const range = doc.caretRangeFromPoint(event.clientX, event.clientY);
+    const range = doc.caretRangeFromPoint(clientX, clientY);
     if (
       range &&
       range.startContainer.nodeType === range.startContainer.TEXT_NODE
@@ -214,6 +227,20 @@ function resolveDblClickPoint(
     }
   }
   return null;
+}
+
+// Double-tap thresholds (plan T3): a second `touchend` within this window
+// and this close to the first counts as a double-tap. 350ms sits between
+// the ~300ms legacy tap-delay browsers used to use to disambiguate
+// double-tap-to-zoom (so genuine double-taps aren't missed) and long enough
+// to be a deliberate gesture, not two touches during a drag. 30px tolerates
+// a finger not landing on the exact same pixel twice, while still failing a
+// swipe/page-turn (epub.js paginated flow) or scroll, which move far more.
+const DOUBLE_TAP_MS = 350;
+const TAP_MOVE_PX = 30;
+
+function tapDistance(ax: number, ay: number, bx: number, by: number): number {
+  return Math.hypot(ax - bx, ay - by);
 }
 
 const MAX_RESULTS = 100;
@@ -377,12 +404,12 @@ export function EpubReader({
     // document itself: computed once per href, evicted together with its
     // sectionCache entry so a re-loaded section always gets a fresh check.
     const parityCache = new Map<string, SectionParityResult>();
-    // dblclick listeners are per-content-document (plan S4): registered via
-    // rendition.hooks.content on every section load, torn down via
-    // rendition.hooks.unloaded on that same view's removal, keyed by
-    // document so a section can be loaded/unloaded/reloaded repeatedly
-    // without leaking listeners.
-    const dblClickCleanup = new Map<Document, () => void>();
+    // Word-activate listeners (dblclick + touch double-tap, plan S4/T3) are
+    // per-content-document: registered via rendition.hooks.content on every
+    // section load, torn down via rendition.hooks.unloaded on that same
+    // view's removal, keyed by document so a section can be
+    // loaded/unloaded/reloaded repeatedly without leaking listeners.
+    const wordActivateCleanup = new Map<Document, () => void>();
     // All follow/locate-driven displays go through ONE latest-wins scheduler:
     // overlapping rendition.display() calls wedge epub.js's internal queue
     // (observed: locate promises that never settle while follow fires 2-3
@@ -637,18 +664,40 @@ export function EpubReader({
           }
         });
 
-        // Reverse-sync gesture (plan S4): dblclick natively selects the
-        // clicked word in the iframe content document. `hooks.content` fires
-        // once per section content load with the Contents instance for that
-        // section; `hooks.unloaded` fires once per view removal — used here
-        // only to remove the listener this content hook added, keyed by
-        // document so repeated load/unload of the same section never leaks.
+        // Reverse-sync gesture (plan S4, touch added T3): dblclick natively
+        // selects the clicked word in the iframe content document; touch has
+        // no `dblclick` at all (CONFIRMED dead on iPad, Daniel 2026-08-18 —
+        // double-tap did nothing), so a same-shape double-tap detector runs
+        // alongside it below. `hooks.content` fires once per section content
+        // load with the Contents instance for that section; `hooks.unloaded`
+        // fires once per view removal — used here only to remove the
+        // listeners this content hook added, keyed by document so repeated
+        // load/unload of the same section never leaks.
         rendition.hooks.content.register((contents: Contents) => {
-          const handleDblClick = (event: MouseEvent) => {
+          // Hazard 2 (plan T3): Safari's double-tap-to-zoom competes for
+          // this exact gesture. `touch-action: manipulation` on the content
+          // document's root disables JUST the double-tap-to-zoom heuristic
+          // (pan and pinch-zoom stay live) — the standard fix, and simpler/
+          // more reliable than viewport-meta tricks (`user-scalable=no` is
+          // widely ignored by modern Safari for accessibility). Applied
+          // unconditionally, not gated by theme: it's a gesture fix, not a
+          // reading-surface preference. Residual risk: touch-action doesn't
+          // inherit through a descendant that sets its OWN more permissive
+          // value, so if a book's CSS explicitly overrides touch-action on
+          // some element, double-tap-zoom could still fire there — the
+          // `preventDefault` on the detected second tap below is the
+          // belt-and-suspenders backstop for that case.
+          contents.document.documentElement.style.touchAction = "manipulation";
+          contents.document.body.style.touchAction = "manipulation";
+
+          // Shared by both gesture paths: resolve a DOM point (already
+          // computed by either resolveDblClickPoint call site below) to a
+          // WordActivatePoint via the CFI bridge and report it.
+          const activatePoint = (
+            point: { node: Node; offset: number } | null,
+          ) => {
             const activateWord = callbacksRef.current.onWordActivate;
-            if (!activateWord || !book) return;
-            const point = resolveDblClickPoint(contents.window, event);
-            if (!point) return;
+            if (!activateWord || !book || !point) return;
             // spineItems (below), not book.spine.get: its type honestly
             // reflects that an out-of-range sectionIndex has no entry.
             const section = spineItems(book)[contents.sectionIndex];
@@ -699,18 +748,122 @@ export function EpubReader({
               });
             })();
           };
+
+          // Hybrid-device guard: a touch-capable laptop can synthesize a
+          // `dblclick` from the same physical gesture the touch handler
+          // below already acted on. Set right before acting on a detected
+          // double-tap, cleared either by the next `dblclick` (consuming
+          // it) or by the timeout (so a stale flag can never suppress a
+          // LATER, genuine mouse dblclick).
+          let suppressNextDblClick = false;
+          let suppressTimer: ReturnType<typeof setTimeout> | null = null;
+          const armDblClickSuppression = () => {
+            suppressNextDblClick = true;
+            if (suppressTimer) clearTimeout(suppressTimer);
+            suppressTimer = setTimeout(() => {
+              suppressNextDblClick = false;
+            }, 500);
+          };
+
+          const handleDblClick = (event: MouseEvent) => {
+            if (suppressNextDblClick) {
+              suppressNextDblClick = false;
+              if (suppressTimer) clearTimeout(suppressTimer);
+              return;
+            }
+            activatePoint(
+              resolveDblClickPoint(
+                contents.window,
+                event.clientX,
+                event.clientY,
+              ),
+            );
+          };
           contents.document.addEventListener("dblclick", handleDblClick);
-          dblClickCleanup.set(contents.document, () => {
+
+          // Touch double-tap (plan T3): touch delivers no `dblclick`, so
+          // detect the gesture by hand from raw touch events and feed the
+          // resolved tap point through the SAME `resolveDblClickPoint` ->
+          // `activatePoint` path `dblclick` uses above — no parallel
+          // coordinate-resolution or CFI-bridging logic.
+          let touchStart: { x: number; y: number } | null = null;
+          let lastTap: { time: number; x: number; y: number } | null = null;
+          const handleTouchStart = (event: TouchEvent) => {
+            // Only a single, stationary touch counts toward a tap — a
+            // second simultaneous touch is a pinch, not part of a double-
+            // tap sequence.
+            const touch = event.touches.item(0);
+            touchStart =
+              event.touches.length === 1 && touch
+                ? { x: touch.clientX, y: touch.clientY }
+                : null;
+          };
+          const handleTouchEnd = (event: TouchEvent) => {
+            const start = touchStart;
+            touchStart = null;
+            const end = event.changedTouches.item(0);
+            if (event.changedTouches.length !== 1 || !end) {
+              lastTap = null;
+              return;
+            }
+            // A tap that MOVED is a swipe/page-turn or a scroll (epub.js
+            // paginated flow uses swipes), never a word activation — reset
+            // rather than let it count as either tap of a double-tap.
+            if (
+              !start ||
+              tapDistance(start.x, start.y, end.clientX, end.clientY) >
+                TAP_MOVE_PX
+            ) {
+              lastTap = null;
+              return;
+            }
+            const now = Date.now();
+            const prev = lastTap;
+            const isDoubleTap =
+              prev !== null &&
+              now - prev.time <= DOUBLE_TAP_MS &&
+              tapDistance(prev.x, prev.y, end.clientX, end.clientY) <=
+                TAP_MOVE_PX;
+            if (isDoubleTap) {
+              lastTap = null;
+              // preventDefault on the second tap's touchend is the primary
+              // cancel for Safari's pending double-tap-to-zoom (hazard 2)
+              // on any element the `touch-action` rule above didn't reach.
+              event.preventDefault();
+              armDblClickSuppression();
+              activatePoint(
+                resolveDblClickPoint(contents.window, end.clientX, end.clientY),
+              );
+            } else {
+              lastTap = { time: now, x: end.clientX, y: end.clientY };
+            }
+          };
+          // touchend must be non-passive: the double-tap branch above calls
+          // preventDefault to cancel Safari's zoom.
+          contents.document.addEventListener("touchstart", handleTouchStart, {
+            passive: true,
+          });
+          contents.document.addEventListener("touchend", handleTouchEnd, {
+            passive: false,
+          });
+
+          wordActivateCleanup.set(contents.document, () => {
             contents.document.removeEventListener("dblclick", handleDblClick);
+            contents.document.removeEventListener(
+              "touchstart",
+              handleTouchStart,
+            );
+            contents.document.removeEventListener("touchend", handleTouchEnd);
+            if (suppressTimer) clearTimeout(suppressTimer);
           });
         });
         rendition.hooks.unloaded.register((view: { contents?: Contents }) => {
           const doc = view.contents?.document;
           if (!doc) return;
-          const cleanup = dblClickCleanup.get(doc);
+          const cleanup = wordActivateCleanup.get(doc);
           if (cleanup) {
             cleanup();
-            dblClickCleanup.delete(doc);
+            wordActivateCleanup.delete(doc);
           }
         });
 

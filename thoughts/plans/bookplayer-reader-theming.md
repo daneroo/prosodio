@@ -87,10 +87,12 @@ Follow-disengage on word activate was considered and DECLINED (Daniel,
 2026-08-18): keep the deliberate behavior documented at `$bookId.tsx:156-161` —
 a seek re-syncs playback, follow stays engaged. Do not change it.
 
-- [ ] confirm the mechanism (does any touch event reach the content document?)
-- [ ] implement the touch path, reusing `resolveDblClickPoint`
-- [ ] acceptance: Daniel taps a word on the iPad and the audio seeks there;
-      desktop dblclick still works unchanged; `bun run ci`
+- [x] confirm the mechanism (does any touch event reach the content document?)
+- [x] implement the touch path, reusing `resolveDblClickPoint`
+- [ ] acceptance: verified in Chrome via synthetic touch (double-tap seeks,
+      swipe/slow-tap don't, desktop dblclick unchanged, hybrid fires once);
+      `bun run ci` green — awaiting Daniel's real-iPad pass, which is the only
+      way to settle Safari double-tap-to-zoom
 
 ## T4 — DROPPED (Daniel, 2026-08-19)
 
