@@ -44,3 +44,5 @@ invariants. Grows by harvesting settled `thoughts/design/` docs.
 - [bookplayer/](bookplayer/) — Bookplayer architecture and operating contracts
 - [bookplayer/locate-sweep.md](bookplayer/locate-sweep.md) — what the locate
   sweep verifies; what an `ok` means
+- [bookplayer/reader-iframe.md](bookplayer/reader-iframe.md) — reader iframe
+  event gating (WebKit 218086) and the EPUB script posture

@@ -9,30 +9,8 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
-1. bookplayer-reader-theming
-2. bookplayer-word-gesture-ipad
-
 ## player-ux
 
-- [ ] bookplayer-reader-theming — control the EPUB render surface: light/dark,
-      and override the book font with a chosen reading face. Today
-      `EpubReader.tsx` hardcodes one `rendition.themes.default` (slate text on
-      the dark shell) and books keep their own fonts. Wants a style control in
-      the reader toolbar beside chapters/pager/search — minimally custom (forced
-      theme + our font) vs book default. Font shortlist to try before picking
-      ONE: Iowan Old Style (Daniel's preference; ships on macOS/iOS), Charter,
-      Literata, Georgia. Open: injecting/serving the face into the epub.js
-      content iframe, and availability on iPad/Brave. Theming was the named
-      revisit trigger for `bookplayer-ebook-renderer`.
-- [ ] bookplayer-word-gesture-ipad — CONFIRMED dead on iPad (Daniel 2026-08-18:
-      double-tap does nothing). `EpubReader.tsx` registers `dblclick` per
-      content document; touch never delivers it — needs a touch equivalent.
-      Watch out: `resolveDblClickPoint` leans on dblclick NATIVELY selecting the
-      word, which touch does not do (needs caret-from-point), and Safari's
-      double-tap-to-zoom. Follow-disengage on word activate was considered and
-      DECLINED (Daniel 2026-08-18): keep the deliberate behavior at
-      `routes/player/$bookId.tsx` — a seek re-syncs playback, follow stays
-      engaged. Ships in one plan with `bookplayer-reader-theming`.
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
       emitting warnings. Separate from the resolved OOM and locate-sweep console
@@ -190,6 +168,25 @@ vtt/alignment.
 
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
+
+- 2026-08-19 bookplayer-word-gesture-ipad — double-tap a word to seek works on
+  iPad. The gesture code was never the fault: WebKit 218086 means Safari/iPadOS
+  delivers NO events to listeners bound on a sandboxed iframe's document without
+  `allow-scripts` — which killed epub.js's own event forwarding too. Enabled via
+  `allowScriptedContent`, with book scripts neutralized in a spine serialize
+  hook so the reversal buys event delivery and nothing else; validated against
+  all 7 script-bearing books in the corpus (264 docs, 34 scripts, 0 leaks).
+  Follow-disengage stayed declined. Constraint documented in
+  [docs/bookplayer/reader-iframe.md](../docs/bookplayer/reader-iframe.md).
+- 2026-08-19 bookplayer-reader-theming — three reading surfaces (book default /
+  light / dark) and a three-way font cycle (Iowan / Charter / Georgia), both
+  persisted, both in the reader toolbar. Book default is a true no-injection
+  off-state; the font rides the epub.js override channel so it never leaks into
+  it. Literata dropped (only non-system face). Daniel kept the font cycle
+  permanently rather than collapsing to one face. Two bugs found on device:
+  `themes.select()` only ADDS rules (fixed by scoping to the class it toggles),
+  and the font label lied under book default.
+  [plans/archive/bookplayer-reader-theming.md](plans/archive/bookplayer-reader-theming.md)
 
 - 2026-07-20 merge-nx-audiobook-validation — charter milestone 2 done: the nx
   rules vetted in (strays, hygiene trio with provenance tolerance, mtime hints
