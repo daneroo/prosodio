@@ -1,0 +1,293 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - heading "BookPlayer" [level=1] [ref=e7]
+      - link "lab" [ref=e8] [cursor=pointer]:
+        - /url: /lab
+      - generic [ref=e9]: 112/975 books · private · 43ms
+      - button "Rescan library" [ref=e10]: Rescan
+  - main [ref=e16]:
+    - generic [ref=e17]:
+      - textbox "Search by title or author…" [ref=e19]
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - text: Sort
+          - combobox "Sort" [ref=e22]:
+            - option "Title" [selected]
+            - option "Author"
+            - option "Duration"
+        - generic [ref=e23] [cursor=pointer]:
+          - checkbox "EPUB" [checked] [ref=e24]
+          - text: EPUB
+        - generic [ref=e25] [cursor=pointer]:
+          - checkbox "VTT" [checked] [ref=e26]
+          - text: VTT
+    - list [ref=e27]:
+      - listitem [ref=e28]:
+        - link "A Hat Full of Sky Terry Pratchett 09:20:53 · Not started M4B EPUB VTT" [ref=e29] [cursor=pointer]:
+          - /url: /player/fa7e2fbdedad
+          - generic [ref=e30]:
+            - paragraph [ref=e31]: A Hat Full of Sky
+            - paragraph [ref=e32]: Terry Pratchett
+            - paragraph [ref=e33]: 09:20:53 · Not started
+            - generic [ref=e34]:
+              - generic [ref=e35]: M4B
+              - generic [ref=e36]: EPUB
+              - generic [ref=e37]: VTT
+      - listitem [ref=e38]:
+        - link "A Wizard of Earthsea Ursula K. Le Guin 01:59:01 · Not started M4B EPUB VTT" [ref=e39] [cursor=pointer]:
+          - /url: /player/092239343ac0
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: A Wizard of Earthsea
+            - paragraph [ref=e42]: Ursula K. Le Guin
+            - paragraph [ref=e43]: 01:59:01 · Not started
+            - generic [ref=e44]:
+              - generic [ref=e45]: M4B
+              - generic [ref=e46]: EPUB
+              - generic [ref=e47]: VTT
+      - listitem [ref=e48]:
+        - link "A Wizard of Earthsea Ursula K. Le Guin 07:17:33 · Not started M4B EPUB VTT" [ref=e49] [cursor=pointer]:
+          - /url: /player/bff84af51f39
+          - generic [ref=e50]:
+            - paragraph [ref=e51]: A Wizard of Earthsea
+            - paragraph [ref=e52]: Ursula K. Le Guin
+            - paragraph [ref=e53]: 07:17:33 · Not started
+            - generic [ref=e54]:
+              - generic [ref=e55]: M4B
+              - generic [ref=e56]: EPUB
+              - generic [ref=e57]: VTT
+      - listitem [ref=e58]:
+        - link "Anathem Neal Stephenson 32:25:13 · Not started M4B EPUB VTT" [ref=e59] [cursor=pointer]:
+          - /url: /player/c02d69456904
+          - generic [ref=e60]:
+            - paragraph [ref=e61]: Anathem
+            - paragraph [ref=e62]: Neal Stephenson
+            - paragraph [ref=e63]: 32:25:13 · Not started
+            - generic [ref=e64]:
+              - generic [ref=e65]: M4B
+              - generic [ref=e66]: EPUB
+              - generic [ref=e67]: VTT
+      - listitem [ref=e68]:
+        - link "Blood of Amber Roger Zelazny 06:33:50 · Not started M4B EPUB VTT" [ref=e69] [cursor=pointer]:
+          - /url: /player/8f59b32761a9
+          - generic [ref=e70]:
+            - paragraph [ref=e71]: Blood of Amber
+            - paragraph [ref=e72]: Roger Zelazny
+            - paragraph [ref=e73]: 06:33:50 · Not started
+            - generic [ref=e74]:
+              - generic [ref=e75]: M4B
+              - generic [ref=e76]: EPUB
+              - generic [ref=e77]: VTT
+      - listitem [ref=e78]:
+        - link "Carpe Jugulum Terry Pratchett 11:36:58 · Not started M4B EPUB VTT" [ref=e79] [cursor=pointer]:
+          - /url: /player/07d6b6dcf770
+          - generic [ref=e80]:
+            - paragraph [ref=e81]: Carpe Jugulum
+            - paragraph [ref=e82]: Terry Pratchett
+            - paragraph [ref=e83]: 11:36:58 · Not started
+            - generic [ref=e84]:
+              - generic [ref=e85]: M4B
+              - generic [ref=e86]: EPUB
+              - generic [ref=e87]: VTT
+      - listitem [ref=e88]:
+        - link "Circle of Days Ken Follett 19:13:25 · Not started M4B EPUB VTT" [ref=e89] [cursor=pointer]:
+          - /url: /player/d6ae1a9a549d
+          - generic [ref=e90]:
+            - paragraph [ref=e91]: Circle of Days
+            - paragraph [ref=e92]: Ken Follett
+            - paragraph [ref=e93]: 19:13:25 · Not started
+            - generic [ref=e94]:
+              - generic [ref=e95]: M4B
+              - generic [ref=e96]: EPUB
+              - generic [ref=e97]: VTT
+      - listitem [ref=e98]:
+        - link "City of Illusions Ursula K. Le Guin 07:22:28 · Not started M4B EPUB VTT" [ref=e99] [cursor=pointer]:
+          - /url: /player/e0568ae44236
+          - generic [ref=e100]:
+            - paragraph [ref=e101]: City of Illusions
+            - paragraph [ref=e102]: Ursula K. Le Guin
+            - paragraph [ref=e103]: 07:22:28 · Not started
+            - generic [ref=e104]:
+              - generic [ref=e105]: M4B
+              - generic [ref=e106]: EPUB
+              - generic [ref=e107]: VTT
+      - listitem [ref=e108]:
+        - link "Consider Phlebas Iain M. Banks 16:26:14 · Not started M4B EPUB VTT" [ref=e109] [cursor=pointer]:
+          - /url: /player/646b5ea0b4f4
+          - generic [ref=e110]:
+            - paragraph [ref=e111]: Consider Phlebas
+            - paragraph [ref=e112]: Iain M. Banks
+            - paragraph [ref=e113]: 16:26:14 · Not started
+            - generic [ref=e114]:
+              - generic [ref=e115]: M4B
+              - generic [ref=e116]: EPUB
+              - generic [ref=e117]: VTT
+      - listitem [ref=e118]:
+        - link "Cryptonomicon Neal Stephenson 42:44:46 · Not started M4B EPUB VTT" [ref=e119] [cursor=pointer]:
+          - /url: /player/fc8280d54928
+          - generic [ref=e120]:
+            - paragraph [ref=e121]: Cryptonomicon
+            - paragraph [ref=e122]: Neal Stephenson
+            - paragraph [ref=e123]: 42:44:46 · Not started
+            - generic [ref=e124]:
+              - generic [ref=e125]: M4B
+              - generic [ref=e126]: EPUB
+              - generic [ref=e127]: VTT
+      - listitem [ref=e128]:
+        - link "Deadhouse Gates Steven Erikson 34:05:35 · Not started M4B EPUB VTT" [ref=e129] [cursor=pointer]:
+          - /url: /player/6ece788ebe2c
+          - generic [ref=e130]:
+            - paragraph [ref=e131]: Deadhouse Gates
+            - paragraph [ref=e132]: Steven Erikson
+            - paragraph [ref=e133]: 34:05:35 · Not started
+            - generic [ref=e134]:
+              - generic [ref=e135]: M4B
+              - generic [ref=e136]: EPUB
+              - generic [ref=e137]: VTT
+      - listitem [ref=e138]:
+        - link "Dodger Terry Pratchett 09:21:03 · Not started M4B EPUB VTT" [ref=e139] [cursor=pointer]:
+          - /url: /player/33e644a297bf
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: Dodger
+            - paragraph [ref=e142]: Terry Pratchett
+            - paragraph [ref=e143]: 09:21:03 · Not started
+            - generic [ref=e144]:
+              - generic [ref=e145]: M4B
+              - generic [ref=e146]: EPUB
+              - generic [ref=e147]: VTT
+      - listitem [ref=e148]:
+        - link "Dust of Dreams Steven Erikson 43:14:19 · Not started M4B EPUB VTT" [ref=e149] [cursor=pointer]:
+          - /url: /player/4fff4f01cf87
+          - generic [ref=e150]:
+            - paragraph [ref=e151]: Dust of Dreams
+            - paragraph [ref=e152]: Steven Erikson
+            - paragraph [ref=e153]: 43:14:19 · Not started
+            - generic [ref=e154]:
+              - generic [ref=e155]: M4B
+              - generic [ref=e156]: EPUB
+              - generic [ref=e157]: VTT
+      - listitem [ref=e158]:
+        - link "Equal Rites Terry Pratchett 07:27:51 · Not started M4B EPUB VTT" [ref=e159] [cursor=pointer]:
+          - /url: /player/0376553f2915
+          - generic [ref=e160]:
+            - paragraph [ref=e161]: Equal Rites
+            - paragraph [ref=e162]: Terry Pratchett
+            - paragraph [ref=e163]: 07:27:51 · Not started
+            - generic [ref=e164]:
+              - generic [ref=e165]: M4B
+              - generic [ref=e166]: EPUB
+              - generic [ref=e167]: VTT
+      - listitem [ref=e168]:
+        - link "Eric Terry Pratchett 03:58:46 · Not started M4B EPUB VTT" [ref=e169] [cursor=pointer]:
+          - /url: /player/e54594870cd3
+          - generic [ref=e170]:
+            - paragraph [ref=e171]: Eric
+            - paragraph [ref=e172]: Terry Pratchett
+            - paragraph [ref=e173]: 03:58:46 · Not started
+            - generic [ref=e174]:
+              - generic [ref=e175]: M4B
+              - generic [ref=e176]: EPUB
+              - generic [ref=e177]: VTT
+      - listitem [ref=e178]:
+        - link "Excession Iain M. Banks 15:55:43 · Not started M4B EPUB VTT" [ref=e179] [cursor=pointer]:
+          - /url: /player/f1187ee04ac4
+          - generic [ref=e180]:
+            - paragraph [ref=e181]: Excession
+            - paragraph [ref=e182]: Iain M. Banks
+            - paragraph [ref=e183]: 15:55:43 · Not started
+            - generic [ref=e184]:
+              - generic [ref=e185]: M4B
+              - generic [ref=e186]: EPUB
+              - generic [ref=e187]: VTT
+      - listitem [ref=e188]:
+        - link "Fall; or, Dodge in Hell Neal Stephenson 31:48:32 · Not started M4B EPUB VTT" [ref=e189] [cursor=pointer]:
+          - /url: /player/3e963aff7fb8
+          - generic [ref=e190]:
+            - paragraph [ref=e191]: Fall; or, Dodge in Hell
+            - paragraph [ref=e192]: Neal Stephenson
+            - paragraph [ref=e193]: 31:48:32 · Not started
+            - generic [ref=e194]:
+              - generic [ref=e195]: M4B
+              - generic [ref=e196]: EPUB
+              - generic [ref=e197]: VTT
+      - listitem [ref=e198]:
+        - link "Falling Free Lois McMaster Bujold 08:44:42 · Not started M4B EPUB VTT" [ref=e199] [cursor=pointer]:
+          - /url: /player/98f16db249f1
+          - generic [ref=e200]:
+            - paragraph [ref=e201]: Falling Free
+            - paragraph [ref=e202]: Lois McMaster Bujold
+            - paragraph [ref=e203]: 08:44:42 · Not started
+            - generic [ref=e204]:
+              - generic [ref=e205]: M4B
+              - generic [ref=e206]: EPUB
+              - generic [ref=e207]: VTT
+      - listitem [ref=e208]:
+        - link "Feet of Clay Terry Pratchett 12:21:00 · Not started M4B EPUB VTT" [ref=e209] [cursor=pointer]:
+          - /url: /player/e2bcadf3c2a9
+          - generic [ref=e210]:
+            - paragraph [ref=e211]: Feet of Clay
+            - paragraph [ref=e212]: Terry Pratchett
+            - paragraph [ref=e213]: 12:21:00 · Not started
+            - generic [ref=e214]:
+              - generic [ref=e215]: M4B
+              - generic [ref=e216]: EPUB
+              - generic [ref=e217]: VTT
+      - listitem [ref=e218]:
+        - link "Five Ways to Forgiveness Ursula K. Le Guin 10:58:19 · Not started M4B EPUB VTT" [ref=e219] [cursor=pointer]:
+          - /url: /player/53ae282d0c23
+          - generic [ref=e220]:
+            - paragraph [ref=e221]: Five Ways to Forgiveness
+            - paragraph [ref=e222]: Ursula K. Le Guin
+            - paragraph [ref=e223]: 10:58:19 · Not started
+            - generic [ref=e224]:
+              - generic [ref=e225]: M4B
+              - generic [ref=e226]: EPUB
+              - generic [ref=e227]: VTT
+      - listitem [ref=e228]:
+        - link "Four Ways to Forgiveness Ursula K. Le Guin 10:48:23 · Not started M4B EPUB VTT" [ref=e229] [cursor=pointer]:
+          - /url: /player/3f0be097f30f
+          - generic [ref=e230]:
+            - paragraph [ref=e231]: Four Ways to Forgiveness
+            - paragraph [ref=e232]: Ursula K. Le Guin
+            - paragraph [ref=e233]: 10:48:23 · Not started
+            - generic [ref=e234]:
+              - generic [ref=e235]: M4B
+              - generic [ref=e236]: EPUB
+              - generic [ref=e237]: VTT
+      - listitem [ref=e238]:
+        - link "Gardens of the Moon Steven Erikson 26:03:21 · Not started M4B EPUB VTT" [ref=e239] [cursor=pointer]:
+          - /url: /player/49f8093d7d4d
+          - generic [ref=e240]:
+            - paragraph [ref=e241]: Gardens of the Moon
+            - paragraph [ref=e242]: Steven Erikson
+            - paragraph [ref=e243]: 26:03:21 · Not started
+            - generic [ref=e244]:
+              - generic [ref=e245]: M4B
+              - generic [ref=e246]: EPUB
+              - generic [ref=e247]: VTT
+      - listitem [ref=e248]:
+        - link "Going Postal Terry Pratchett 13:36:45 · Not started M4B EPUB VTT" [ref=e249] [cursor=pointer]:
+          - /url: /player/45e686622bde
+          - generic [ref=e250]:
+            - paragraph [ref=e251]: Going Postal
+            - paragraph [ref=e252]: Terry Pratchett
+            - paragraph [ref=e253]: 13:36:45 · Not started
+            - generic [ref=e254]:
+              - generic [ref=e255]: M4B
+              - generic [ref=e256]: EPUB
+              - generic [ref=e257]: VTT
+      - listitem [ref=e258]:
+        - link "Guards! Guards! Terry Pratchett, Ben Aaronovitch - afterword 13:25:38 · Not started M4B EPUB VTT" [ref=e259] [cursor=pointer]:
+          - /url: /player/6ec3f6a6708c
+          - generic [ref=e260]:
+            - paragraph [ref=e261]: Guards! Guards!
+            - paragraph [ref=e262]: Terry Pratchett, Ben Aaronovitch - afterword
+            - paragraph [ref=e263]: 13:25:38 · Not started
+            - generic [ref=e264]:
+              - generic [ref=e265]: M4B
+              - generic [ref=e266]: EPUB
+              - generic [ref=e267]: VTT
+    - navigation "Pagination" [ref=e268]:
+      - button "Prev" [disabled] [ref=e269]
+      - generic [ref=e270]: 1 / 5
+      - button "Next" [ref=e271]

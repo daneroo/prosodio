@@ -574,18 +574,42 @@ export function EpubReader({
         // so `default` genuinely injects zero CSS. `select` (below) swaps
         // between them; only `select` changes what's on the page, so book
         // default stays byte-for-byte the book's own stylesheet.
+        // Selectors are CLASS-SCOPED (`body.light`, `body.dark`), and that is
+        // load-bearing, not cosmetic. epub.js `themes.select()` only ADDS the
+        // new theme's rules — `add()` writes into a per-key <style> node
+        // (`contents._getStylesheetNode`) that is never removed, so the
+        // previous theme's CSS stays in the document forever. With unscoped
+        // `body {}` selectors, dark's `background` survived a switch to light
+        // (which sets no background) and to default (which sets nothing at
+        // all), so the page stayed dark until a fresh section load happened to
+        // inject only the current theme. What makes switching work is the
+        // class `select()` toggles on body (`removeClass(prev)`/
+        // `addClass(name)`) — scoping to it renders the stale stylesheets
+        // inert. `default` keeps zero rules and gets no class, so book default
+        // stays genuinely un-injected.
+        //
+        // `light` therefore states its background explicitly rather than
+        // relying on the book's own: it must be able to win against whatever
+        // the book sets, exactly as `dark` does.
         rendition.themes.register({
           default: {},
           light: {
-            body: { color: "#1e293b !important" },
-            "a, a:link, a:visited": { color: "#0e7490 !important" },
+            "body.light": {
+              background: "#ffffff !important",
+              color: "#1e293b !important",
+            },
+            "body.light a, body.light a:link, body.light a:visited": {
+              color: "#0e7490 !important",
+            },
           },
           dark: {
-            body: {
+            "body.dark": {
               background: "#0f172a !important",
               color: "#e2e8f0 !important",
             },
-            "a, a:link, a:visited": { color: "#22d3ee !important" },
+            "body.dark a, body.dark a:link, body.dark a:visited": {
+              color: "#22d3ee !important",
+            },
           },
         });
         // Font-family is intentionally NOT part of these rule objects: it's
