@@ -84,11 +84,22 @@ export function ReaderToolbar({
       <button
         type="button"
         onClick={onCycleFont}
-        className="flex items-center gap-1 p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"
-        aria-label={`Reading font: ${FONT_LABELS[font]} — tap to cycle`}
+        disabled={theme === "default"}
+        className="flex items-center gap-1 p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:text-slate-600 disabled:hover:text-slate-600"
+        aria-label={
+          theme === "default"
+            ? "Reading font: the book's own — pick light or dark to override it"
+            : `Reading font: ${FONT_LABELS[font]} — tap to cycle`
+        }
       >
         <Type className="h-4 w-4" />
-        <span className="text-xs">{FONT_LABELS[font]}</span>
+        {/* Under book default no font override is applied (design §6
+            decision 2), so showing the stored face would claim something the
+            page isn't doing — say "Book" and disable the control instead. The
+            stored preference is untouched and comes back on light/dark. */}
+        <span className="text-xs">
+          {theme === "default" ? "Book" : FONT_LABELS[font]}
+        </span>
       </button>
       {toc.length > 0 && (
         <select
