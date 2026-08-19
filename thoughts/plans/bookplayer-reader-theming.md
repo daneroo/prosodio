@@ -1,6 +1,6 @@
 # bookplayer-reader-theming — reader theming + iPad word gesture
 
-Status: planned
+Status: active
 
 Goal: control the EPUB reading surface (book default / light / dark + a chosen
 reading font) from the reader toolbar, and make the reverse-sync word gesture

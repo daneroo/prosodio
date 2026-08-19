@@ -10,7 +10,7 @@
  * - on resize, the active search target is re-displayed so a reflow cannot
  *   lose the match (the desktop-to-mobile bug from visual review)
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   checkSectionParity,
@@ -30,6 +30,12 @@ export interface TocItem {
   label: string;
   href: string;
 }
+
+/** Three-state reading surface (plan T1, design §6 decision 1): `default` is
+ * the book's own CSS with nothing injected; `light`/`dark` layer proven
+ * colors + the reading font as `!important` overrides. Not per-book — a
+ * reader preference, not a book property (design §6 decision 3). */
+export type ThemeName = "default" | "light" | "dark";
 
 export interface SearchResult {
   cfi: string;
@@ -95,6 +101,17 @@ export interface ReaderController {
    * not a failure.
    */
   locate: (locator: EpubTokenLocate) => Promise<LocateResult>;
+  /**
+   * Switch the reading theme (design §6 decision 5). Does all four things
+   * atomically so they can never drift apart: selects the epub.js theme
+   * (`themes.select`), repaints the wrapper `<div>` (React state — the
+   * wrapper's background is app-side and outside anything `rendition.themes`
+   * can reach, design §4), persists the choice globally, and reports it via
+   * `onThemeChange`. Redisplays the current position through the existing
+   * `displayScheduler` afterward (design §6 decision 6) so a font/color swap
+   * can't leave stale pagination or lose the reading position.
+   */
+  setTheme: (name: ThemeName) => void;
 }
 
 export const EMPTY_SEARCH: SearchState = {
@@ -131,6 +148,12 @@ interface EpubReaderProps {
    * clicked word's DOM point. Optional — omit to disable the listener
    * entirely (e.g. when the book has no alignment to map against). */
   onWordActivate?: (point: WordActivatePoint) => void;
+  /** Fired once on init (with the localStorage-derived initial theme) and
+   * again on every `ReaderController.setTheme` call — mirrors how `onToc`
+   * reports state the toolbar needs to render (design §6 decision 5).
+   * Optional: T1 wires the model, T2 wires the toolbar control that consumes
+   * this. */
+  onThemeChange?: (name: ThemeName) => void;
 }
 
 /**
@@ -170,6 +193,57 @@ function cfiKey(bookId: string): string {
   return `bookplayer:${bookId}:cfi`;
 }
 
+// Global, not per-book (design §6 decision 3): a reading-face/theme
+// preference is a property of the reader, not the book — unlike CFI
+// position, which is inherently book-scoped.
+function themeKey(): string {
+  return "bookplayer:reader-theme";
+}
+
+const THEME_NAMES: ReadonlyArray<ThemeName> = ["default", "light", "dark"];
+
+/** Synchronous localStorage read for the `useState` lazy initializer (design
+ * §4): must run before first paint so a dark preference never flashes white.
+ * Any unrecognized/missing value falls back to "default" (today's book-CSS
+ * baseline minus the old forced slate/cyan, see design §3). */
+function readStoredTheme(): ThemeName {
+  try {
+    const stored = localStorage.getItem(themeKey());
+    if (stored && (THEME_NAMES as ReadonlyArray<string>).includes(stored)) {
+      return stored as ThemeName;
+    }
+  } catch {
+    /* storage blocked — fall through to the default */
+  }
+  return "default";
+}
+
+// Iowan Old Style is Daniel's stated preference (from Apple Books) and a
+// genuine system face on both his reading devices (macOS + iOS) — no
+// webfont, no font-load reflow gap (design §2, §7). Starting point for the
+// light/dark themes below; the dev-only font-cycle affordance further down
+// lets Daniel compare it live against three alternatives before one gets
+// hardcoded for good (plan T4).
+const READING_FONT =
+  '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif';
+
+// Dev-only font comparison (plan T1, design §8): the four shortlisted
+// candidates, cycled live via `rendition.themes.font()` against a real open
+// book/chapter, independent of the light/dark/default lever. Literata is not
+// a system face anywhere and needs the self-hosted @font-face registered
+// below. Delete this whole affordance in T4 once Daniel picks one (design §10
+// task 3) — only the winner's stack survives, hardcoded into the light/dark
+// theme rules above.
+const DEV_FONT_STACKS: ReadonlyArray<{ label: string; stack: string }> = [
+  { label: "Iowan", stack: READING_FONT },
+  {
+    label: "Charter",
+    stack: 'Charter, "Bitstream Charter", "Sitka Text", Cambria, serif',
+  },
+  { label: "Georgia", stack: 'Georgia, "Nimbus Roman No9 L", serif' },
+  { label: "Literata", stack: "Literata, Georgia, serif" },
+];
+
 export function EpubReader({
   bookId,
   epubUrl,
@@ -178,6 +252,7 @@ export function EpubReader({
   onSearchState,
   onError,
   onWordActivate,
+  onThemeChange,
 }: EpubReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({
@@ -186,6 +261,7 @@ export function EpubReader({
     onSearchState,
     onError,
     onWordActivate,
+    onThemeChange,
   });
   callbacksRef.current = {
     onController,
@@ -193,9 +269,25 @@ export function EpubReader({
     onSearchState,
     onError,
     onWordActivate,
+    onThemeChange,
   };
   const bookIdRef = useRef(bookId);
   bookIdRef.current = bookId;
+
+  // Lazy initializer (design §4): runs synchronously on first render, before
+  // anything paints, so the wrapper `<div>`'s className below is already
+  // correct on the very first frame — a dark preference never flashes white.
+  // `themeRef` hands this same value into the imperative init() effect
+  // (mirrors `bookIdRef` above) so the effect doesn't re-read localStorage.
+  const [theme, setThemeState] = useState<ThemeName>(() => readStoredTheme());
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+
+  // Dev-only font comparison (design §8): set inside init() once the
+  // rendition exists, cleared on teardown; the on-screen tap control below
+  // calls through this ref since it lives outside the effect closure.
+  const devCycleFontRef = useRef<((index: number) => void) | null>(null);
+  const [devFontIndex, setDevFontIndex] = useState(0);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -239,6 +331,29 @@ export function EpubReader({
     const displayScheduler = createLatestWins<string>((cfi) =>
       rendition ? rendition.display(cfi) : Promise.resolve(),
     );
+    // Shared by theme switches and the dev-only font cycle (design §6
+    // decision 6): `themes.select`/`themes.font` inject CSS into already-
+    // rendered content but never repaginate — a theme/font change alone can
+    // clip text or (for a webfont) never even notice the swap, since epub.js's
+    // font-load-listener repagination hook is commented out upstream (design
+    // §2). Redisplaying the current position through the existing
+    // latest-wins scheduler fixes both, and keeps the reading position (no
+    // scroll-to-top surprise) — same mechanism already used to re-show
+    // `resumeTarget.cfi` after a container resize, below.
+    const redisplayCurrentPosition = () => {
+      if (!rendition) return;
+      try {
+        const location = rendition.currentLocation() as unknown as
+          { start?: { cfi?: string } } | undefined;
+        const cfi = location?.start?.cfi;
+        if (!cfi) return;
+        void displayScheduler(cfi).catch(() => {
+          /* display is best-effort here; the theme/font change already applied */
+        });
+      } catch {
+        /* currentLocation can throw early in the lifecycle; nothing to redisplay */
+      }
+    };
     const cacheSection = (href: string, document: Document) => {
       sectionCache.delete(href);
       sectionCache.set(href, document);
@@ -368,11 +483,75 @@ export function EpubReader({
           spread: "auto",
         });
 
-        // High-contrast reading surface on the dark shell.
-        rendition.themes.default({
-          body: { color: "#1e293b !important" },
-          "a, a:link, a:visited": { color: "#0e7490 !important" },
+        // Three-state theme model (plan T1, design §6 decision 1): `default`
+        // has NO rules — book CSS fully governs, replacing the old always-on
+        // forced slate/cyan. `light` is that old forced palette (proven
+        // legible), `dark` is a new inverted palette matching the app
+        // chrome's own bg-slate-900 (design §7). `register`, not `override`,
+        // so `default` genuinely injects zero CSS. `select` (below) swaps
+        // between them; only `select` changes what's on the page, so book
+        // default stays byte-for-byte the book's own stylesheet.
+        rendition.themes.register({
+          default: {},
+          light: {
+            body: {
+              color: "#1e293b !important",
+              "font-family": `${READING_FONT} !important`,
+            },
+            "a, a:link, a:visited": { color: "#0e7490 !important" },
+          },
+          dark: {
+            body: {
+              background: "#0f172a !important",
+              color: "#e2e8f0 !important",
+              "font-family": `${READING_FONT} !important`,
+            },
+            "a, a:link, a:visited": { color: "#22d3ee !important" },
+          },
         });
+        // themeRef, not a fresh localStorage read (design §4): the lazy
+        // `useState` initializer already read it once, synchronously, before
+        // first paint — re-reading here would risk racing a `setTheme` call
+        // that landed between mount and this async init() resuming.
+        rendition.themes.select(themeRef.current);
+        callbacksRef.current.onThemeChange?.(themeRef.current);
+
+        if (import.meta.env.DEV) {
+          // Dev-only font comparison (plan T1, design §8): Literata is not a
+          // system face anywhere, so its candidate needs a self-hosted
+          // @font-face — injected into every loaded section's <head>,
+          // independent of which theme/font is currently active, same
+          // per-content-load mechanism as the dblclick hook below. Deleted in
+          // T4 unless Literata wins the on-device comparison.
+          rendition.hooks.content.register((contents: Contents) => {
+            const style = contents.document.createElement("style");
+            style.textContent = `
+              @font-face {
+                font-family: "Literata";
+                src: url("/fonts/literata-regular.woff2") format("woff2");
+                font-weight: 400;
+                font-style: normal;
+                font-display: swap;
+              }
+            `;
+            contents.document.head.appendChild(style);
+          });
+
+          // On-screen tap control lives in the JSX below (§ return); it
+          // calls through this ref since it's outside the effect closure.
+          // `themes.font()` is a real epub.js primitive (themes.js:254-256,
+          // `override("font-family", f, true)`) — it layers on top of
+          // whichever theme is currently selected, so Daniel can try a
+          // candidate against book-default/light/dark without the two levers
+          // interfering (design §8).
+          devCycleFontRef.current = (index) => {
+            if (!rendition) return;
+            const candidate = DEV_FONT_STACKS[index];
+            if (!candidate) return;
+            rendition.themes.font(candidate.stack);
+            redisplayCurrentPosition();
+          };
+        }
 
         rendition.on("relocated", (location: { start: { cfi: string } }) => {
           try {
@@ -673,6 +852,18 @@ export function EpubReader({
               activeIndex: null,
             });
           },
+          setTheme: (name) => {
+            if (!rendition) return;
+            rendition.themes.select(name);
+            setThemeState(name);
+            try {
+              localStorage.setItem(themeKey(), name);
+            } catch {
+              /* storage full/blocked — preference just won't persist */
+            }
+            callbacksRef.current.onThemeChange?.(name);
+            redisplayCurrentPosition();
+          },
         });
 
         // Initial position, NON-BLOCKING, through the same latest-wins
@@ -730,6 +921,7 @@ export function EpubReader({
       resizeObserver?.disconnect();
       callbacksRef.current.onController(null);
       callbacksRef.current.onSearchState(EMPTY_SEARCH);
+      devCycleFontRef.current = null;
       try {
         book?.destroy();
       } catch {
@@ -739,13 +931,42 @@ export function EpubReader({
     // Lifecycle keyed to the asset identity only (experiment lesson).
   }, [epubUrl]);
 
-  // Outer clipping only — no styles on epub.js internals.
+  // Outer clipping only, plus the wrapper background (design §4): epub.js
+  // themes only reach the content iframe, never this element, so `dark`
+  // needs its own class here or a themed page would float inside a
+  // permanently white frame. `default`/`light` both keep today's `bg-white`
+  // — only `dark` needs a different wrapper color (design §6 decision 1).
   return (
-    <div
-      ref={containerRef}
-      className="h-full w-full overflow-hidden bg-white"
-      data-testid="epub-reader"
-    />
+    <div className="relative h-full w-full">
+      <div
+        ref={containerRef}
+        className={`h-full w-full overflow-hidden ${
+          theme === "dark" ? "bg-slate-900" : "bg-white"
+        }`}
+        data-testid="epub-reader"
+      />
+      {import.meta.env.DEV && (
+        // Temporary dev-only font comparison control (plan T1, design §8):
+        // on-screen tap, not a query param — Daniel's iPad has no keyboard
+        // and no console, and a query param would reload the page and lose
+        // the exact spot being compared. Cycles the four candidate stacks
+        // independently of the theme lever; reuses the same post-change
+        // redisplay so page position survives. Delete in T4 (design §10
+        // task 3).
+        <button
+          type="button"
+          onClick={() => {
+            const next = (devFontIndex + 1) % DEV_FONT_STACKS.length;
+            devCycleFontRef.current?.(next);
+            setDevFontIndex(next);
+          }}
+          className="absolute bottom-4 right-4 z-50 rounded bg-slate-900/85 px-3 py-2 text-xs text-cyan-300 shadow-lg"
+          data-testid="dev-font-cycle"
+        >
+          Font: {DEV_FONT_STACKS[devFontIndex]?.label}
+        </button>
+      )}
+    </div>
   );
 }
 
