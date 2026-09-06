@@ -9,6 +9,8 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
+- [ ] bookplayer-abs-progress-sync - refine first
+
 ## player-ux
 
 - [ ] bookplayer-abs-progress-sync — UNVERIFIED IDEA: let audiobookshelf be the
