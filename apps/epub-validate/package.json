@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "@likecoin/epub-ts": "catalog:runtime",
-    "@storyteller-platform/epub": "^0.6.2",
+    "@storyteller-platform/epub": "^0.6.3",
     "jsdom": "catalog:runtime",
-    "linkedom": "^0.18.12",
-    "playwright": "^1.61.0",
+    "linkedom": "^0.18.13",
+    "playwright": "^1.63.0",
     "zod": "catalog:runtime"
   }
 }

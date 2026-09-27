@@ -9,6 +9,6 @@
   "dependencies": {
     "@prosodio/align": "workspace:*",
     "@types/yargs": "^17.0.35",
-    "yargs": "^18.0.0"
+    "yargs": "^18.2.0"
   }
 }

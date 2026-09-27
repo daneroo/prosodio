@@ -9,25 +9,15 @@ few lines; items whose detail outgrows that carry a `ticket:` link into
 
 Scheduled items go here (leave this comment)
 
-- [ ] bookplayer-abs-progress-sync - refine first
-
 ## player-ux
 
-- [ ] bookplayer-abs-progress-sync — UNVERIFIED IDEA: let audiobookshelf be the
-      TIMELINE SOURCE. ABS plays the audiobook independently (phone, car) and
-      Bookplayer plays no audio at all — it subscribes to ABS progress events
-      and uses the remote position as the clock driving the alignment, so the
-      EPUB follows along. An alternative transport behind the
-      `useAudioTransport` seam, not bookmark sync. Critical unknown: tick
-      granularity — word-level follow needs sub-second, ABS is believed to emit
-      every 10-30s, so it likely needs interpolation (and therefore playback
-      rate + play/pause in the payload). READ-ONLY by decision — never writes
-      back, ABS owns the position; push-based, polling only as a last resort.
-      All ABS specifics unverified — FIRST STEP is a throwaway spike against the
-      real server + token (event names, tick interval, whether rate and
-      play/pause are in the payload), which decides whether this is viable at
-      all. ticket:
-      [bookplayer-abs-progress-sync](tickets/bookplayer-abs-progress-sync.md)
+- [ ] bookplayer-abs-remote-follow — preliminary design for an optional
+      read-only transport: ABS owns phone/car audio and position; Bookplayer
+      follows the aligned EPUB without playing audio. The Socket.IO subscription
+      and active-book switch are proven; design stale/pause behavior, identity
+      mapping, token custody, and production parity before implementation.
+      ticket:
+      [bookplayer-abs-remote-follow](tickets/bookplayer-abs-remote-follow.md)
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
       emitting warnings. Separate from the resolved OOM and locate-sweep console
@@ -185,6 +175,11 @@ vtt/alignment.
 
 One line per closed item — this section doubles as the `tickets - archive`
 index. Prune old lines freely; git keeps everything.
+
+- 2026-09-27 bookplayer-abs-progress-sync — Socket.IO subscription and
+  active-book switching proved against local ABS; retained the redacted probe
+  and moved the remote-follow product work to `bookplayer-abs-remote-follow`.
+  [plans/archive/bookplayer-abs-progress-sync.md](plans/archive/bookplayer-abs-progress-sync.md)
 
 - 2026-08-19 bookplayer-word-gesture-ipad — double-tap a word to seek works on
   iPad. The gesture code was never the fault: WebKit 218086 means Safari/iPadOS

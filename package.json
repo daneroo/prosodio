@@ -10,10 +10,10 @@
     ],
     "catalogs": {
       "runtime": {
-        "@likecoin/epub-ts": "^0.6.7",
+        "@likecoin/epub-ts": "^0.6.10",
         "jsdom": "^29.1.1",
-        "valibot": "^1.2.0",
-        "zod": "^4.3.6"
+        "valibot": "^1.5.0",
+        "zod": "4.4.3"
       }
     }
   },
@@ -35,14 +35,15 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
-    "@types/node": "^26.1.0",
-    "eslint": "^10.6.0",
+    "@types/node": "^26.6.3",
+    "eslint": "^10.11.0",
     "markdownlint-cli2": "^0.22.1",
-    "prettier": "^3.9.1",
-    "typescript-eslint": "^8.62.0"
+    "prettier": "^3.9.9",
+    "socket.io-client": "^4.8.4",
+    "typescript-eslint": "^8.70.1"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "prettier": {
     "proseWrap": "always"

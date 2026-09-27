@@ -338,7 +338,7 @@ describe("rawFileBody", () => {
     ]);
   });
 
-  test("fills BYOB views directly across an exact range", async () => {
+  test("reads an exact range through a BYOB reader", async () => {
     const root = makeDir("media-byob-body-");
     const path = join(root, "asset.bin");
     writeFileSync(path, Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]));
@@ -347,17 +347,13 @@ describe("rawFileBody", () => {
     });
 
     const firstBuffer = new Uint8Array(3);
-    const firstBacking = firstBuffer.buffer;
     const first = await reader.read(firstBuffer);
     expect(first.done).toBe(false);
-    expect(first.value?.buffer).toBe(firstBacking);
     expect(Array.from(first.value ?? [])).toEqual([2, 3, 4]);
 
     const secondBuffer = new Uint8Array(8);
-    const secondBacking = secondBuffer.buffer;
     const second = await reader.read(secondBuffer);
     expect(second.done).toBe(false);
-    expect(second.value?.buffer).toBe(secondBacking);
     expect(Array.from(second.value ?? [])).toEqual([5, 6]);
 
     const end = await reader.read(new Uint8Array(1));

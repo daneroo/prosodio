@@ -365,8 +365,9 @@ function LoadingState() {
   );
 }
 
-function ErrorState({ error }: { error: Error }) {
+function ErrorState({ error }: { error: unknown }) {
   const router = useRouter();
+  const message = error instanceof Error ? error.message : String(error);
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="border-b border-slate-700 px-6 py-3">
@@ -378,7 +379,7 @@ function ErrorState({ error }: { error: Error }) {
       <main className="mx-auto max-w-7xl px-6 py-10 text-center">
         <p className="mb-2 text-sm text-red-400">Library scan failed</p>
         <p className="mx-auto mb-4 max-w-xl text-xs text-slate-500">
-          {error.message}
+          {message}
         </p>
         <button
           type="button"

@@ -6,6 +6,6 @@
   "dependencies": {
     "@prosodio/config": "workspace:*",
     "@prosodio/corpus": "workspace:*",
-    "p-limit": "^7.3.0"
+    "p-limit": "^7.3.3"
   }
 }
