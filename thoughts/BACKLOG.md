@@ -55,6 +55,12 @@ vtt/alignment.
       sha256 (141 + 167 flagged 2026-07-03); decide strip/prevent/CI-gate — a
       validation rule in waiting. ticket:
       [epub-calibre-pollution-audit](tickets/epub-calibre-pollution-audit.md)
+- [ ] audio-stts-timeline-audit — detect m4bs whose `stts` sample table
+      under-reports packet durations (Diamond Age: seeking drifts ~13 s per
+      source-part join, playing straight through is fine). A cheap header check
+      (`nb_frames × 1024 / rate` vs duration) works as a corpus scan or a
+      validate-cli rule. ticket:
+      [audio-stts-timeline-audit](tickets/audio-stts-timeline-audit.md)
 - [ ] validate-fix-apply — the gated repair step (charter Scope: Reconciliation
       convention, desired -> actual). Candidates: .DS_Store removal, perms
       chmod, xattr strip, apply-hints (touch corpus mtimes to the DB),
