@@ -172,3 +172,7 @@ vtt/alignment.
 - [ ] dependency-update-doc — document the update workflow (`outdated:fix` =
       `bun update -i -r`); CAVEAT: verify `catalog:` reference handling. Revisit
       at the first stale dep.
+- [ ] spelunk-closed-history — if pre-GitHub completed work is ever needed,
+      recover the dropped `## Closed` log (2026-07-19..2026-09-27):
+      `git show 6b0213e~1:thoughts/BACKLOG.md`; links point into
+      `thoughts/plans/archive/`.
