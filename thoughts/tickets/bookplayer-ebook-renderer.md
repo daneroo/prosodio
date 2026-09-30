@@ -1,5 +1,8 @@
 # bookplayer-ebook-renderer — keep the EPUB renderer swappable
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 why: epub.js (0.3.x) is old and weakly typed — search/highlight was the codex
 experiment's death, and it logs caught IndexSizeErrors during some relocations.
 Accepted for v1; the whole API surface is isolated in one component

@@ -1,5 +1,8 @@
 # align-known-mismatch-convention — validation exceptions/expectations
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 why: low coverage must read as "known mismatch", not pipeline failure. Reframed
 (Daniel, 2026-07-19) as part of the VALIDATION flow: validations accumulate
 declared exceptions/expectations as we find them, and known non-faithful pairs

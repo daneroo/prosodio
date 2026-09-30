@@ -1,5 +1,8 @@
 # align-precision-at-scale — scalable Pass 1 precision evaluation
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 why: manual `reviewSamples` review does not scale — 36 books was already too
 many, the corpus is ~700, and a false anchor would only surface through real
 listening. Eyeballing is not an acceptance strategy at this size.

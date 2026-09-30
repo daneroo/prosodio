@@ -15,7 +15,8 @@ alongside their ebooks on a synchronized timeline.
 For coding tasks, use your judgement: when delegation is worthwhile, pick a
 lower-power model and effort level and run the task in a subagent — trivial
 edits are cheaper done directly. Plan for that delegation (boundaries,
-acceptance criteria) — see the Plan section of
+acceptance criteria): when `/to-tickets` breaks work down, give each ticket a
+`Tier:` model + effort recommendation — see the Delegation section of
 [docs/workflow.md](docs/workflow.md).
 
 ## Layout
@@ -26,7 +27,8 @@ acceptance criteria) — see the Plan section of
   - `apps/` — runnables
 - Docs
   - `docs/` — durable reference (index: [docs/README.md](docs/README.md))
-  - `thoughts/` — plans, designs, research, tickets, reviews
+  - `thoughts/` — idea inbox (`BACKLOG.md`) + companion files for GitHub issues
+    (plans, designs, research, reviews)
 - Data
   - `fixtures/` — public test data (committed)
   - `data/` — gitignored, volatile (outputs, scratch)

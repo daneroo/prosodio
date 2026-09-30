@@ -1,5 +1,8 @@
 # bookplayer-abs-remote-follow — preliminary design
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 Bookplayer offers a second transport mode: ABS plays audio on a phone (or any
 other ABS client), while Bookplayer plays no audio and follows the aligned EPUB
 from ABS's remote timeline. ABS is the sole position authority; Bookplayer never

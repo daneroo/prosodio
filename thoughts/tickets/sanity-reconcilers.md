@@ -1,5 +1,8 @@
 # sanity-reconcilers — desired -> actual convergence validators
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 state: principle; post-seed; pairs with the `@bun-one/quality` direction.
 
 - k8s-style: state DESIRED generally, compute ACTUAL from the source of truth,

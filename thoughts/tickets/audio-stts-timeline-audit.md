@@ -1,5 +1,8 @@
 # audio-stts-timeline-audit — m4b sample tables that lie about duration
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 why: _The Diamond Age_ (2012 m4b) stayed in sync when played straight through
 but drifted permanently after any seek past 0:48:29 (diagnosed 2026-09-27). Not
 a Bookplayer bug. The file is ~23 joined source parts; at each join the next

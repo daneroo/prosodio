@@ -1,5 +1,8 @@
 # promote-app-config — shared `packages/config`
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 why: four apps mirror the same pattern — transcribe's `lib/config.ts`
 (original), epub-validate's `src/config.ts`, align's `lib/config.ts`, and
 `apps/bookplayer/src/lib/config.ts`. The "third consumer" trigger is met.

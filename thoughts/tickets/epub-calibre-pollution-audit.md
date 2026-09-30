@@ -1,5 +1,8 @@
 # epub-calibre-pollution-audit — Calibre-polluted EPUBs across the corpora
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 why: Calibre's viewer silently adds `META-INF/calibre_bookmarks.txt` when it
 opens a book, changing the epub's whole-file sha256 without touching book
 content. It already caused a fixture provenance break (Alice epub, restored
