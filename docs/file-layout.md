@@ -11,7 +11,7 @@
     - `agents/` — issue tracker, triage labels, domain-doc rules for the agent
       skills
     - `adr/` — hard-to-reverse decisions (created when the first one is needed)
-  - `CONTEXT.md` — domain glossary at the root (created when the first term is
+  - `GLOSSARY.md` — domain glossary at the root (created when the first term is
     resolved)
   - `thoughts/` — `BACKLOG.md` (persistent idea inbox) + transient companion
     files for GitHub issues; see [workflow.md](workflow.md)

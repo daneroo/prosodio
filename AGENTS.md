@@ -33,3 +33,20 @@ acceptance criteria): when `/to-tickets` breaks work down, give each ticket a
   - `fixtures/` — public test data (committed)
   - `data/` — gitignored, volatile (outputs, scratch)
   - external — private corpora (outside the repo, via config)
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `daneroo/prosodio`, via the `gh` CLI. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default roles, each label string equal to its role name. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `GLOSSARY.md` + `docs/adr/`, created lazily. See
+`docs/agents/domain.md`.

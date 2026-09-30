@@ -15,9 +15,9 @@ Tracker conventions: `docs/agents/issue-tracker.md` (written by
 `BACKLOG.md`.
 
 Filenames in both `docs/` and `thoughts/` are lowercase kebab; only `README.md`,
-`BACKLOG.md` and `CONTEXT.md` are capitalized, as recognized repository indexes.
-(`docs/` was UPPERCASE until 2026-07-12 — reversed as a mistake; if you find a
-reference to the old casing elsewhere, fix it.)
+`BACKLOG.md` and `GLOSSARY.md` are capitalized, as recognized repository
+indexes. (`docs/` was UPPERCASE until 2026-07-12 — reversed as a mistake; if you
+find a reference to the old casing elsewhere, fix it.)
 
 Prosodio's one required quality gate is `bun run ci` (see `AGENTS.md`). This
 convention is shared with other repos using the same docs/thoughts model (e.g.
@@ -101,5 +101,5 @@ the chosen design into executable work.
 - Superseded design drafts are consolidated rather than accumulated; Git keeps
   their history.
 - When implementation settles the design, harvest what is still useful — terms
-  into `CONTEXT.md`, hard-to-reverse decisions into `docs/adr/`, operational
+  into `GLOSSARY.md`, hard-to-reverse decisions into `docs/adr/`, operational
   facts into code, tests, or durable `docs/` — then delete the transient design.
