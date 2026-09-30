@@ -11,3 +11,7 @@ apps/bookplayer/src/routeTree.gen.ts
 apps/bookplayer/.output/
 apps/bookplayer/.nitro/
 apps/bookplayer/.tanstack/
+
+# Vendored agent skills — installed by `npx skills`, hash-pinned in
+# skills-lock.json; reformatting drifts them from upstream.
+.agents/

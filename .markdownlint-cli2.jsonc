@@ -6,6 +6,9 @@
   // does not (e.g. duplicate headings, bare URLs). See docs/markdown.md.
   // gitignore: true makes globbing skip node_modules, out/, dist/ via .gitignore.
   "gitignore": true,
+  // Vendored agent skills — installed by `npx skills`, hash-pinned in
+  // skills-lock.json; not ours to lint.
+  "ignores": [".agents/**"],
   "config": {
     "extends": "markdownlint/style/prettier",
   },
