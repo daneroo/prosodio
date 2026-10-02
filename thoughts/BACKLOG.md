@@ -1,13 +1,9 @@
 # BACKLOG
 
-Unscheduled work, grouped by theme. Format:
-[docs/workflow.md](../docs/workflow.md). This file is an INDEX — entries stay a
-few lines; items whose detail outgrows that carry a `ticket:` link into
-[tickets/](tickets/).
-
-## Now
-
-Scheduled items go here (leave this comment)
+Idea inbox, grouped by theme: snippets worth not forgetting, not yet worth an
+issue. Promote to a GitHub issue, then delete the line. Rules:
+[docs/workflow.md](../docs/workflow.md). `ticket:` links are legacy notes in
+[tickets/](tickets/); add no new ones.
 
 ## player-ux
 
@@ -142,7 +138,12 @@ vtt/alignment.
       sweep. Revisit when align-cli gets real work.
 - [ ] dotfile-ownership — generated dotfiles carry decisions nobody chose;
       candidate: a central config-owning package (cf. `@bun-one/quality`).
-      Revisit when sprawl hurts.
+      Sprawl now hurts: style/lint config is split across .prettierignore,
+      eslint.config.js, .markdownlint-cli2.jsonc, package.json scripts and
+      docs/formatting.md, each with its own ignore list. Discuss with goal 2.
+- [ ] dependency-refresh — run `bun run outdated` and update; pair with
+      `dependency-update-doc`. Bump root `markdownlint` with `markdownlint-cli2`
+      (exact pin; see `.markdownlint-cli2.jsonc`).
 - [ ] agents-md-convention — AGENTS.md/CLAUDE.md/`.cursor/rules` precedence;
       reconcile the existing examples. Revisit after agents exercise this repo
       more.
@@ -176,123 +177,7 @@ vtt/alignment.
 - [ ] dependency-update-doc — document the update workflow (`outdated:fix` =
       `bun update -i -r`); CAVEAT: verify `catalog:` reference handling. Revisit
       at the first stale dep.
-
-## Closed (newest first)
-
-One line per closed item — this section doubles as the `tickets - archive`
-index. Prune old lines freely; git keeps everything.
-
-- 2026-09-27 bookplayer-abs-progress-sync — Socket.IO subscription and
-  active-book switching proved against local ABS; retained the redacted probe
-  and moved the remote-follow product work to `bookplayer-abs-remote-follow`.
-  [plans/archive/bookplayer-abs-progress-sync.md](plans/archive/bookplayer-abs-progress-sync.md)
-
-- 2026-08-19 bookplayer-word-gesture-ipad — double-tap a word to seek works on
-  iPad. The gesture code was never the fault: WebKit 218086 means Safari/iPadOS
-  delivers NO events to listeners bound on a sandboxed iframe's document without
-  `allow-scripts` — which killed epub.js's own event forwarding too. Enabled via
-  `allowScriptedContent`, with book scripts neutralized in a spine serialize
-  hook so the reversal buys event delivery and nothing else; validated against
-  all 7 script-bearing books in the corpus (264 docs, 34 scripts, 0 leaks).
-  Follow-disengage stayed declined. Constraint documented in
-  [docs/bookplayer/reader-iframe.md](../docs/bookplayer/reader-iframe.md).
-- 2026-08-19 bookplayer-reader-theming — three reading surfaces (book default /
-  light / dark) and a three-way font cycle (Iowan / Charter / Georgia), both
-  persisted, both in the reader toolbar. Book default is a true no-injection
-  off-state; the font rides the epub.js override channel so it never leaks into
-  it. Literata dropped (only non-system face). Daniel kept the font cycle
-  permanently rather than collapsing to one face. Two bugs found on device:
-  `themes.select()` only ADDS rules (fixed by scoping to the class it toggles),
-  and the font label lied under book default.
-  [plans/archive/bookplayer-reader-theming.md](plans/archive/bookplayer-reader-theming.md)
-
-- 2026-07-20 merge-nx-audiobook-validation — charter milestone 2 done: the nx
-  rules vetted in (strays, hygiene trio with provenance tolerance, mtime hints
-  with `--record-mtimes`, duration, missing-author) and out (author/title +
-  cover superseded; naming deferred to the keyword-cue convention). Daniel
-  converted the modTimeDB (955 basename-keyed entries; 92 leaf-dir keys
-  remapped); all three corpora validate PASS. nx validator retirement = Daniel's
-  call after a real staging cycle.
-- 2026-07-19 validate-bootstrap — charter milestone 1 done: `packages/corpus`
-  (scan/metadata/ffprobe + severity axis, extraction proven byte-identical
-  against pre-refactor digests), scoped `packages/config` (named roots;
-  promote-app-config keeps the other apps), and `apps/validate-cli`
-  (`bun run validate <name-or-path>`, probe-by-default, --json, exit 0/1/2).
-  Acceptance: fixtures 4/4 PASS, private 955/955 probed ~30s PASS, staging
-  bare-path PASS. BookCache v5.
-- 2026-07-19 fixtures-into-shape — the Fixture Rabbits series landed: three
-  faithful public pairs (clean tags, per-track narrators, VTTs, sha-pinned
-  provenance in manifest.jsonc), alignment baselines narration 86-91% (accepted;
-  low book% = Gutenberg license spine, normal). Alice keeps its junk title and
-  jfk stays tagless deliberately (validator/metadata test cases). Mismatch
-  threads + the #11 puzzle moved to `align-known-mismatch-convention`; the
-  omnibus fixture note to `corpora-omnibus-mapping`.
-- 2026-07-19 metadata-canonical-from-tags — m4b tags canonical for
-  title/author/series/narrator via one pure extractor (`src/lib/metadata.ts`);
-  `metadata-basename-fallback` finding (rescan-proof via `metadata.source`);
-  series/narrator on the Audiobooks tab; cache v4 re-probe verified 952/952
-  source=tags, findings 0, 40 multi-series books.
-- 2026-07-19 align-better-fixture-pair — absorbed into `fixtures-into-shape`
-  (broadened: faithful pairs + fixture re-tagging + jfk decision + provenance).
-
-- 2026-07-19 lab-routes-refined — `/lab` grew into list-first surfaces per
-  pipeline artifact: Corpora (typed scan findings replacing server-log
-  warnings + graded epub/vtt match quality), Audiobooks/Epub/VTT lists,
-  Alignment (coverage metrics from cached artifacts + cache visibility/evict +
-  standalone inspector), Locate (matched/all-token modes, report v2), all on a
-  shared LabTable. The branch also carried the metadata-canonical-from-tags
-  first stab (tags now canonical for title/author), the ISO 8601 date rule, and
-  the delegation-doc updates.
-- 2026-07-19 document-delegation-tiers — standing delegation directive ("lower
-  power model and effort in a subagent; account for it in planning") plus the
-  proven `[tier: low|med]` scheme written into `docs/workflow.md`'s Plans
-  section; AGENTS.md Execution pointer strengthened.
-
-- 2026-07-18 bookplayer-audio-range-compat — exact browser ranges now use one
-  Nitro/Bun-file audio path in development and production. Accepted with a
-  50-book development burn-in (no OOM) and Brave/iPad ad-hoc playback.
-- 2026-07-12 sync-repository-workflow — `docs/` renamed to lowercase kebab-case
-  (reversed the earlier UPPERCASE decision; verified two-hop `git mv` procedure
-  for macOS case-insensitive filesystems), all 20 referencing files fixed,
-  `docs/workflow.md`'s casing statement corrected, `AGENTS.md`'s Execution
-  section deduped to a pointer, the "one named quality gate per repo" invariant
-  added. Nix-hardy commit `8516003` was the source; review comments delivered to
-  Codex separately.
-- 2026-07-12 player-sync-core — route-level `usePlayerSync` (follow works with
-  the panel closed), EPUB dblclick reverse sync (srcdoc CFI bridge; the raw path
-  lookup could never work), reader chrome colocated with the EPUB pane, panel
-  word gesture = single click seek+show, EpubReader hardened against epub.js
-  display wedges (latest-wins scheduler, non-blocking init, detached section
-  loads).
-- 2026-07-12 lab-routes — `/dev/*` -> `/lab/*` with tabbed layout + landing
-  (Locate live; Align/Epub/Parsers reserved); data-plane renamed
-  `/api/locate-sweep` + `<bookId>.locate-sweep.json`. Same plan.
-- 2026-07-12 matching-quality-design — as-built baseline design doc accepted
-  (P3.2); revisit when design docs are folded into docs/ (docs-taxonomy).
-  [design/matching-quality-design.md](design/matching-quality-design.md)
-- 2026-07-12 bookplayer-calibre-html-locate — RESOLVED by replacing the two
-  Calibre `.html` books (Daniel); full corpus now 93/93 swept, 93 clean,
-  11,554,769/11,554,769 tokens ok, 0 failed. The documentElement-anchoring fix
-  drops to optional general robustness — revisit only if a new prolog-polluted
-  book appears.
-
-- 2026-07-10 bookplayer-epub-locator-hardening — predicted-mode mismatch class
-  fixed (extension-driven parsing, schema v3); L2/L3 tooling + sweep persistence
-  built; corpus 91/93 clean. Residual split to `bookplayer-calibre-html-locate`.
-- 2026-07-10 align-epub-parser-decisions — compromise 2 (parse mode) RESOLVED
-  extension-driven, mirroring epub.js (evidence in the locate-hardening plan);
-  compromise 1 (jsdom forced in-process) folded into `epubts-node-jsdom-always`.
-- 2026-07-09 bookplayer-align-refine-model — AlignmentArtifact v2: one versioned
-  columnar artifact, deterministic bytes, cached and served as-is.
-- 2026-07-05 bookplayer-alignment-layout — AlignmentViewer panel, 50/50 split,
-  show-in-book, playback-synced three-view follow; engine extracted to
-  `packages/align`. Carried forward: follow requires the panel open — now the
-  core of `player-sync-core`.
-- 2026-07-04 bookplayer — the Prosodio Bookplayer app (reader-first player over
-  the canonical library), consolidating the ai-garden experiments.
-  [plans/archive/bookplayer.md](plans/archive/bookplayer.md)
-- 2026-06-28 prettier-tables-vs-deno — prettier md tables byte-identical to deno
-  fmt; doc-write folded into `document-prosewrap`.
-- earlier — epochs 0-4 of the consolidation (transcribe/epub/alignment ports)
-  and the align design iterations; harvested into docs/ and pruned 2026-07-20,
-  git keeps the history.
+- [ ] spelunk-closed-history — if pre-GitHub completed work is ever needed,
+      recover the dropped `## Closed` log (2026-07-19..2026-09-27):
+      `git show 6b0213e~1:thoughts/BACKLOG.md`; links point into
+      `thoughts/plans/archive/`.

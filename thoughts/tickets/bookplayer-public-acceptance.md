@@ -1,5 +1,8 @@
 # bookplayer-public-acceptance — committed public browser acceptance
 
+Legacy note from the pre-GitHub workflow; migrates to an issue in the backlog
+port.
+
 why: the strong regression (home search `Use Of Weapons` -> EPUB search `Dizzy`
 -> click result -> visible in-bounds highlight surviving mobile reflow) is
 PRIVATE-corpus only — it lives in the archived plan's Phase 8 log + gitignored

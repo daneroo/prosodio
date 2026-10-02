@@ -8,14 +8,19 @@
     sha256 verify + derive)
 - Docs
   - `docs/` — durable reference (this set)
-  - `thoughts/` — `BACKLOG.md` (persistent) + transient work; see
-    [workflow.md](workflow.md)
-    - `plans/<id>.md` — executable checkbox plan
-    - `plans/archive/<id>.md` — completed plans kept while still useful (e.g. as
-      exemplars or referenced by live backlog items); removed eventually. The
-      backlog is the durable record, not these.
-    - `design/<id>-design.md` — preferred name for the plan's working design
-    - `research/`, `reviews/`, `tickets/` — optional supporting notes
+    - `agents/` — issue tracker, triage labels, domain-doc rules for the agent
+      skills
+    - `adr/` — hard-to-reverse decisions (created when the first one is needed)
+  - `GLOSSARY.md` — domain glossary at the root (created when the first term is
+    resolved)
+  - `thoughts/` — `BACKLOG.md` (persistent idea inbox) + transient companion
+    files for GitHub issues; see [workflow.md](workflow.md)
+    - `plans/<issue#>-<slug>.md` — live checkbox plan
+    - `plans/archive/` — closed plans kept while still useful as exemplars;
+      removed eventually
+    - `design/`, `research/`, `reviews/` — `<issue#>-<slug>.md`
+    - `tickets/` — legacy notes from the pre-GitHub workflow; migrating to
+      issues
 - Data (what may be committed vs kept private: [privacy.md](privacy.md))
   - `fixtures/` — public test data (committed, reproducible — see `scripts/`):
     - `audio/` — small smoke clips + produced `.m4b`

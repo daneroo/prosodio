@@ -72,7 +72,7 @@ for small tables (spans, gaps, spines, metrics); plain parallel JSON `number[]`
 columns for anything cue- or token-scale. No base64, no typed arrays on the
 wire.
 
-```
+```text
 AlignmentArtifact (schemaVersion: 2 — v1 is deleted, never cohabits)
 - schemaVersion, features: string[]
 - source, config              — deterministic echo, carried from v1
@@ -199,7 +199,7 @@ ever allowed to return.
 
 The chain the "show in book" / follow feature depends on, end to end:
 
-```
+```text
 extraction (server, jsdom)                 browser (epub.js section)
 --------------------------                 -------------------------------
 projectVisibleText walks the parsed        section.load parses the SAME

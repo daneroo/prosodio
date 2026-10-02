@@ -10,7 +10,10 @@ How to work in this repo — layout, workflow, tooling, style.
 
 - [file-layout.md](file-layout.md) — where things live
 - [privacy.md](privacy.md) — public/private data boundary
-- [workflow.md](workflow.md) — backlog/ticket/plan formats, how work flows
+- [workflow.md](workflow.md) — idea -> issue -> spec -> tickets flow; backlog
+  inbox, working files
+- [agents/](agents/) — agent-skill config: issue tracker, triage labels,
+  domain-doc rules
 - [workspace.md](workspace.md) — quality gate, testing gotchas, seeding
 - [dependency.md](dependency.md) — adding, workspace imports, catalogs, updates
 - [formatting.md](formatting.md) — formatting + linting
