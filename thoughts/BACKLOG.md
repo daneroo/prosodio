@@ -12,7 +12,12 @@ issue. Promote to a GitHub issue, then delete the line. Rules:
       noise.
 - [ ] bookplayer-ebook-renderer — keep the EPUB renderer swappable; evaluate
       epub.js alternatives when search/highlight or theming becomes a real
-      limitation.
+      limitation. Why: epub.js 0.3.x is old and weakly typed (search/highlight
+      sank the codex experiment; it logs caught `IndexSizeError`s on some
+      relocations). The isolation is in place: the whole epub.js surface sits in
+      `EpubReader.tsx` behind `ReaderController`. Candidates: readium
+      (`@readium`), foliate-js, or a custom paginator over the spine text
+      `packages/align` already extracts.
 - [ ] bookplayer-serve-vtt-track — serve the VTT to the media element
       (`<track>`); kept open by design D9. Revisit when native captions become a
       real want.
