@@ -85,6 +85,8 @@ semantics are unit-covered and the route file stays trivial.
 - Clip only the outer container (`overflow: hidden`); leave epub.js internal
   scroll math alone or highlights land off-screen. Normalize range CFIs to start
   points before `rendition.display`.
+- A settled `rendition.display()` promise is not a painted page. Don't treat it
+  as "visible" for measuring, screenshots or acceptance checks.
 
 ## Import path aliases
 

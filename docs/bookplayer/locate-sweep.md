@@ -59,5 +59,7 @@ see design D10), parity result, and capped `failures`. Persisted as
 - A `path` failure with `parseMode` ≠ `extensionPredictedMode` is the
   parser-mode mismatch class (fixed 2026-07-10, extension-driven parsing).
 - A `path` failure where both are equal is a deeper parity divergence (e.g.
-  document-prolog differences on Calibre `.html`) — see BACKLOG
-  `bookplayer-calibre-html-locate`.
+  document-prolog differences on Calibre `.html`). Seen 2026-07 in two
+  Calibre-converted books and resolved by replacing them; the corpus then swept
+  clean. A `documentElement`-anchoring fix stays optional: revisit only if a new
+  case appears.

@@ -37,9 +37,6 @@ theme (`## player-ux`, `## corpus quality`, …); themes are the only structure.
 - Promotion: open a GitHub issue, then delete the line. The issue is the record;
   git keeps the rest.
 - No scheduling and no closed history here — both live in GitHub.
-- Legacy: some entries still carry `ticket:` links into `thoughts/tickets/`
-  (notes from the pre-GitHub workflow). They migrate to issues with their entry;
-  add no new ones.
 
 ## Working files — `thoughts/<kind>/<issue#>-<slug>.md`
 

@@ -19,8 +19,6 @@
     - `plans/archive/` — closed plans kept while still useful as exemplars;
       removed eventually
     - `design/`, `research/`, `reviews/` — `<issue#>-<slug>.md`
-    - `tickets/` — legacy notes from the pre-GitHub workflow; migrating to
-      issues
 - Data (what may be committed vs kept private: [privacy.md](privacy.md))
   - `fixtures/` — public test data (committed, reproducible — see `scripts/`):
     - `audio/` — small smoke clips + produced `.m4b`
