@@ -136,7 +136,9 @@ vtt/alignment.
       policy, L1/L2/L3 validation ladder) by harvesting `thoughts/design/`;
       prune the harvested designs after. The harvest now also covers
       `design/matching-quality-design.md` (Daniel, P3.2 2026-07-12: revisit the
-      baseline when it is digested and simplified into docs/).
+      baseline when it is digested and simplified into docs/). First piece
+      queued: #12 adds `docs/bookplayer/lab.md` (the lab design rules D1–D10,
+      harvested from the deleted `lab-routes-refined` plan).
 - [ ] catalog-workflow-doc — document the `workspaces.catalogs` workflow in
       `docs/dependency.md`; demand-driven (entry only at 2+ consumers), named
       catalogs (`runtime`, `testing`) expected.
