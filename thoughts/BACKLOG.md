@@ -114,9 +114,13 @@ vtt/alignment.
 - [ ] dependency-refresh — run `bun run outdated` and update; pair with
       `dependency-update-doc`. Bump root `markdownlint` with `markdownlint-cli2`
       (exact pin; see `.markdownlint-cli2.jsonc`).
-- [ ] agents-md-convention — AGENTS.md/CLAUDE.md/`.cursor/rules` precedence;
-      reconcile the existing examples. Revisit after agents exercise this repo
-      more.
+- [ ] agents-md-convention — settled for Claude Code (2026-10-02): `AGENTS.md`
+      is canonical and `CLAUDE.md` is a one-line `@AGENTS.md` import
+      ([docs](https://code.claude.com/docs/en/memory#agents-md)). Native
+      `AGENTS.md` reading is off while a `CLAUDE.md` sits above the repo (now:
+      ai-garden), so the import stays until prosodio moves out; then it can be
+      deleted. Remaining: `.cursor/rules` precedence, if Cursor is ever used
+      here.
 - [ ] mdx-linting — `.mdx` formatting/linting (prettier mdx parser vs
       markdownlint gap). Revisit at the first `.mdx` file.
 
