@@ -7,8 +7,9 @@
   // gitignore: true makes globbing skip node_modules, out/, dist/ via .gitignore.
   "gitignore": true,
   // Vendored agent skills — installed by `npx skills`, hash-pinned in
-  // skills-lock.json; not ours to lint.
-  "ignores": [".agents/**"],
+  // skills-lock.json; not ours to lint. .claude/skills/* are symlinks into
+  // .agents/skills/, which globbing follows, so ignore both paths.
+  "ignores": [".agents/**", ".claude/skills/**"],
   "config": {
     "extends": "markdownlint/style/prettier",
   },
