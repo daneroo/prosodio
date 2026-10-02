@@ -138,7 +138,12 @@ vtt/alignment.
       sweep. Revisit when align-cli gets real work.
 - [ ] dotfile-ownership — generated dotfiles carry decisions nobody chose;
       candidate: a central config-owning package (cf. `@bun-one/quality`).
-      Revisit when sprawl hurts.
+      Sprawl now hurts: style/lint config is split across .prettierignore,
+      eslint.config.js, .markdownlint-cli2.jsonc, package.json scripts and
+      docs/formatting.md, each with its own ignore list. Discuss with goal 2.
+- [ ] dependency-refresh — run `bun run outdated` and update; pair with
+      `dependency-update-doc`. Bump root `markdownlint` with `markdownlint-cli2`
+      (exact pin; see `.markdownlint-cli2.jsonc`).
 - [ ] agents-md-convention — AGENTS.md/CLAUDE.md/`.cursor/rules` precedence;
       reconcile the existing examples. Revisit after agents exercise this repo
       more.
