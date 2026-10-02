@@ -11,6 +11,12 @@
   // .agents/skills/, which globbing follows, so ignore both paths.
   "ignores": [".agents/**", ".claude/skills/**"],
   "config": {
+    // The preset ships in the `markdownlint` package, so it is a direct root
+    // devDependency: Bun's isolated install doesn't hoist transitive deps, and
+    // the VS Code extension resolves `extends` only from this directory (the
+    // CLI also finds it via its own install path, which hid the problem). Pin
+    // it to the exact version markdownlint-cli2 depends on (see bun.lock);
+    // bump both together.
     "extends": "markdownlint/style/prettier",
   },
 }
