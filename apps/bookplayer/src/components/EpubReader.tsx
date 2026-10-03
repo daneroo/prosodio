@@ -260,6 +260,16 @@ function themeKey(): string {
   return READER_THEME_KEY;
 }
 
+/** Highlight rect attributes per theme. The light faces keep the cyan wash;
+ *  on `dark` that cyan (≈21% effective alpha over #0f172a) is nearly
+ *  invisible, so dark uses a warm yellow band that leaves the light text
+ *  readable (tinted cream) against an olive background. */
+function highlightStyles(theme: ThemeName): Record<string, string> {
+  return theme === "dark"
+    ? { fill: "rgb(250,204,21)", "fill-opacity": "0.3" }
+    : { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" };
+}
+
 export const THEME_NAMES: ReadonlyArray<ThemeName> = [
   "default",
   "light",
@@ -549,7 +559,7 @@ export function EpubReader({
             {},
             undefined,
             "bp-search-hl",
-            { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" },
+            highlightStyles(themeRef.current),
           );
           activeHighlight.cfi = result.cfi;
         } catch {
@@ -943,7 +953,18 @@ export function EpubReader({
         resizeObserver = new ResizeObserver(() => {
           if (resizeTimer) clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
-            if (!alive() || !rendition || !resumeTarget.cfi) return;
+            if (!alive() || !rendition) return;
+            // epub.js only re-measures on WINDOW resize (stage.js:152), so a
+            // container-only resize — e.g. hiding the stacked alignment panel
+            // on a phone — left pages laid out at the old height. resize()
+            // with no args re-measures the container; it is a no-op when the
+            // size is unchanged (manager resize, default/index.js:213).
+            // The typings demand width/height; epub.js treats both as
+            // optional (rendition.js:514) and only the no-arg call measures.
+            (rendition.resize as (w?: number, h?: number) => void).call(
+              rendition,
+            );
+            if (!resumeTarget.cfi) return;
             void displayScheduler(resumeTarget.cfi).catch(() => {
               /* display is best-effort here; a locate owns error reporting */
             });
@@ -1104,7 +1125,7 @@ export function EpubReader({
                 {},
                 undefined,
                 "bp-align-hl",
-                { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" },
+                highlightStyles(themeRef.current),
               );
               activeHighlight.cfi = cfi;
             } catch {

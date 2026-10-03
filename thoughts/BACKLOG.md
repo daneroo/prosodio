@@ -111,6 +111,11 @@ vtt/alignment.
 - [ ] align-cli-rename — rename `apps/align/` to match its CLI-only role (npm
       name already `@prosodio/align-cli`); must ship with a full reference
       sweep. Revisit when align-cli gets real work.
+- [ ] align-cli-zod-ci — `bun run ci` fails on a fresh install:
+      `apps/align/lib/report.ts` (align-cli, the CLI over `packages/align`)
+      imports `zod`, which `apps/align/package.json` doesn't declare. It passes
+      in an existing checkout only through a leftover `node_modules/zod` link.
+      zod and valibot are both in the root `runtime` catalog.
 - [ ] dependency-refresh — run `bun run outdated` and update; pair with
       `dependency-update-doc`. Bump root `markdownlint` with `markdownlint-cli2`
       (exact pin; see `.markdownlint-cli2.jsonc`).

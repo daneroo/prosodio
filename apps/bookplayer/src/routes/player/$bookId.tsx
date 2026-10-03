@@ -33,6 +33,9 @@ import type {
 
 type LocateFailure = Extract<LocateResult, { ok: false }>;
 
+/** Global, not per-book: whether the alignment split is shown. */
+const ALIGN_OPEN_KEY = "bookplayer:align-open";
+
 const EpubReader = lazy(() =>
   import("#/components/EpubReader").then((m) => ({ default: m.EpubReader })),
 );
@@ -97,6 +100,26 @@ function PlayerPage() {
   // Alignment split: default on (plan D3) whenever both sides exist.
   const canAlign = book.hasEpub && book.hasVtt;
   const [alignOpen, setAlignOpen] = useState(canAlign);
+  // Persisted globally (a layout preference, like the reader theme). Read
+  // after mount, not in the initializer: the server can't see localStorage,
+  // so reading it during render would mismatch hydration.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(ALIGN_OPEN_KEY);
+      if (stored !== null) setAlignOpen(stored === "1");
+    } catch {
+      /* persistence is best-effort */
+    }
+  }, []);
+  const toggleAlign = useCallback(() => {
+    const next = !alignOpen;
+    setAlignOpen(next);
+    try {
+      localStorage.setItem(ALIGN_OPEN_KEY, next ? "1" : "0");
+    } catch {
+      /* persistence is best-effort */
+    }
+  }, [alignOpen]);
   // Reader follow (plan D6): the reader tracks the active matched token while
   // on; any manual reader navigation disengages it.
   const [followReader, setFollowReader] = useState(canAlign);
@@ -236,8 +259,17 @@ function PlayerPage() {
     }
   }, [followReader, sync.activeToken, showInBook]);
 
+  // Header toggles: one string serves as both the accessible name and the
+  // hover tooltip, and names the action a click performs.
+  const followLabel = followReader
+    ? "Stop following playback in book"
+    : "Follow playback in book";
+  const alignLabel = alignOpen
+    ? "Hide alignment panel"
+    : "Show alignment panel";
+
   return (
-    <div className="flex h-screen flex-col bg-slate-900 text-white">
+    <div className="flex h-dvh flex-col bg-slate-900 text-white">
       {/* Top bar: navigation + book identity + follow/alignment/lab toggles.
           Reader controls (Chapters/pager/search) live with the reader pane
           below (plan player-sync-core T2.4). */}
@@ -265,13 +297,9 @@ function PlayerPage() {
             className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
               followReader ? "text-cyan-400" : "text-slate-400"
             }`}
-            aria-label={
-              followReader
-                ? "Stop following playback in book"
-                : "Follow playback in book"
-            }
+            aria-label={followLabel}
             aria-pressed={followReader}
-            title="Follow playback in book"
+            title={followLabel}
           >
             <LocateFixed className="h-4 w-4" />
           </button>
@@ -279,14 +307,13 @@ function PlayerPage() {
         {canAlign && (
           <button
             type="button"
-            onClick={() => setAlignOpen((open) => !open)}
+            onClick={toggleAlign}
             className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
               alignOpen ? "text-cyan-400" : "text-slate-400"
             }`}
-            aria-label={
-              alignOpen ? "Hide alignment panel" : "Show alignment panel"
-            }
+            aria-label={alignLabel}
             aria-pressed={alignOpen}
+            title={alignLabel}
           >
             <Columns2 className="h-4 w-4" />
           </button>

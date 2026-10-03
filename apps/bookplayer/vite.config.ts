@@ -8,6 +8,11 @@ import { nitro } from "nitro/vite";
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  // Dev is exposed on the LAN/tailnet (`dev` passes --host) and reached by
+  // bare MagicDNS names like `galois`, which Vite's default host check
+  // blocks. Any host is accepted for now; this turns off Vite's DNS-rebinding
+  // guard, so tighten to a list if the dev server ever leaves trusted networks.
+  server: { allowedHosts: true },
   // Bun preset per https://bun.com/docs/guides/ecosystem/tanstack-start.
   // The installed nitro nightly's plugin-arg type only admits its own two
   // fields; the vite UserConfig.nitro augmentation is its config path.
