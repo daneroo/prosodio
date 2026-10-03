@@ -62,6 +62,19 @@ export function useAudioTransport(bookId: string) {
     const onError = () =>
       setError("file missing or unsupported — the reader still works");
 
+    // Restore the global speed preference. defaultPlaybackRate too: loading a
+    // media resource resets playbackRate to it.
+    try {
+      const stored = Number(localStorage.getItem(SPEED_KEY));
+      if (SPEED_STEPS.includes(stored as (typeof SPEED_STEPS)[number])) {
+        audio.defaultPlaybackRate = stored;
+        audio.playbackRate = stored;
+        setSpeed(stored);
+      }
+    } catch {
+      /* persistence is best-effort */
+    }
+
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("loadedmetadata", onLoadedMetadata);
     audio.addEventListener("durationchange", onDurationChange);
@@ -109,7 +122,15 @@ export function useAudioTransport(bookId: string) {
         current as (typeof SPEED_STEPS)[number],
       );
       const next = SPEED_STEPS[(index + 1) % SPEED_STEPS.length] ?? 1;
-      if (ref.current) ref.current.playbackRate = next;
+      if (ref.current) {
+        ref.current.defaultPlaybackRate = next;
+        ref.current.playbackRate = next;
+      }
+      try {
+        localStorage.setItem(SPEED_KEY, String(next));
+      } catch {
+        /* persistence is best-effort */
+      }
       return next;
     });
   }, []);
@@ -164,6 +185,10 @@ export function useAudioTransport(bookId: string) {
     setVolume,
   };
 }
+
+/** localStorage key for the playback speed. Global, not per-book: a
+ *  listening preference belongs to the listener, not the book. */
+const SPEED_KEY = "bookplayer:speed";
 
 /** localStorage key for storing/resuming audio position by book. */
 function audioPosKey(bookId: string): string {
