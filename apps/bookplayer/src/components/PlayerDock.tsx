@@ -1,8 +1,9 @@
 /**
- * Bottom dock: transcript strip above the transport. Desktop transport is
- * one row; below `sm` it becomes two rows (seek above buttons) so every
- * control — ±1m/±15s, speed, volume — stays visible at 390 px (both
- * experiments hid or clipped controls on mobile; this design does not).
+ * Bottom bar: transcript panel above the audio control panel. On desktop
+ * the controls are one row; below `sm` they become two rows (seek above
+ * buttons) so every control — ±1m/±15s, speed, volume — stays visible at
+ * 390 px (both experiments hid or clipped controls on mobile; this design
+ * does not).
  */
 import { Pause, Play, RotateCcw, RotateCw } from "lucide-react";
 

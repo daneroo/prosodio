@@ -5,7 +5,7 @@
  * word-by-word — one cue can mix matched and unmatched tokens. During
  * playback the active cue and its active token are highlighted. Residual-gap
  * markers flag book content the narration never reads. Click seeks. A pure
- * subscriber (plan thoughts/plans/player-sync-core.md, S2): the route's
+ * subscriber (plan thoughts/plans/player-sync-core.md, S2): the player view's
  * usePlayerSync hook (lib/player-sync.ts) owns the artifact fetch/prepare and
  * the active-token/cue derivation, so reader follow works with this panel
  * closed; this component only builds rows and renders.

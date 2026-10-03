@@ -6,7 +6,7 @@ import { SPEED_STEPS } from "#/components/PlayerDock";
  * Audio element lifecycle + transport commands + keyboard transport + position
  * persistence. Manages the hidden <audio> element: play/pause, seek, speed,
  * volume, resume from saved position, and keyboard shortcuts (Space, arrows).
- * Consumed by PlayerPage route (player/$bookId.tsx).
+ * Consumed by LocalPlayer.
  */
 export function useAudioTransport(bookId: string) {
   const ref = useRef<HTMLAudioElement>(null);

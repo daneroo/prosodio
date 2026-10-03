@@ -1,8 +1,8 @@
 /**
- * Route-level sync core (plan thoughts/plans/player-sync-core.md, S1/S2): owns
+ * Player-view sync core (plan thoughts/plans/player-sync-core.md, S1/S2): owns
  * the alignment artifact fetch + prepare pass and derives the active
- * token/cue from the playhead, so reader-follow works from the route
- * regardless of whether the alignment panel is mounted. AlignmentViewer
+ * token/cue from the audio position, so reader-follow works from the player
+ * view regardless of whether the alignment panel is mounted. AlignmentViewer
  * subscribes to this state (`prepared`/`activeTokenSeq`/`activeCueIndex`)
  * instead of deriving it itself — see AlignmentViewer's own header comment.
  */
@@ -44,13 +44,13 @@ export interface PlayerSync {
 
 /**
  * Fetches + prepares the alignment artifact for `bookId` and derives the
- * active token/cue from `currentTime`. `enabled` is the route's `canAlign`
+ * active token/cue from `audioPosition`. `enabled` is the view's `canAlign`
  * gate (book has both EPUB + VTT); when false, stays "unavailable" without
  * fetching.
  */
 export function usePlayerSync(
   bookId: string,
-  currentTime: number,
+  audioPosition: number,
   enabled: boolean,
 ): PlayerSync {
   const [state, setState] = useState<SyncState>({ status: "loading" });
@@ -94,10 +94,10 @@ export function usePlayerSync(
         ? activeTokenAt(
             state.prepared.tokenStart,
             state.prepared.tokenEnd,
-            currentTime,
+            audioPosition,
           )
         : -1,
-    [state, currentTime],
+    [state, audioPosition],
   );
 
   const activeCueIndex = useMemo(() => {

@@ -1,6 +1,6 @@
 /**
  * epub.js reader. Owns the whole epubjs lifecycle (dynamic client-only
- * import) and pushes state up through callbacks; the player route owns the
+ * import) and pushes state up through callbacks; the player view owns the
  * chrome. Lessons encoded from the experiment record:
  * - load lifecycle keyed to epubUrl only — relocation must never re-open
  * - range CFIs are passed intact to both display and highlight; their common
@@ -157,7 +157,7 @@ export const EMPTY_SEARCH: SearchState = {
  * .xhtml), so the click point is bridged across that divergence via CFI
  * (rendered point -> CFI -> range in the detached document). Deliberately
  * artifact-agnostic — EpubReader knows nothing about spines/tokens; the
- * route maps this to a seek target via `seekTargetForBookPoint`
+ * player view maps this to a seek target via `seekTargetForBookPoint`
  * (player-sync.ts), same division of labor as `locate`. */
 export interface WordActivatePoint {
   sectionHref: string;
@@ -791,7 +791,7 @@ export function EpubReader({
               }
               if (!alive()) return;
               // Fallback on any bridge failure: deliver the RENDERED-doc
-              // point — downstream fails node-not-located and the route's
+              // point — downstream fails node-not-located and the player view's
               // notice still gives feedback (no silent dead clicks).
               activateWord({
                 sectionHref: section.href,

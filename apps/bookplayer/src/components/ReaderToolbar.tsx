@@ -1,10 +1,10 @@
 /**
- * Slim toolbar for the reader pane (plan player-sync-core T2.4): theme
+ * Slim toolbar for the ebook panel (plan player-sync-core T2.4): theme
  * cycle, font cycle, Chapters select, prev/next pager, search open/close
  * toggle (plan T2 adds the first two). Colocated with the EPUB view instead
- * of the global top bar so the reader pane is self-contained. Deliberately
+ * of the global top bar so the ebook panel is self-contained. Deliberately
  * free of alignment/sync knowledge — it only drives the `ReaderController`
- * and the search-panel open flag; the route still owns `followReader` and
+ * and the search-panel open flag; the player view still owns `followReader` and
  * passes down the disengage callback, and it owns the theme/font state and
  * cycling logic too (this component just renders current state and calls
  * the cycle callbacks — same "dumb" contract, design §6 decision 7).
