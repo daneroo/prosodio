@@ -65,6 +65,36 @@ describe("resolveConfig", () => {
   });
 });
 
+describe("resolveConfig audiobookshelf", () => {
+  test("is configured when both URL and key are set (trimmed)", () => {
+    const repo = makeRepoSkeleton();
+    const config = resolveConfig(repo, {
+      AUDIOBOOKSHELF_URL: " https://abs.example/audiobookshelf/ ",
+      AUDIOBOOKSHELF_API_KEY: " test-key ",
+    });
+    expect(config.audiobookshelf).toEqual({
+      url: "https://abs.example/audiobookshelf/",
+      apiKey: "test-key",
+    });
+  });
+
+  test("is null when either value is missing, blank, or the URL is invalid", () => {
+    const repo = makeRepoSkeleton();
+    for (const env of [
+      {},
+      { AUDIOBOOKSHELF_URL: "https://abs.example/" },
+      { AUDIOBOOKSHELF_API_KEY: "test-key" },
+      {
+        AUDIOBOOKSHELF_URL: "https://abs.example/",
+        AUDIOBOOKSHELF_API_KEY: " ",
+      },
+      { AUDIOBOOKSHELF_URL: "abs.example", AUDIOBOOKSHELF_API_KEY: "test-key" },
+    ]) {
+      expect(resolveConfig(repo, env).audiobookshelf).toBeNull();
+    }
+  });
+});
+
 describe("findRepoRoot", () => {
   test("accepts the repo root itself", () => {
     const repo = makeRepoSkeleton();

@@ -5,7 +5,7 @@
  *
  * Built for epub.js `rendition.display()`: overlapping display calls wedge
  * its internal queue (observed as locate promises that never settle while
- * follow fires 2-3 locates/sec), so callers must never have two displays in
+ * the link fires 2-3 locates/sec), so callers must never have two displays in
  * flight — and when several arrive while one runs, only the newest matters:
  * the screen should end up at the LAST requested position, not replay every
  * intermediate one.

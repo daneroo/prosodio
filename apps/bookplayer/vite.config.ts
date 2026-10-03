@@ -23,6 +23,7 @@ const config = defineConfig({
     preset: "bun",
     devServer: { runner: "self" },
     rollupConfig: { external: [/^@sentry\//] },
+    plugins: ["./server/plugins/identity-map.ts"],
     handlers: [
       {
         route: "/api/alignment/:bookId",

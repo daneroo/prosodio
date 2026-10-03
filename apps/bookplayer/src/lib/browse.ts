@@ -65,3 +65,12 @@ export function formatDuration(sec: number | null): string {
   const s = Math.floor(sec % 60);
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
+
+/** Clock-style time without a leading zero unit: 1:30:58, 12:04, 0:07. */
+export function formatCompactDuration(sec: number): string {
+  const total = Math.max(0, Math.floor(sec));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const ss = String(total % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
+}

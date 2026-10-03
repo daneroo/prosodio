@@ -1,7 +1,7 @@
 /**
- * Shared time-interval selection for the playback-following views. Cues and
+ * Shared time-interval selection for the active-cue views. Cues and
  * tokens are both half-open [startSec, endSec) intervals sorted by start; the
- * transcript strip and AlignmentViewer follow audio currentTime the same way.
+ * transcript panel and AlignmentViewer select by audio position the same way.
  * Playback sync keys on the active TOKEN (its own interpolated interval), not
  * the whole cue — the cue is only a presentation group (plan D7).
  */

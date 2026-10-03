@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as LabIndexRouteImport } from './routes/lab.index'
 import { Route as PlayerBookIdRouteImport } from './routes/player/$bookId'
+import { Route as PlayerFollowRouteImport } from './routes/player/follow'
 import { Route as LabAlignmentIndexRouteImport } from './routes/lab.alignment.index'
 import { Route as LabAlignmentBookIdRouteImport } from './routes/lab.alignment.$bookId'
 import { Route as LabAudiobooksIndexRouteImport } from './routes/lab.audiobooks.index'
@@ -40,6 +41,11 @@ const LabIndexRoute = LabIndexRouteImport.update({
 const PlayerBookIdRoute = PlayerBookIdRouteImport.update({
   id: '/player/$bookId',
   path: '/player/$bookId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayerFollowRoute = PlayerFollowRouteImport.update({
+  id: '/player/follow',
+  path: '/player/follow',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LabAlignmentIndexRoute = LabAlignmentIndexRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/lab': typeof LabRouteWithChildren
   '/player/$bookId': typeof PlayerBookIdRoute
+  '/player/follow': typeof PlayerFollowRoute
   '/lab/': typeof LabIndexRoute
   '/lab/alignment/$bookId': typeof LabAlignmentBookIdRoute
   '/lab/locate/$bookId': typeof LabLocateBookIdRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/player/$bookId': typeof PlayerBookIdRoute
+  '/player/follow': typeof PlayerFollowRoute
   '/lab': typeof LabIndexRoute
   '/lab/alignment/$bookId': typeof LabAlignmentBookIdRoute
   '/lab/locate/$bookId': typeof LabLocateBookIdRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/lab': typeof LabRouteWithChildren
   '/player/$bookId': typeof PlayerBookIdRoute
+  '/player/follow': typeof PlayerFollowRoute
   '/lab/': typeof LabIndexRoute
   '/lab/alignment/$bookId': typeof LabAlignmentBookIdRoute
   '/lab/locate/$bookId': typeof LabLocateBookIdRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/'
     | '/lab'
     | '/player/$bookId'
+    | '/player/follow'
     | '/lab/'
     | '/lab/alignment/$bookId'
     | '/lab/locate/$bookId'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/player/$bookId'
+    | '/player/follow'
     | '/lab'
     | '/lab/alignment/$bookId'
     | '/lab/locate/$bookId'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/'
     | '/lab'
     | '/player/$bookId'
+    | '/player/follow'
     | '/lab/'
     | '/lab/alignment/$bookId'
     | '/lab/locate/$bookId'
@@ -173,6 +185,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LabRoute: typeof LabRouteWithChildren
   PlayerBookIdRoute: typeof PlayerBookIdRoute
+  PlayerFollowRoute: typeof PlayerFollowRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -203,6 +216,13 @@ declare module '@tanstack/react-router' {
       path: '/player/$bookId'
       fullPath: '/player/$bookId'
       preLoaderRoute: typeof PlayerBookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/player/follow': {
+      id: '/player/follow'
+      path: '/player/follow'
+      fullPath: '/player/follow'
+      preLoaderRoute: typeof PlayerFollowRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lab/alignment/': {
@@ -294,6 +314,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LabRoute: LabRouteWithChildren,
   PlayerBookIdRoute: PlayerBookIdRoute,
+  PlayerFollowRoute: PlayerFollowRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

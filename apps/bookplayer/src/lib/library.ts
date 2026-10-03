@@ -216,9 +216,13 @@ function carryOverMetadata(
 
 // SINGLETON (server runtime; tests use createLibrary directly)
 
-let instance: Library | null = null;
+// On globalThis, not module scope: Nitro plugins (server/plugins/) and the
+// app's server functions load as separate module instances, and both must
+// share one library.
+const INSTANCE = Symbol.for("bookplayer.library");
+const shared = globalThis as { [INSTANCE]?: Library };
 
 export function getLibrary(config: BookplayerConfig): Library {
-  instance ??= createLibrary(config);
-  return instance;
+  shared[INSTANCE] ??= createLibrary(config);
+  return shared[INSTANCE];
 }

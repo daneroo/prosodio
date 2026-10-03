@@ -1,5 +1,5 @@
 /**
- * Transcript strip: always rendered (fixed height, own virtualized scroll), with
+ * Transcript panel: always rendered (fixed height, own virtualized scroll), with
  * explicit loading / error / no-transcript states. Cues come pre-parsed in
  * seconds from the fetchTranscript server function; the active cue follows
  * currentTime (shared machinery: #/lib/cues), click seeks, auto-scroll keeps

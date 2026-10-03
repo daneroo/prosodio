@@ -1,6 +1,6 @@
 /**
  * epub.js reader. Owns the whole epubjs lifecycle (dynamic client-only
- * import) and pushes state up through callbacks; the player route owns the
+ * import) and pushes state up through callbacks; the player view owns the
  * chrome. Lessons encoded from the experiment record:
  * - load lifecycle keyed to epubUrl only — relocation must never re-open
  * - range CFIs are passed intact to both display and highlight; their common
@@ -96,17 +96,17 @@ export interface ReaderController {
   clearSearch: () => void;
   /**
    * Resolve a captured DOM path locator to a Range in the loaded section and
-   * highlight it (the alignment follow/"show in book" join, plan D7). Returns
+   * highlight it (the alignment link/"show in book" join, plan D7). Returns
    * a structured failure — no highlight, no fallback — when the path doesn't
    * resolve or the resolved text doesn't match `expectedRaw` (parser-parity
    * guard: the browser's parsed section DOM must structurally match the
    * server's extraction-time jsdom parse).
    *
    * Display discipline: displays go through a latest-wins scheduler (at most
-   * one in flight; rapid follow collapses to the newest target), and a
+   * one in flight; rapid locates while linked collapse to the newest target), and a
    * target already on-screen skips display entirely (highlight only). A
    * locate whose display was superseded by a newer one still resolves
-   * `ok: true` — the newer locate owns the screen; that is follow working,
+   * `ok: true` — the newer locate owns the screen; that is the link working,
    * not a failure.
    */
   locate: (locator: EpubTokenLocate) => Promise<LocateResult>;
@@ -157,7 +157,7 @@ export const EMPTY_SEARCH: SearchState = {
  * .xhtml), so the click point is bridged across that divergence via CFI
  * (rendered point -> CFI -> range in the detached document). Deliberately
  * artifact-agnostic — EpubReader knows nothing about spines/tokens; the
- * route maps this to a seek target via `seekTargetForBookPoint`
+ * player view maps this to a seek target via `seekTargetForBookPoint`
  * (player-sync.ts), same division of labor as `locate`. */
 export interface WordActivatePoint {
   sectionHref: string;
@@ -409,8 +409,8 @@ export function EpubReader({
     // The reflow-preservation target: set when a search result is the last
     // navigation intent, cleared once the user navigates elsewhere.
     const resumeTarget: { cfi: string | null } = { cfi: null };
-    // Small LRU of loaded section documents, keyed by href: word-transition
-    // follow re-locates repeatedly within the same section, and re-loading
+    // Small LRU of loaded section documents, keyed by href: while linked,
+    // word transitions re-locate repeatedly within the same section, and re-loading
     // (parse + traverse) per token would be wasteful.
     const SECTION_CACHE_SIZE = 2;
     const sectionCache = new Map<string, Document>();
@@ -424,9 +424,9 @@ export function EpubReader({
     // view's removal, keyed by document so a section can be
     // loaded/unloaded/reloaded repeatedly without leaking listeners.
     const wordActivateCleanup = new Map<Document, () => void>();
-    // All follow/locate-driven displays go through ONE latest-wins scheduler:
+    // All link/locate-driven displays go through ONE latest-wins scheduler:
     // overlapping rendition.display() calls wedge epub.js's internal queue
-    // (observed: locate promises that never settle while follow fires 2-3
+    // (observed: locate promises that never settle while the link fires 2-3
     // locates/sec, reader frozen). At most one display in flight; queued
     // displays collapse to the newest; a wedged display self-heals on
     // timeout. User-paced navigation (prev/next/goTo/gotoResult/search) is
@@ -495,7 +495,7 @@ export function EpubReader({
     // object. section.load() sets section.document/contents and fires
     // content hooks on the SAME Section instance rendition.display() loads
     // internally; that contention wedges epub.js's display queue (observed:
-    // locate loads a section, a follow display of that section tears down
+    // locate loads a section, a link display of that section tears down
     // the old view and hangs forever, poisoning every later display).
     // book.load(section.url) goes straight to the archive/request layer and
     // leaves the Section untouched. Results cache in the sectionCache LRU,
@@ -791,7 +791,7 @@ export function EpubReader({
               }
               if (!alive()) return;
               // Fallback on any bridge failure: deliver the RENDERED-doc
-              // point — downstream fails node-not-located and the route's
+              // point — downstream fails node-not-located and the player view's
               // notice still gives feedback (no silent dead clicks).
               activateWord({
                 sectionHref: section.href,
@@ -949,7 +949,7 @@ export function EpubReader({
         // Re-display the search target after container resizes settle, so a
         // reflow cannot lose the match the user just navigated to. Routed
         // through the same latest-wins scheduler as locate's display, so a
-        // resize re-display can never overlap (and wedge) a follow display.
+        // resize re-display can never overlap (and wedge) a link display.
         resizeObserver = new ResizeObserver(() => {
           if (resizeTimer) clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
@@ -1103,7 +1103,7 @@ export function EpubReader({
             if (!alive()) return fail("reader-not-ready");
             removeHighlight();
             resumeTarget.cfi = cfi;
-            // Visible fast path: word-to-word follow usually stays on the
+            // Visible fast path: word-to-word linking usually stays on the
             // page already displayed — skip display entirely and just move
             // the highlight, avoiding repagination churn. Otherwise route
             // the display through the latest-wins scheduler (never two
@@ -1113,7 +1113,7 @@ export function EpubReader({
               if (outcome === "superseded") {
                 // A newer locate replaced this one before it displayed: the
                 // newer locate owns the screen AND the highlight. Not a
-                // failure — this token was simply overtaken by follow.
+                // failure — this token was simply overtaken by the link.
                 return { ok: true, cfi };
               }
             }
@@ -1198,7 +1198,7 @@ export function EpubReader({
         // Initial position, NON-BLOCKING, through the same latest-wins
         // scheduler as locate/resize displays (display() accepts hrefs as
         // well as CFIs), so an init display can never overlap an early
-        // follow locate — and a wedged one costs its timeout, not a
+        // link locate — and a wedged one costs its timeout, not a
         // deadlock. First open: saved location, else the first readable
         // (non-cover) spine item so text, not cover art, is the default
         // surface.
@@ -1207,7 +1207,7 @@ export function EpubReader({
         if (initialTarget) {
           void displayScheduler(initialTarget)
             .then((outcome) => {
-              // "superseded": an early follow locate already took the
+              // "superseded": an early link locate already took the
               // screen — it owns the position; no cover-advance either.
               if (outcome === "superseded") return;
               // Cover pages hide behind generic hrefs too: if the first

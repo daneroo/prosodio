@@ -30,7 +30,9 @@
     "p-limit": "^7.3.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "tailwindcss": "^4.3.3"
+    "socket.io-client": "^4.8.4",
+    "tailwindcss": "^4.3.3",
+    "zod": "catalog:runtime"
   },
   "devDependencies": {
     "@tanstack/eslint-config": "^0.4.0",

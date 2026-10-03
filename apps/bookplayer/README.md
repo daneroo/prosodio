@@ -2,9 +2,9 @@
 
 Local-first web app: browse the audiobook library, read the EPUB while
 listening, follow the VTT transcript, and inspect the narration<->book alignment
-(word-level match runs via `@prosodio/align`, with the reader following
-playback). Design and decision records (worked exemplars, kept while backlog
-items reference them):
+(word-level match runs via `@prosodio/align`, with the ebook linked to the
+audio). Design and decision records (worked exemplars, kept while backlog items
+reference them):
 [thoughts/plans/archive/bookplayer.md](../../thoughts/plans/archive/bookplayer.md)
 and
 [thoughts/plans/bookplayer-align.md](../../thoughts/plans/archive/bookplayer-align.md).

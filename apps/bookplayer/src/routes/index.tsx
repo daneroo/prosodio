@@ -107,6 +107,12 @@ function Home() {
               lab
             </a>
           )}
+          <Link
+            to="/player/follow"
+            className="text-xs text-slate-400 underline transition-colors hover:text-slate-300"
+          >
+            Follow audiobookshelf
+          </Link>
           <span className="ml-auto text-xs tabular-nums text-slate-500">
             {filtered.length}/{data.books.length} books · {data.rootName} ·{" "}
             {data.scanDurationMs}ms
