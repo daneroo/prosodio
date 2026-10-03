@@ -23,9 +23,11 @@ export const Route = createFileRoute("/player/$bookId")({
 
 function PlayerPage() {
   const { book, followConfig } = Route.useLoaderData();
+  // Keyed by book: a follow-mode book switch stays on this route, and each
+  // book starts with a fresh view.
   return followConfig ? (
-    <FollowPlayer book={book} config={followConfig} />
+    <FollowPlayer key={book.id} book={book} config={followConfig} />
   ) : (
-    <LocalPlayer book={book} />
+    <LocalPlayer key={book.id} book={book} />
   );
 }

@@ -11,12 +11,21 @@
  * Each newly reported item is resolved to a library book by the server's
  * identity map; `followed` is the last tick of an item that resolved to a
  * book. Every tick also feeds the remote clock, which the follow player
- * reads several times a second.
+ * reads several times a second, plus this device's offset.
+ *
+ * The API key and the offset are per device (localStorage); the offset and
+ * the clock's rate survive book switches.
  */
 import { useEffect, useSyncExternalStore } from "react";
 import { io } from "socket.io-client";
 
 import { connect } from "#/lib/audiobookshelf-socket";
+import {
+  DEFAULT_OFFSET_SEC,
+  applyOffset,
+  nudgeOffset,
+  parseStoredOffset,
+} from "#/lib/follow-offset";
 import { START, applyTick, readClock } from "#/lib/remote-clock";
 import { resolveFollowBook } from "#/server/follow";
 import type { FollowResolution } from "#/lib/identity-map";
@@ -40,6 +49,8 @@ export interface FollowState {
   /** The last tick whose item resolved to a library book. */
   followed: { bookId: string; tick: Tick } | null;
   clock: RemoteClock;
+  /** Real seconds of lead; see follow-offset. */
+  offsetSec: number;
 }
 
 /** Holds the session while mounted; `url` is the configured audiobookshelf URL. */
@@ -49,9 +60,9 @@ export function useFollowSession(url: string): FollowState {
   return snapshot;
 }
 
-/** The remote clock for `bookId`: null unless the clock runs on the item
- *  that resolved to that book. */
-export function readFollowedClock(
+/** The displayed audio position for `bookId` (remote clock plus offset):
+ *  null unless the clock runs on the item that resolved to that book. */
+export function readFollowedPosition(
   session: FollowState,
   bookId: string,
   nowMs: number,
@@ -59,7 +70,18 @@ export function readFollowedClock(
   const followed = session.followed;
   if (followed?.bookId !== bookId) return null;
   if (session.clock.last?.itemId !== followed.tick.itemId) return null;
-  return readClock(session.clock, nowMs);
+  const reading = readClock(session.clock, nowMs);
+  return reading && applyOffset(reading, session.offsetSec, session.clock.rate);
+}
+
+export function nudgeFollowOffset(direction: 1 | -1): void {
+  const offsetSec = nudgeOffset(state.offsetSec, direction);
+  try {
+    localStorage.setItem(OFFSET_STORAGE_KEY, String(offsetSec));
+  } catch {
+    /* persistence is best-effort */
+  }
+  set({ offsetSec });
 }
 
 export function saveApiKey(key: string): void {
@@ -86,6 +108,7 @@ export function forgetApiKey(): void {
 }
 
 const API_KEY_STORAGE_KEY = "bookplayer:follow-api-key";
+const OFFSET_STORAGE_KEY = "bookplayer:follow-offset";
 const CLOSE_DELAY_MS = 5000;
 
 const NO_TICKS = {
@@ -94,7 +117,12 @@ const NO_TICKS = {
   followed: null,
   clock: START,
 };
-const INITIAL: FollowState = { status: "idle", hasKey: false, ...NO_TICKS };
+const INITIAL: FollowState = {
+  status: "idle",
+  hasKey: false,
+  ...NO_TICKS,
+  offsetSec: DEFAULT_OFFSET_SEC,
+};
 
 let state = INITIAL;
 const listeners = new Set<() => void>();
@@ -115,7 +143,10 @@ function acquire(nextUrl: string): () => void {
     url = nextUrl;
     closeSocket();
   }
-  if (!socket) ensureConnected(readApiKey());
+  if (!socket) {
+    set({ offsetSec: readOffset() });
+    ensureConnected(readApiKey());
+  }
   return release;
 }
 
@@ -199,6 +230,14 @@ function readApiKey(): string | null {
     return localStorage.getItem(API_KEY_STORAGE_KEY);
   } catch {
     return null;
+  }
+}
+
+function readOffset(): number {
+  try {
+    return parseStoredOffset(localStorage.getItem(OFFSET_STORAGE_KEY));
+  } catch {
+    return DEFAULT_OFFSET_SEC;
   }
 }
 
