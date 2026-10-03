@@ -6,6 +6,13 @@ issue. Promote to a GitHub issue, then delete the line. Rules:
 
 ## player-ux
 
+- [ ] retire-transcript-panel — the alignment panel is a superset of the
+      transcript panel; retire the transcript panel. Catch: a book with a VTT
+      but no EPUB has no alignment panel, so the alignment panel must first
+      render cues without an ebook side. May need refactoring.
+- [ ] link-toggle-placement — the link toggle (ebook panel ↔ audio position)
+      does not belong in the top bar; find it a home. Icon and rename land with
+      follow mode v1 (#10).
 - [ ] bookplayer-epub-teardown-race — rapid hard navigation can tear down
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
       emitting warnings. Separate from the resolved OOM and locate-sweep console
