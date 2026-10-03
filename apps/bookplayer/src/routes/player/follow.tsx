@@ -1,9 +1,10 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import { formatDuration } from "#/lib/browse";
+import { useNow } from "#/lib/use-now";
 import {
   forgetApiKey,
   saveApiKey,
@@ -18,8 +19,9 @@ export const Route = createFileRoute("/player/follow")({
   component: FollowPage,
 });
 
-// Follow mode entry: connect to audiobookshelf with this device's key and
-// show what it reports. For now the page shows raw ticks only.
+// Follow mode entry: connect to audiobookshelf with this device's key, wait
+// for playback, and open the book it is playing once the identity map
+// matches it.
 function FollowPage() {
   const config = Route.useLoaderData();
   return (
@@ -50,6 +52,17 @@ function FollowPage() {
 
 function FollowConnection({ url }: { url: string }) {
   const session = useFollowSession(url);
+  const navigate = useNavigate();
+  const followedBookId = session.followed?.bookId;
+  useEffect(() => {
+    if (!followedBookId) return;
+    void navigate({
+      to: "/player/$bookId",
+      params: { bookId: followedBookId },
+      search: { follow: "audiobookshelf" },
+      replace: true,
+    });
+  }, [followedBookId, navigate]);
   return (
     <div className="space-y-4">
       <FollowStatusView session={session} />
@@ -92,11 +105,37 @@ function FollowStatusView({ session }: { session: FollowState }) {
       );
     case "authenticated":
       return session.lastTick ? (
-        <TickView tick={session.lastTick} />
+        <>
+          <ResolutionNotice session={session} />
+          <TickView tick={session.lastTick} />
+        </>
       ) : (
         <Notice>Waiting for audiobookshelf playback…</Notice>
       );
   }
+}
+
+function ResolutionNotice({ session }: { session: FollowState }) {
+  const result = session.resolution?.result;
+  if (!result) return <Notice>Finding the book…</Notice>;
+  if ("unmatched" in result) {
+    return (
+      <Notice>
+        audiobookshelf is playing{" "}
+        <span className="font-medium text-white">{result.title}</span>, which
+        isn&apos;t in this library.
+      </Notice>
+    );
+  }
+  if ("unknown" in result) {
+    return (
+      <Notice>
+        audiobookshelf is playing an item the Bookplayer server can&apos;t
+        identify yet.
+      </Notice>
+    );
+  }
+  return <Notice>Opening the book…</Notice>;
 }
 
 function KeyForm() {
@@ -150,13 +189,4 @@ function TickView({ tick }: { tick: Tick }) {
 
 function Notice({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-slate-300">{children}</p>;
-}
-
-function useNow(intervalMs: number): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
 }

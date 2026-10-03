@@ -46,8 +46,9 @@ const EpubReader = lazy(() =>
 
 interface PlayerViewProps {
   book: BookRow;
-  /** Seconds into the audiobook; drives the active token/cue. */
-  audioPosition: number;
+  /** Seconds into the audiobook; drives the active token/cue. null while
+   *  unknown (follow mode before its first tick). */
+  audioPosition: number | null;
   /** Moves the audio position (alignment panel click, reverse sync). */
   onSeek: (sec: number) => void;
   /** Bottom bar content, owned by the player that renders this view. */
@@ -254,10 +255,13 @@ export function PlayerView({
   useEffect(() => {
     const token = sync.activeToken;
     if (!linked || !token || token.epubSeq === null) return;
+    // Not shown until the reader and artifact are ready: follow mode knows
+    // its audio position on mount, before the EPUB has loaded.
+    if (!controller || !sync.prepared) return;
     if (lastLocatedSeqRef.current === token.epubSeq) return;
     lastLocatedSeqRef.current = token.epubSeq;
     showInBook(token);
-  }, [sync.activeToken, linked, showInBook]);
+  }, [sync.activeToken, sync.prepared, controller, linked, showInBook]);
 
   // Re-linking locates the current token immediately rather than
   // waiting for the next transition.

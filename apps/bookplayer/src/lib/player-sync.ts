@@ -44,13 +44,14 @@ export interface PlayerSync {
 
 /**
  * Fetches + prepares the alignment artifact for `bookId` and derives the
- * active token/cue from `audioPosition`. `enabled` is the view's `canAlign`
+ * active token/cue from `audioPosition` (null while unknown, e.g. follow
+ * mode before its first tick: no active token). `enabled` is the view's `canAlign`
  * gate (book has both EPUB + VTT); when false, stays "unavailable" without
  * fetching.
  */
 export function usePlayerSync(
   bookId: string,
-  audioPosition: number,
+  audioPosition: number | null,
   enabled: boolean,
 ): PlayerSync {
   const [state, setState] = useState<SyncState>({ status: "loading" });
@@ -90,7 +91,7 @@ export function usePlayerSync(
   // the old two-step cue-then-token search.
   const activeTokenSeq = useMemo(
     () =>
-      state.status === "ready"
+      state.status === "ready" && audioPosition !== null
         ? activeTokenAt(
             state.prepared.tokenStart,
             state.prepared.tokenEnd,
