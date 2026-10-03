@@ -10,14 +10,17 @@
  *
  * Each newly reported item is resolved to a library book by the server's
  * identity map; `followed` is the last tick of an item that resolved to a
- * book, which is what the follow player shows.
+ * book. Every tick also feeds the remote clock, which the follow player
+ * reads several times a second.
  */
 import { useEffect, useSyncExternalStore } from "react";
 import { io } from "socket.io-client";
 
 import { connect } from "#/lib/audiobookshelf-socket";
+import { START, applyTick, readClock } from "#/lib/remote-clock";
 import { resolveFollowBook } from "#/server/follow";
 import type { FollowResolution } from "#/lib/identity-map";
+import type { ClockReading, RemoteClock } from "#/lib/remote-clock";
 import type {
   AudiobookshelfSocket,
   SocketEvent,
@@ -36,6 +39,7 @@ export interface FollowState {
   resolution: { itemId: string; result: FollowResolution } | null;
   /** The last tick whose item resolved to a library book. */
   followed: { bookId: string; tick: Tick } | null;
+  clock: RemoteClock;
 }
 
 /** Holds the session while mounted; `url` is the configured audiobookshelf URL. */
@@ -43,6 +47,19 @@ export function useFollowSession(url: string): FollowState {
   const snapshot = useSyncExternalStore(subscribe, getState, getServerState);
   useEffect(() => acquire(url), [url]);
   return snapshot;
+}
+
+/** The remote clock for `bookId`: null unless the clock runs on the item
+ *  that resolved to that book. */
+export function readFollowedClock(
+  session: FollowState,
+  bookId: string,
+  nowMs: number,
+): ClockReading | null {
+  const followed = session.followed;
+  if (followed?.bookId !== bookId) return null;
+  if (session.clock.last?.itemId !== followed.tick.itemId) return null;
+  return readClock(session.clock, nowMs);
 }
 
 export function saveApiKey(key: string): void {
@@ -71,7 +88,12 @@ export function forgetApiKey(): void {
 const API_KEY_STORAGE_KEY = "bookplayer:follow-api-key";
 const CLOSE_DELAY_MS = 5000;
 
-const NO_TICKS = { lastTick: null, resolution: null, followed: null };
+const NO_TICKS = {
+  lastTick: null,
+  resolution: null,
+  followed: null,
+  clock: START,
+};
 const INITIAL: FollowState = { status: "idle", hasKey: false, ...NO_TICKS };
 
 let state = INITIAL;
@@ -124,15 +146,17 @@ function onSocketEvent(event: SocketEvent): void {
 }
 
 function onTick(tick: Tick): void {
+  const clock = applyTick(state.clock, tick).clock;
   const known = state.resolution;
   if (known?.itemId === tick.itemId && !("unknown" in known.result)) {
-    set({ lastTick: tick, ...followedPatch(known.result, tick) });
+    set({ lastTick: tick, clock, ...followedPatch(known.result, tick) });
     return;
   }
   // A new item, or one the server didn't know yet (its map rebuilds on a
   // miss, at most once a minute): ask again.
   set({
     lastTick: tick,
+    clock,
     resolution: known?.itemId === tick.itemId ? known : null,
   });
   if (resolvingItemId === tick.itemId) return;

@@ -1,12 +1,12 @@
 /**
  * Follow panel: the follow player's bottom bar, in place of the audio
- * control panel. One compact line: connection, audio position, tick age.
+ * control panel. One compact line: connection, audio position, tick age,
+ * running or frozen.
  */
 import { Link } from "@tanstack/react-router";
 
 import { formatDuration } from "#/lib/browse";
-import { useNow } from "#/lib/use-now";
-import type { Tick } from "#/lib/audiobookshelf-socket";
+import type { ClockReading } from "#/lib/remote-clock";
 import type { FollowState } from "#/lib/follow-session";
 
 const CONNECTION_LABELS: Record<FollowState["status"], string> = {
@@ -18,14 +18,14 @@ const CONNECTION_LABELS: Record<FollowState["status"], string> = {
   reconnecting: "reconnecting",
 };
 
-/** `session` is null when follow mode is not configured; `tick` is the last
- *  tick for this book. */
+/** `session` is null when follow mode is not configured; `reading` is the
+ *  remote clock for this book, null until its first tick. */
 export function FollowPanel({
   session,
-  tick,
+  reading,
 }: {
   session: FollowState | null;
-  tick: Tick | null;
+  reading: ClockReading | null;
 }) {
   return (
     <div
@@ -46,8 +46,8 @@ export function FollowPanel({
             >
               Set key
             </Link>
-          ) : tick ? (
-            <TickReadout tick={tick} />
+          ) : reading ? (
+            <ClockReadout reading={reading} />
           ) : (
             <span className="text-slate-400">waiting for playback</span>
           )}
@@ -57,16 +57,20 @@ export function FollowPanel({
   );
 }
 
-function TickReadout({ tick }: { tick: Tick }) {
-  const now = useNow(1000);
-  const ageSec = Math.max(0, Math.round((now - tick.receivedAt) / 1000));
+function ClockReadout({ reading }: { reading: ClockReading }) {
   return (
     <>
       <span data-testid="follow-audio-position">
-        {formatDuration(tick.audioPosition)}
+        {formatDuration(reading.audioPosition)}
       </span>
       <span className="text-slate-400" data-testid="follow-tick-age">
-        {ageSec} s ago
+        {Math.round(reading.tickAgeMs / 1000)} s ago
+      </span>
+      <span
+        className={reading.frozen ? "text-amber-300" : "text-slate-400"}
+        data-testid="follow-clock-state"
+      >
+        {reading.frozen ? "frozen" : "running"}
       </span>
     </>
   );
