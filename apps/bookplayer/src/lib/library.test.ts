@@ -33,6 +33,7 @@ function makeConfig(): BookplayerConfig {
     cacheFile: join(dataDir, "cache", "index.json"),
     evidenceDir: join(dataDir, "evidence"),
     ffprobeConcurrency: 2,
+    audiobookshelf: null,
   };
 }
 

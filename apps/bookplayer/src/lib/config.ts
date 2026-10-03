@@ -10,6 +10,11 @@
  * AUDIOBOOKS_ROOT and VTT_DIR. The selected root is validated at startup and
  * failures are fatal — an unmounted private volume must not look like an
  * empty library.
+ *
+ * Follow mode's audiobookshelf connection (AUDIOBOOKSHELF_URL +
+ * AUDIOBOOKSHELF_API_KEY) is optional: when either is missing, follow mode
+ * reports "not configured" and the rest of Bookplayer is unaffected. Moves
+ * into the Zod config schema with #7.
  */
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -28,6 +33,14 @@ export interface BookplayerConfig {
   evidenceDir: string;
   /** Bounded background ffprobe workers (plan: documented default 4). */
   ffprobeConcurrency: number;
+  /** null when follow mode is not configured. The key stays server-side. */
+  audiobookshelf: AudiobookshelfConfig | null;
+}
+
+export interface AudiobookshelfConfig {
+  /** REST base; may include a path (e.g. https://host/audiobookshelf/). */
+  url: string;
+  apiKey: string;
 }
 
 export function resolveConfig(
@@ -45,7 +58,18 @@ export function resolveConfig(
     cacheFile: join(dataDir, "cache", "index.json"),
     evidenceDir: join(dataDir, "evidence"),
     ffprobeConcurrency: 4,
+    audiobookshelf: resolveAudiobookshelf(env),
   };
+}
+
+function resolveAudiobookshelf(
+  env: Record<string, string | undefined>,
+): AudiobookshelfConfig | null {
+  const url = env.AUDIOBOOKSHELF_URL?.trim();
+  const apiKey = env.AUDIOBOOKSHELF_API_KEY?.trim();
+  // An unparseable URL counts as not configured rather than failing startup:
+  // follow mode is optional and the rest of Bookplayer must keep working.
+  return url && apiKey && URL.canParse(url) ? { url, apiKey } : null;
 }
 
 /**
