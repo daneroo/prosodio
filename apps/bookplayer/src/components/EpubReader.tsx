@@ -953,7 +953,18 @@ export function EpubReader({
         resizeObserver = new ResizeObserver(() => {
           if (resizeTimer) clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
-            if (!alive() || !rendition || !resumeTarget.cfi) return;
+            if (!alive() || !rendition) return;
+            // epub.js only re-measures on WINDOW resize (stage.js:152), so a
+            // container-only resize — e.g. hiding the stacked alignment panel
+            // on a phone — left pages laid out at the old height. resize()
+            // with no args re-measures the container; it is a no-op when the
+            // size is unchanged (manager resize, default/index.js:213).
+            // The typings demand width/height; epub.js treats both as
+            // optional (rendition.js:514) and only the no-arg call measures.
+            (rendition.resize as (w?: number, h?: number) => void).call(
+              rendition,
+            );
+            if (!resumeTarget.cfi) return;
             void displayScheduler(resumeTarget.cfi).catch(() => {
               /* display is best-effort here; a locate owns error reporting */
             });
