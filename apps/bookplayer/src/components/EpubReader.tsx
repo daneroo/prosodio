@@ -260,6 +260,16 @@ function themeKey(): string {
   return READER_THEME_KEY;
 }
 
+/** Highlight rect attributes per theme. The light faces keep the cyan wash;
+ *  on `dark` that cyan (≈21% effective alpha over #0f172a) is nearly
+ *  invisible, so dark uses a warm yellow band that leaves the light text
+ *  readable (tinted cream) against an olive background. */
+function highlightStyles(theme: ThemeName): Record<string, string> {
+  return theme === "dark"
+    ? { fill: "rgb(250,204,21)", "fill-opacity": "0.3" }
+    : { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" };
+}
+
 export const THEME_NAMES: ReadonlyArray<ThemeName> = [
   "default",
   "light",
@@ -549,7 +559,7 @@ export function EpubReader({
             {},
             undefined,
             "bp-search-hl",
-            { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" },
+            highlightStyles(themeRef.current),
           );
           activeHighlight.cfi = result.cfi;
         } catch {
@@ -1104,7 +1114,7 @@ export function EpubReader({
                 {},
                 undefined,
                 "bp-align-hl",
-                { fill: "rgba(14,116,144,0.35)", "fill-opacity": "0.6" },
+                highlightStyles(themeRef.current),
               );
               activeHighlight.cfi = cfi;
             } catch {
