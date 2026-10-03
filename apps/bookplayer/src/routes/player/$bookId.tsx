@@ -237,7 +237,7 @@ function PlayerPage() {
   }, [followReader, sync.activeToken, showInBook]);
 
   return (
-    <div className="flex h-screen flex-col bg-slate-900 text-white">
+    <div className="flex h-dvh flex-col bg-slate-900 text-white">
       {/* Top bar: navigation + book identity + follow/alignment/lab toggles.
           Reader controls (Chapters/pager/search) live with the reader pane
           below (plan player-sync-core T2.4). */}
