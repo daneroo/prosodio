@@ -4,8 +4,8 @@
  * toggle (plan T2 adds the first two). Colocated with the EPUB view instead
  * of the global top bar so the ebook panel is self-contained. Deliberately
  * free of alignment/sync knowledge — it only drives the `ReaderController`
- * and the search-panel open flag; the player view still owns `followReader` and
- * passes down the disengage callback, and it owns the theme/font state and
+ * and the search-panel open flag; the player view still owns `linked` and
+ * passes down the unlink callback, and it owns the theme/font state and
  * cycling logic too (this component just renders current state and calls
  * the cycle callbacks — same "dumb" contract, design §6 decision 7).
  */
@@ -34,7 +34,7 @@ interface ReaderToolbarProps {
   panelOpen: boolean;
   onOpenSearch: () => void;
   onCloseSearch: () => void;
-  onDisengageFollow: () => void;
+  onUnlink: () => void;
   /** Current reading theme (plan T2) — book default -> light -> dark. */
   theme: ThemeName;
   onCycleTheme: () => void;
@@ -44,7 +44,7 @@ interface ReaderToolbarProps {
 }
 
 // Icon + label per theme state (design §6 decision 7): the icon alone shows
-// state at a glance (matches the follow/align toggle idiom in $bookId.tsx),
+// state at a glance (matches the link/align toggle idiom in PlayerView.tsx),
 // the aria-label spells it out for accessibility. Daniel is on an iPad with
 // no tooltip, so both need to carry the state, not just the icon.
 const THEME_DISPLAY: Record<
@@ -62,7 +62,7 @@ export function ReaderToolbar({
   panelOpen,
   onOpenSearch,
   onCloseSearch,
-  onDisengageFollow,
+  onUnlink,
   theme,
   onCycleTheme,
   font,
@@ -108,7 +108,7 @@ export function ReaderToolbar({
           defaultValue=""
           onChange={(e) => {
             if (e.target.value) {
-              onDisengageFollow();
+              onUnlink();
               controller?.goTo(e.target.value);
             }
             e.target.value = "";
@@ -131,7 +131,7 @@ export function ReaderToolbar({
       <button
         type="button"
         onClick={() => {
-          onDisengageFollow();
+          onUnlink();
           controller?.prev();
         }}
         className="p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"
@@ -142,7 +142,7 @@ export function ReaderToolbar({
       <button
         type="button"
         onClick={() => {
-          onDisengageFollow();
+          onUnlink();
           controller?.next();
         }}
         className="p-1 text-slate-400 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500"

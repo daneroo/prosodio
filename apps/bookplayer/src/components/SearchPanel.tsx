@@ -4,7 +4,7 @@
  * once a result is active. Anchored to the ebook panel — the parent must be
  * `position: relative` — rather than the whole page, so it visually belongs
  * to the reader. Free of alignment/sync knowledge beyond the optional
- * follow-disengage flag on `onGotoResult`, which the player view decides how to
+ * `unlink` flag on `onGotoResult`, which the player view decides how to
  * honor.
  */
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -13,7 +13,7 @@ import type { FormEvent } from "react";
 import type { SearchState } from "#/components/EpubReader";
 
 interface GotoResultOpts {
-  disengageFollow?: boolean;
+  unlink?: boolean;
 }
 
 interface SearchPanelProps {
@@ -84,9 +84,7 @@ export function SearchPanel({
                 <li key={result.cfi}>
                   <button
                     type="button"
-                    onClick={() =>
-                      onGotoResult(index, { disengageFollow: true })
-                    }
+                    onClick={() => onGotoResult(index, { unlink: true })}
                     className="block w-full truncate rounded px-2 py-1 text-left text-xs text-slate-300 transition-colors hover:bg-slate-700"
                   >
                     {result.excerpt}

@@ -7,7 +7,7 @@
  * markers flag book content the narration never reads. Click seeks. A pure
  * subscriber (plan thoughts/plans/player-sync-core.md, S2): the player view's
  * usePlayerSync hook (lib/player-sync.ts) owns the artifact fetch/prepare and
- * the active-token/cue derivation, so reader follow works with this panel
+ * the active-token/cue derivation, so the link works with this panel
  * closed; this component only builds rows and renders.
  */
 import { useEffect, useMemo, useRef } from "react";
@@ -30,7 +30,7 @@ interface AlignmentViewerProps {
   /** "Show in book": the clicked matched token (word clicks seek AND show;
    * see CueRow). */
   onShowInBook?: (token: ActiveTokenInfo) => void;
-  /** Last failed EPUB follow/show-in-book attempt; rendered as a status hint. */
+  /** Last failed EPUB link/show-in-book attempt; rendered as a status hint. */
   locateFailure?: LocateFailure | null;
 }
 

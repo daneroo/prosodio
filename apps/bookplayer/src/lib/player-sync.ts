@@ -1,7 +1,7 @@
 /**
  * Player-view sync core (plan thoughts/plans/player-sync-core.md, S1/S2): owns
  * the alignment artifact fetch + prepare pass and derives the active
- * token/cue from the audio position, so reader-follow works from the player
+ * token/cue from the audio position, so the link works from the player
  * view regardless of whether the alignment panel is mounted. AlignmentViewer
  * subscribes to this state (`prepared`/`activeTokenSeq`/`activeCueIndex`)
  * instead of deriving it itself — see AlignmentViewer's own header comment.

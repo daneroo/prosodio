@@ -1,5 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, BookOpenText, Columns2, LocateFixed } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpenText,
+  Columns2,
+  Link2,
+  Link2Off,
+} from "lucide-react";
 import {
   Suspense,
   lazy,
@@ -126,13 +132,14 @@ export function PlayerView({
       /* persistence is best-effort */
     }
   }, [alignOpen]);
-  // Reader follow (plan D6): the reader tracks the active matched token while
-  // on; any manual reader navigation disengages it.
-  const [followReader, setFollowReader] = useState(canAlign);
-  const lastFollowedSeqRef = useRef(-1);
+  // Link (plan D6, there "reader follow"): while linked, the ebook panel
+  // keeps the active matched token in view; any manual ebook navigation
+  // unlinks it.
+  const [linked, setLinked] = useState(canAlign);
+  const lastLocatedSeqRef = useRef(-1);
   // Sync core (plan player-sync-core, S1): owns the artifact fetch/prepare
   // pass and derives the active token/cue from the audio position —
-  // independent of whether the alignment panel is mounted (S2), so follow
+  // independent of whether the alignment panel is mounted (S2), so the link
   // works with it closed.
   const sync = usePlayerSync(book.id, audioPosition, canAlign);
 
@@ -151,12 +158,12 @@ export function PlayerView({
   }, [controller]);
 
   // Jumping to a specific result index is shared by the full result list
-  // (a fresh pick disengages follow, matching Chapters/pager) and the
-  // collapsed mini-pager (prev/next within an already-chosen result leaves
-  // follow as-is — it's just paging the same match, not a new navigation).
+  // (a fresh pick unlinks, matching Chapters/pager) and the collapsed
+  // mini-pager (prev/next within an already-chosen result leaves the link
+  // as-is — it's just paging the same match, not a new navigation).
   const gotoResult = useCallback(
-    (index: number, opts?: { disengageFollow?: boolean }) => {
-      if (opts?.disengageFollow) setFollowReader(false);
+    (index: number, opts?: { unlink?: boolean }) => {
+      if (opts?.unlink) setLinked(false);
       controller?.gotoResult(index);
     },
     [controller],
@@ -207,10 +214,10 @@ export function PlayerView({
 
   // Reverse-sync gesture (plan S4): double-click a word in the reader ->
   // seek the audio there. Play/pause state is untouched — only position
-  // moves. Follow is NOT disengaged: a deliberate seek re-syncs playback,
-  // and resetting lastFollowedSeqRef makes the follow effect (below)
-  // re-locate from the new position on the very next token transition
-  // instead of treating it as already-followed.
+  // moves. The seek does NOT unlink: it re-syncs playback, and resetting
+  // lastLocatedSeqRef makes the link effect (below) re-locate from the new
+  // position on the very next token transition instead of treating
+  // it as already shown.
   const onWordActivate = useCallback(
     (point: WordActivatePoint) => {
       if (!sync.prepared) return;
@@ -235,47 +242,46 @@ export function PlayerView({
       // value, which would make activeTokenAt resolve the PREVIOUS token (the
       // consistent off-by-one-word Daniel observed in P2.6).
       onSeek(target.timeSec + 0.02);
-      lastFollowedSeqRef.current = -1;
+      lastLocatedSeqRef.current = -1;
     },
     [sync.prepared, onSeek],
   );
 
-  // Token transitions drive reader follow independently of whether the
+  // Token transitions drive the link independently of whether the
   // alignment panel is mounted — `sync.activeToken` is derived in this view
   // regardless of AlignmentViewer (plan player-sync-core, S2). `alignOpen`
   // must NOT gate this effect.
   useEffect(() => {
     const token = sync.activeToken;
-    if (!followReader || !token || token.epubSeq === null) return;
-    if (lastFollowedSeqRef.current === token.epubSeq) return;
-    lastFollowedSeqRef.current = token.epubSeq;
+    if (!linked || !token || token.epubSeq === null) return;
+    if (lastLocatedSeqRef.current === token.epubSeq) return;
+    lastLocatedSeqRef.current = token.epubSeq;
     showInBook(token);
-  }, [sync.activeToken, followReader, showInBook]);
+  }, [sync.activeToken, linked, showInBook]);
 
-  // Re-enabling follow locates the current token immediately rather than
+  // Re-linking locates the current token immediately rather than
   // waiting for the next transition.
-  const toggleFollow = useCallback(() => {
-    const enabling = !followReader;
-    setFollowReader(enabling);
+  const toggleLink = useCallback(() => {
+    const enabling = !linked;
+    setLinked(enabling);
     const latest = sync.activeToken;
     if (enabling && latest && latest.epubSeq !== null) {
-      lastFollowedSeqRef.current = latest.epubSeq;
+      lastLocatedSeqRef.current = latest.epubSeq;
       showInBook(latest);
     }
-  }, [followReader, sync.activeToken, showInBook]);
+  }, [linked, sync.activeToken, showInBook]);
 
   // Header toggles: one string serves as both the accessible name and the
   // hover tooltip, and names the action a click performs.
-  const followLabel = followReader
-    ? "Stop following playback in book"
-    : "Follow playback in book";
+  const LinkIcon = linked ? Link2 : Link2Off;
+  const linkLabel = linked ? "Unlink ebook from audio" : "Link ebook to audio";
   const alignLabel = alignOpen
     ? "Hide alignment panel"
     : "Show alignment panel";
 
   return (
     <div className="flex h-dvh flex-col bg-slate-900 text-white">
-      {/* Top bar: navigation + book identity + follow/alignment/lab toggles.
+      {/* Top bar: navigation + book identity + link/alignment/lab toggles.
           Reader controls (Chapters/pager/search) live with the ebook panel
           below (plan player-sync-core T2.4). */}
       <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-slate-700 bg-slate-900 px-3 py-2">
@@ -298,15 +304,15 @@ export function PlayerView({
         {canAlign && (
           <button
             type="button"
-            onClick={toggleFollow}
+            onClick={toggleLink}
             className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
-              followReader ? "text-cyan-400" : "text-slate-400"
+              linked ? "text-cyan-400" : "text-slate-400"
             }`}
-            aria-label={followLabel}
-            aria-pressed={followReader}
-            title={followLabel}
+            aria-label={linkLabel}
+            aria-pressed={linked}
+            title={linkLabel}
           >
-            <LocateFixed className="h-4 w-4" />
+            <LinkIcon className="h-4 w-4" />
           </button>
         )}
         {canAlign && (
@@ -378,7 +384,7 @@ export function PlayerView({
                 panelOpen={panelOpen}
                 onOpenSearch={() => setPanelOpen(true)}
                 onCloseSearch={closeSearch}
-                onDisengageFollow={() => setFollowReader(false)}
+                onUnlink={() => setLinked(false)}
                 theme={theme}
                 onCycleTheme={cycleTheme}
                 font={font}
