@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   applyFilters,
   compareBy,
+  formatCompactDuration,
   formatDuration,
   searchRows,
 } from "./browse.ts";
@@ -97,5 +98,14 @@ describe("formatDuration", () => {
     expect(formatDuration(12932.79)).toBe("03:35:32");
     expect(formatDuration(59)).toBe("00:00:59");
     expect(formatDuration(null)).toBe("—");
+  });
+});
+
+describe("formatCompactDuration", () => {
+  test("no leading zero unit: H:MM:SS, else M:SS", () => {
+    expect(formatCompactDuration(5458.9)).toBe("1:30:58");
+    expect(formatCompactDuration(724)).toBe("12:04");
+    expect(formatCompactDuration(7)).toBe("0:07");
+    expect(formatCompactDuration(-0.4)).toBe("0:00");
   });
 });
