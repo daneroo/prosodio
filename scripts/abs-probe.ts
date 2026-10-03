@@ -4,11 +4,11 @@
  *
  * Run from the repository root with untracked `.env.local` values:
  *
- *   ABS_URL=http://127.0.0.1:13378/audiobookshelf
- *   ABS_TOKEN=<the dedicated probe user's token>
+ *   AUDIOBOOKSHELF_URL=http://127.0.0.1:13378/audiobookshelf
+ *   AUDIOBOOKSHELF_API_KEY=<an audiobookshelf API key>
  *   ABS_LIBRARY_ITEM_ID=<optional library item ID>
  *
- * `ABS_URL` is the public ABS base path, not an item URL. The socket normally
+ * `AUDIOBOOKSHELF_URL` is the public ABS base path, not an item URL. The socket normally
  * lives at the origin's `/socket.io`; set ABS_SOCKET_URL or ABS_SOCKET_PATH
  * only when a reverse proxy uses a different location. Ctrl-C ends the run.
  *
@@ -29,8 +29,8 @@ interface EventRecord {
   detail?: unknown;
 }
 
-const absUrl = requireUrl("ABS_URL");
-const token = requireEnv("ABS_TOKEN");
+const absUrl = requireUrl("AUDIOBOOKSHELF_URL");
+const token = requireEnv("AUDIOBOOKSHELF_API_KEY");
 const libraryItemId = process.env.ABS_LIBRARY_ITEM_ID?.trim();
 const socketUrl = optionalUrl("ABS_SOCKET_URL") ?? absUrl.origin;
 const socketPath = process.env.ABS_SOCKET_PATH?.trim() || "/socket.io";
