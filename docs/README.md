@@ -14,6 +14,8 @@ How to work in this repo — layout, workflow, tooling, style.
   inbox, working files
 - [agents/](agents/) — agent-skill config: issue tracker, triage labels,
   domain-doc rules
+- [adr/](adr/) — hard-to-reverse decisions; terms live in the root
+  [GLOSSARY.md](../GLOSSARY.md)
 - [workspace.md](workspace.md) — quality gate, testing gotchas, seeding
 - [dependency.md](dependency.md) — adding, workspace imports, catalogs, updates
 - [formatting.md](formatting.md) — formatting + linting
