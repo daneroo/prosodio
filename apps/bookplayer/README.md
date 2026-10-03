@@ -19,7 +19,8 @@ and
 
 ## Operations
 
-- `bun run dev` — dev server on port 3000 (run from this directory)
+- `bun run dev` — dev server on port 3000, reachable on all LAN interfaces
+  (`--host`; e.g. `http://galois:3000` via MagicDNS) (run from this directory)
 - `bun run build` then `bun run start` — production build + serve
 - `bun run scripts/burn-in --help` — private-corpus browser and RSS probe
 - Quality gates are root-level: `bun run ci` from the repo root
