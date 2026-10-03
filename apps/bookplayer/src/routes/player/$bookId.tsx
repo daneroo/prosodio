@@ -236,6 +236,15 @@ function PlayerPage() {
     }
   }, [followReader, sync.activeToken, showInBook]);
 
+  // Header toggles: one string serves as both the accessible name and the
+  // hover tooltip, and names the action a click performs.
+  const followLabel = followReader
+    ? "Stop following playback in book"
+    : "Follow playback in book";
+  const alignLabel = alignOpen
+    ? "Hide alignment panel"
+    : "Show alignment panel";
+
   return (
     <div className="flex h-dvh flex-col bg-slate-900 text-white">
       {/* Top bar: navigation + book identity + follow/alignment/lab toggles.
@@ -265,13 +274,9 @@ function PlayerPage() {
             className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
               followReader ? "text-cyan-400" : "text-slate-400"
             }`}
-            aria-label={
-              followReader
-                ? "Stop following playback in book"
-                : "Follow playback in book"
-            }
+            aria-label={followLabel}
             aria-pressed={followReader}
-            title="Follow playback in book"
+            title={followLabel}
           >
             <LocateFixed className="h-4 w-4" />
           </button>
@@ -283,10 +288,9 @@ function PlayerPage() {
             className={`p-1 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-500 ${
               alignOpen ? "text-cyan-400" : "text-slate-400"
             }`}
-            aria-label={
-              alignOpen ? "Hide alignment panel" : "Show alignment panel"
-            }
+            aria-label={alignLabel}
             aria-pressed={alignOpen}
+            title={alignLabel}
           >
             <Columns2 className="h-4 w-4" />
           </button>
