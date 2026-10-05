@@ -24,6 +24,7 @@ import { ReaderToolbar } from "#/components/ReaderToolbar";
 import { SearchPanel } from "#/components/SearchPanel";
 import { seekTargetForBookPoint, usePlayerSync } from "#/lib/player-sync";
 import type { ActiveTokenInfo } from "#/lib/player-sync";
+import { useWakeLock } from "#/lib/wake-lock";
 import type { BookRow } from "#/server/library";
 import type {
   FontName,
@@ -63,6 +64,8 @@ export function PlayerView({
   onSeek,
   bottomBar,
 }: PlayerViewProps) {
+  // Screen stays awake on both player screens: always on, no setting.
+  useWakeLock();
   const [controller, setController] = useState<ReaderController | null>(null);
   const [toc, setToc] = useState<Array<TocItem>>([]);
   const [searchState, setSearchState] = useState<SearchState>(EMPTY_SEARCH);
