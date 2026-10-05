@@ -51,3 +51,5 @@ invariants. Grows by harvesting settled `thoughts/design/` docs.
   sweep verifies; what an `ok` means
 - [bookplayer/reader-iframe.md](bookplayer/reader-iframe.md) — reader iframe
   event gating (WebKit 218086) and the EPUB script posture
+- [../packages/logo/README.md](../packages/logo/README.md) — the Prosodio logo:
+  meaning, sizes, visual rules

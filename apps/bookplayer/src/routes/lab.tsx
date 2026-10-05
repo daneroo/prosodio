@@ -31,6 +31,7 @@ const TABS = [
   { to: "/lab/vtt", label: "VTT" },
   { to: "/lab/alignment", label: "Alignment" },
   { to: "/lab/locate", label: "Locate" },
+  { to: "/lab/logo", label: "Logo" },
 ] as const;
 
 const RESERVED_TABS = ["Parsers"] as const;

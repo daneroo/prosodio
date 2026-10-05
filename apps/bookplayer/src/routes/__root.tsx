@@ -5,6 +5,7 @@ import {
   createRootRoute,
 } from "@tanstack/react-router";
 
+import { BRAND_NAME } from "#/components/Brand";
 import { READER_THEME_ATTR, READER_THEME_KEY } from "#/lib/reader-theme";
 import appCss from "../styles.css?url";
 
@@ -13,7 +14,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BookPlayer" },
+      { title: BRAND_NAME },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),

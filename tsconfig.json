@@ -29,6 +29,7 @@
   },
   // bookplayer is a Vite/React app needing DOM libs and its own paths; the
   // root `check` script chains `tsc --noEmit -p apps/bookplayer` instead.
+  // components/logo-ui is React and needs DOM libs: it has its own `check`.
   // (node_modules must be restated: "exclude" replaces the default list.)
-  "exclude": ["node_modules", "apps/bookplayer"]
+  "exclude": ["node_modules", "apps/bookplayer", "components/logo-ui"]
 }
