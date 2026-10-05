@@ -1,7 +1,8 @@
 # Prosodio
 
 Prosodio manages, aligns and plays audiobooks alongside their ebooks on a
-synchronized timeline. Bookplayer is the app that plays them.
+synchronized timeline. Bookplayer is the app that plays them; to its users it
+presents itself as Prosodio.
 
 ## Positions
 
@@ -70,3 +71,23 @@ _Avoid_: transport
 **Follow panel**: Follow mode's replacement for the audio control panel:
 connection, remote clock state, and the offset control.\
 _Avoid_: follow bar
+
+## Logo
+
+One design effort in three sizes, each its own thing: logo (SM), staff logo
+(MD), hero logo (Hero).
+
+**Logo**: Prosodio's symbol: a pilcrow with sound waves radiating from it —
+prose and the voice reading it. Bare, it takes the colors of the page it sits
+on.\
+_Avoid_: mark, icon, glyph
+
+**Tile**: The logo on its own opaque square background, for places where there
+is no page to take colors from (favicon, home-screen icon).\
+_Avoid_: app icon, badge
+
+**Staff logo**: The pilcrow as clef at the head of a musical staff, with letters
+and notes on the lines; for medium and large sizes.
+
+**Hero logo**: The pilcrow as clef at the head of a ruled page, with a famous
+book's opening lines written on the staff; a page-scale illustration.

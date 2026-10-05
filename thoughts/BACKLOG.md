@@ -30,14 +30,6 @@ issue. Promote to a GitHub issue, then delete the line. Rules:
       real want.
 - [ ] bookplayer-media-chrome — consider Media-Chrome web components
       ([react version](https://www.media-chrome.org/docs/en/react/get-started)).
-- [ ] prosodio-logo — redraw the logo as custom SVG paths. Prototype (font
-      glyphs, abandoned): ai-garden repo,
-      `bun-one/apps/vite-one/src/pages/Logo.tsx` (`/logo` route; commits
-      `04565a267`..`1e6bf2ac8`, 2026-01-18): Hero, SM and MD variants. Pick: SM
-      SVG-0 (¶ with sound waves radiating out = prose + audio). Needs per-size
-      drawings (≤16 px simplified, heavier strokes, pixel-snapped), and spacing
-      between the ¶ and the waves set by eye at each size; MD (staff with
-      glyphs) only for large sizes, if at all.
 
 ## alignment quality
 
