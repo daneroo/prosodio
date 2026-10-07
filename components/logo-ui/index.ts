@@ -4,5 +4,6 @@ export type { StaffNotes } from "./src/LogoMD.tsx";
 export { LogoSM } from "./src/LogoSM.tsx";
 export { LogoSMOrig } from "./src/LogoSMOrig.tsx";
 export type { LogoGlyphs } from "./src/LogoSMOrig.tsx";
+export { LogoTile } from "./src/LogoTile.tsx";
 export { HERO_OPENINGS } from "./src/openings.ts";
 export type { HeroOpening } from "./src/openings.ts";

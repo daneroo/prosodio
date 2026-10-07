@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  DEFAULT_TILE_PARAMS,
-  drawings,
-  renderLogo,
-  renderTile,
-} from "./index.ts";
+import { S, drawings, renderLogo, renderTile } from "./index.ts";
 
 /** Attributes of the first <rect> in an SVG string, or undefined. */
 function firstRect(svg: string): Record<string, string> | undefined {
@@ -24,14 +19,17 @@ describe("renderLogo", () => {
     expect(svg).not.toMatch(/#[0-9a-f]{3,6}\b/i);
   });
 
-  test("≤16 px selects the small drawing, larger the regular one", () => {
-    const small = drawings.small.paths[0]!.d;
-    const regular = drawings.regular.paths[0]!.d;
-    expect(renderLogo(16)).toContain(small);
-    expect(renderLogo(8)).toContain(small);
-    expect(renderLogo(17)).toContain(regular);
-    expect(renderLogo(128)).toContain(regular);
-    expect(renderLogo(16)).not.toBe(renderLogo(17));
+  test("≤24 px selects the small drawing, larger the regular one", () => {
+    const { small, regular } = drawings;
+    expect(renderLogo(24)).toContain(small.waves);
+    expect(renderLogo(8)).toContain(small.waves);
+    expect(renderLogo(25)).toContain(regular.waves);
+    expect(renderLogo(128)).toContain(regular.waves);
+    expect(renderLogo(24)).not.toBe(renderLogo(25));
+  });
+
+  test("bare, the drawing sits in its own bounding box", () => {
+    expect(renderLogo(64)).toContain(`viewBox="${drawings.regular.vb}"`);
   });
 
   test("is deterministic", () => {
@@ -49,27 +47,33 @@ describe("renderTile", () => {
     expect(rect!.height).toBe("100");
     expect(rect!.rx).toBeUndefined();
     expect(rect!.ry).toBeUndefined();
-    expect(rect!.fill).toBe(DEFAULT_TILE_PARAMS.background);
+    expect(rect!.fill).toBe(S.paper.flatBg);
     expect(rect!["fill-opacity"]).toBeUndefined();
     expect(rect!.opacity).toBeUndefined();
   });
 
-  test("favicon tile has rounded corners", () => {
+  test("favicon tile has the source's 22.5% corners", () => {
     const rect = firstRect(renderTile(32, "favicon"));
     expect(rect).toBeDefined();
-    expect(Number(rect!.rx)).toBeGreaterThan(0);
-    expect(Number(rect!.ry)).toBeGreaterThan(0);
+    expect(Number(rect!.rx)).toBeCloseTo(22.5);
+    expect(Number(rect!.ry)).toBeCloseTo(22.5);
   });
 
-  test("tile draws the logo in the params color, not currentColor", () => {
+  test("tile draws the logo in the scheme's color, not currentColor", () => {
     const svg = renderTile(32, "favicon");
-    expect(svg).toContain(DEFAULT_TILE_PARAMS.color);
+    expect(svg).toContain(`fill="${S.paper.fg}"`);
     expect(svg).not.toContain("currentColor");
+    const dark = renderTile(32, "favicon", "midnight");
+    expect(dark).toContain(`fill="${S.midnight.fg}"`);
   });
 
-  test("at 16 px the tile uses the small drawing", () => {
-    expect(renderTile(16, "favicon")).toContain(drawings.small.paths[0]!.d);
-    expect(renderTile(32, "favicon")).toContain(drawings.regular.paths[0]!.d);
+  test("the tile places the drawing with its tile transform", () => {
+    expect(renderTile(24, "favicon")).toContain(
+      `transform="${drawings.small.tf}"`,
+    );
+    expect(renderTile(32, "favicon")).toContain(
+      `transform="${drawings.regular.tf}"`,
+    );
   });
 
   test("is deterministic", () => {

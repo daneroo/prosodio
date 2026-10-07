@@ -4,8 +4,25 @@ export {
   drawingFor,
   drawings,
 } from "./geometry.ts";
-export type { Drawing, DrawingPath } from "./geometry.ts";
-export { DEFAULT_TILE_PARAMS } from "./params.ts";
-export type { TileParams } from "./params.ts";
+export type { Drawing } from "./geometry.ts";
+export {
+  PROPS,
+  S,
+  amber,
+  f,
+  fonts,
+  renderVals,
+  serif,
+  wm,
+} from "./prosodio-mark.ts";
+export type {
+  Base,
+  Finish,
+  Mk,
+  Props,
+  Scheme,
+  SchemeKey,
+  Tile,
+} from "./prosodio-mark.ts";
 export { renderLogo, renderTile } from "./render.ts";
 export type { TileShape } from "./render.ts";

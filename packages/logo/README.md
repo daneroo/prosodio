@@ -39,23 +39,30 @@ values live in their components (`LogoMD.tsx`, `LogoHero.tsx`):
 
 ## Visual rules (provisional)
 
-- In the app the logo is one color, `currentColor`, on a transparent background:
-  it takes the colors of the page it sits on.
-- Two drawings on one square viewBox: small (16 px and below: simplified,
-  heavier strokes, fewer arcs) and regular.
+Settled in Claude Design (`Prosodio Mark.dc.html`, ported in
+`prosodio-mark.ts`); the rationale is written when #29 closes.
+
+- In the app the logo is bare: one color on a transparent background, in its own
+  bounding box. The library header (3b): 24 px, amber `oklch(0.8 0.125 68)`, the
+  name beside it in the serif, cream `#fffbeb`.
+- Two drawings from one construction (pilcrow cap height 60u, stem 9u; waves to
+  the right): small (24 px and below: two heavier arcs, filling more of the
+  tile) and regular (three arcs).
 - A tile is the logo on an opaque square background, for places with no page to
-  take colors from: slate-900 `#0f172a` background, cyan-400 `#22d3ee` logo.
-  Gradient and border exist as parameters and are off.
-- Favicon tile: rounded corners, transparent only at the corners. Home Screen
-  tile: opaque full-bleed square, no rounded corners (iPadOS applies its own
-  mask and renders transparent pixels as black).
+  take colors from. Lead scheme sepia `#461901` on cream `#fffbeb`; three others
+  (cream on sepia, rust on midnight, midnight on rust). Finishes flat (default),
+  sheen and glass; icons use flat.
+- Favicon tile: 22.5% rounded corners, transparent only at the corners. Home
+  Screen tile: opaque full-bleed square, no rounded corners (iPadOS applies its
+  own mask and renders transparent pixels as black).
 - No raster of the bare logo: a fixed color would vanish on one of the two
   themes.
 
 ## Where things live
 
-- This package: geometry (two drawings), the size to drawing selector,
-  provisional tile parameters, and a pure renderer returning SVG strings (bare
-  logo or tile).
+- This package: the Claude Design source's Tweaks and generator
+  (`prosodio-mark.ts`, its names kept), the two drawings and the size to drawing
+  selector (`geometry.ts`), and a pure renderer returning SVG strings (bare logo
+  or tile).
 - `@prosodio/logo-ui` (`components/logo-ui`): the React components (`LogoSM`,
-  `LogoMD`, `LogoHero`) and the hero's openings.
+  `LogoTile`, `LogoMD`, `LogoHero`) and the hero's openings.
