@@ -1,7 +1,6 @@
-import { VIEW_BOX_SIZE, drawingFor } from "./drawings.ts";
-import type { Drawing } from "./drawings.ts";
-import { renderVals } from "./prosodio-mark.ts";
-import type { SchemeKey } from "./prosodio-mark.ts";
+import type { Logo } from "./geometry.ts";
+import { TILE_SIZE, placeOnTile, tileStyle } from "./tile.ts";
+import { logoFor, tileLogoFor } from "./sizing.ts";
 
 /**
  * Which tile: `favicon` has rounded corners (transparent only there);
@@ -10,40 +9,30 @@ import type { SchemeKey } from "./prosodio-mark.ts";
  */
 export type TileShape = "favicon" | "home-screen";
 
-const { tile } = renderVals();
-
 /** The bare logo: `currentColor` on a transparent background, in its own
- * bounding box (`vb`), centered in a `sizePx` square. */
+ * frame, centered in a `sizePx` square. */
 export function renderLogo(sizePx: number): string {
-  const drawing = drawingFor(sizePx);
-  return svg(sizePx, drawing.vb, drawingMarkup(drawing, "currentColor"));
+  const { logo, viewBox } = logoFor(sizePx);
+  return svg(sizePx, viewBox, logoMarkup(logo, "currentColor"));
 }
 
 /**
- * The logo on its own opaque square background: the source's flat tile
- * (background, logo color, `tf` placement, `rad` corners). Its CSS shadows
- * and edge are page effects, not part of an icon, so they are left out.
+ * The logo on its own opaque square background: the chosen tile
+ * (`tileStyle`), the logo placed by `placeOnTile`. Its CSS shadows and edge
+ * are page effects, not part of an icon, so they are left out.
  */
-export function renderTile(
-  sizePx: number,
-  shape: TileShape,
-  scheme: SchemeKey = "paper",
-): string {
-  const drawing = drawingFor(sizePx);
-  const { bg, fg, rad } = tile(drawing, sizePx, scheme, {}, "flat");
-  const radius = (rad / sizePx) * VIEW_BOX_SIZE;
-  const corners = shape === "favicon" ? ` rx="${radius}" ry="${radius}"` : "";
-  const background = `<rect width="${VIEW_BOX_SIZE}" height="${VIEW_BOX_SIZE}"${corners} fill="${bg}"/>`;
-  const logo = `<g transform="${drawing.tf}">${drawingMarkup(drawing, fg)}</g>`;
-  return svg(
-    sizePx,
-    `0 0 ${VIEW_BOX_SIZE} ${VIEW_BOX_SIZE}`,
-    background + logo,
-  );
+export function renderTile(sizePx: number, shape: TileShape): string {
+  const { logo } = tileLogoFor(sizePx);
+  const { background, color, radius } = tileStyle(sizePx);
+  const corner = (radius / sizePx) * TILE_SIZE;
+  const corners = shape === "favicon" ? ` rx="${corner}" ry="${corner}"` : "";
+  const rect = `<rect width="${TILE_SIZE}" height="${TILE_SIZE}"${corners} fill="${background}"/>`;
+  const placed = `<g transform="${placeOnTile(logo).transform}">${logoMarkup(logo, color)}</g>`;
+  return svg(sizePx, `0 0 ${TILE_SIZE} ${TILE_SIZE}`, rect + placed);
 }
 
-function drawingMarkup(drawing: Drawing, color: string): string {
-  return `<path d="${drawing.pil}" fill="${color}"/><path d="${drawing.waves}" fill="none" stroke="${color}" stroke-width="${drawing.sw}" stroke-linecap="round"/>`;
+function logoMarkup(logo: Logo, color: string): string {
+  return `<path d="${logo.pilcrow}" fill="${color}"/><path d="${logo.arcs}" fill="none" stroke="${color}" stroke-width="${logo.arcStroke}" stroke-linecap="round"/>`;
 }
 
 function svg(sizePx: number, viewBox: string, body: string): string {

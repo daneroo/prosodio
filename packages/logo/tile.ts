@@ -5,14 +5,14 @@
  */
 import { round } from "./geometry.ts";
 import type { Logo } from "./geometry.ts";
+import { LOGO_WIDTH_ON_TILE_RATIO } from "./sizing.ts";
 
 /** Side of the tile's viewBox. */
 export const TILE_SIZE = 100;
 
-/** How the logo sits on the tile, all in % of the tile. */
+/** The logo's optical offset on the tile, in % of the tile; its width is
+ * `LOGO_WIDTH_ON_TILE_RATIO` (sizing.ts). */
 export interface TileFit {
-  /** The logo's box fits a square this wide (`box`). */
-  fill: number;
   /** Optical offset right of the geometric centre (`opticalX`). */
   opticalX: number;
   /** Optical offset down from the geometric centre (`opticalY`). */
@@ -20,7 +20,7 @@ export interface TileFit {
 }
 
 /** The settled values. */
-export const FIT_DEFAULTS: TileFit = { fill: 58, opticalX: 1, opticalY: 1.5 };
+export const FIT_DEFAULTS: TileFit = { opticalX: 1, opticalY: 1.5 };
 
 /** The logo's placement on the tile: u → tile units is `x + scale × u`. */
 export interface TilePlacement {
@@ -31,15 +31,16 @@ export interface TilePlacement {
   transform: string;
 }
 
-/** Scales the logo's box to `fill`, centres it, then adds the optical
- * offset (any of `fit` left out take `FIT_DEFAULTS`). */
+/** Scales the logo's box to `LOGO_WIDTH_ON_TILE_RATIO` of the tile's width,
+ * centres it, then adds the optical offset (any of `fit` left out take
+ * `FIT_DEFAULTS`). */
 export function placeOnTile(
   logo: Logo,
   fit: Partial<TileFit> = {},
 ): TilePlacement {
-  const { fill, opticalX, opticalY } = { ...FIT_DEFAULTS, ...fit };
+  const { opticalX, opticalY } = { ...FIT_DEFAULTS, ...fit };
   const { left, top, right, bottom } = logo.box;
-  const scale = Math.min(fill / (right - left), fill / (bottom - top));
+  const scale = (LOGO_WIDTH_ON_TILE_RATIO * TILE_SIZE) / (right - left);
   const x = TILE_SIZE / 2 - (scale * (left + right)) / 2 + opticalX;
   const y = TILE_SIZE / 2 - (scale * (top + bottom)) / 2 + opticalY;
   return {

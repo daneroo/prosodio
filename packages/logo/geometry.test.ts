@@ -38,6 +38,7 @@ describe("drawLogo", () => {
     expect(logo.arcs).toBe(
       "M54.6 16.31A9 9 0 0 1 54.6 29.69M63.03 6.95A21.6 21.6 0 0 1 63.03 39.05M71.46 -2.42A34.2 34.2 0 0 1 71.46 48.42",
     );
+    expect(logo.arcCount).toBe(3);
     expect(logo.arcStroke).toBe(7.2);
     expect(logo.arcCenter.x).toBeCloseTo(48.57782454277028, 10);
     expect(logo.arcCenter.y).toBe(23);

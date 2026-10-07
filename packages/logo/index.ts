@@ -1,14 +1,7 @@
-export {
-  SMALL_MAX_PX,
-  VIEW_BOX_SIZE,
-  drawingFor,
-  drawings,
-} from "./drawings.ts";
-export type { Drawing } from "./drawings.ts";
-export { ARC, LOGO_DEFAULTS, PILCROW, drawLogo, round } from "./geometry.ts";
-export type { Logo, LogoParams } from "./geometry.ts";
-export { FIT_DEFAULTS, TILE_SIZE, placeOnTile, tileStyle } from "./tile.ts";
-export type { TileFit, TilePlacement, TileStyle } from "./tile.ts";
+export { logoFor, tileLogoFor } from "./sizing.ts";
+export type { Logo } from "./geometry.ts";
+export { tileStyle } from "./tile.ts";
+export type { TileFit, TileStyle } from "./tile.ts";
 export {
   PROPS,
   S,

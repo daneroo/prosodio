@@ -1,46 +1,57 @@
 import { describe, expect, test } from "bun:test";
 
 import { drawLogo } from "./geometry.ts";
+import { LOGO_WIDTH_ON_TILE_RATIO } from "./sizing.ts";
 import { FIT_DEFAULTS, placeOnTile, tileStyle } from "./tile.ts";
 
-/** Expected values are the Claude Design source's own output (`mk()` and
- * `tile()` run verbatim). */
+/** placeOnTile is tested by its rules, so tuning LOGO_WIDTH_ON_TILE_RATIO
+ * needs no test edits; tileStyle is pinned to the Claude Design source's
+ * own `tile()` output. */
 describe("placeOnTile", () => {
-  test("defaults: the settled fit", () => {
-    expect(FIT_DEFAULTS).toEqual({ fill: 58, opticalX: 1, opticalY: 1.5 });
+  test("defaults: the settled optical offset", () => {
+    expect(FIT_DEFAULTS).toEqual({ opticalX: 1, opticalY: 1.5 });
   });
 
-  test("the settled placement", () => {
-    const placement = placeOnTile(drawLogo());
-    expect(placement.transform).toBe("translate(22 33.38) scale(0.6715)");
-    expect(placement.scale).toBeCloseTo(0.6714686356945827, 10);
-    expect(placement.x).toBeCloseTo(22, 10);
-    expect(placement.y).toBeCloseTo(33.37556852260926, 10);
+  // Any drawing: its box is LOGO_WIDTH_ON_TILE_RATIO of the tile wide,
+  // centred, then moved by the optical offset. True whatever the ratio is
+  // tuned to.
+  const drawings = [
+    drawLogo(),
+    drawLogo({ arcCount: 2, arcWeight: 0.95 }),
+    drawLogo({ arcGap: 8 }),
+    drawLogo({ arcHeight: 0 }),
+  ];
+
+  test("the logo's box spans the logo width on a tile", () => {
+    for (const logo of drawings) {
+      const { scale } = placeOnTile(logo);
+      const width = logo.box.right - logo.box.left;
+      expect(scale * width).toBeCloseTo(LOGO_WIDTH_ON_TILE_RATIO * 100, 10);
+    }
   });
 
-  test("opticalY moves the logo down the tile (S6)", () => {
-    expect(placeOnTile(drawLogo(), { opticalY: 0 }).transform).toBe(
-      "translate(22 31.88) scale(0.6715)",
-    );
+  test("the box is centred, then moved by the optical offset", () => {
+    for (const logo of drawings) {
+      const { scale, x, y } = placeOnTile(logo);
+      const { left, top, right, bottom } = logo.box;
+      expect(x + (scale * (left + right)) / 2).toBeCloseTo(50 + 1, 10);
+      expect(y + (scale * (top + bottom)) / 2).toBeCloseTo(50 + 1.5, 10);
+    }
   });
 
-  test("placement follows the drawing's box", () => {
-    expect(placeOnTile(drawLogo({ arcCount: 2 })).transform).toBe(
-      "translate(22 27.92) scale(0.7861)",
-    );
-    expect(placeOnTile(drawLogo({ arcGap: 8 })).transform).toBe(
-      "translate(22 33.98) scale(0.6489)",
-    );
-    expect(placeOnTile(drawLogo({ arcHeight: 0 })).transform).toBe(
-      "translate(22 31.36) scale(0.6715)",
-    );
+  test("opticalY moves the logo down the tile, nothing else (S6)", () => {
+    const settled = placeOnTile(drawLogo());
+    const raised = placeOnTile(drawLogo(), { opticalY: 0 });
+    expect(raised.scale).toBe(settled.scale);
+    expect(raised.x).toBe(settled.x);
+    expect(settled.y - raised.y).toBeCloseTo(1.5, 10);
   });
 
-  test("the small variant's fit", () => {
-    expect(
-      placeOnTile(drawLogo({ arcCount: 2, arcWeight: 0.95 }), { fill: 64 })
-        .transform,
-    ).toBe("translate(19 26.72) scale(0.8259)");
+  test("the transform is the placement, rounded", () => {
+    const { scale, x, y, transform } = placeOnTile(drawLogo());
+    expect(transform).toBe(
+      `translate(${+x.toFixed(2)} ${+y.toFixed(2)}) scale(${+scale.toFixed(4)})`,
+    );
   });
 });
 

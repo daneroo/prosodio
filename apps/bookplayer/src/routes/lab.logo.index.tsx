@@ -6,7 +6,7 @@
  * sections each on the slate shell and on a light background:
  *
  * - SM: LogoSM at several sizes beside the prototype's font-glyph original
- *   (LogoSMOrig), the small drawing at 16 px, and tile previews.
+ *   (LogoSMOrig), and tile previews (renderTile).
  * - Colors: the logo's color pairs (see below), drawn with LogoSM.
  * - SM, prototype: LogoSMOrig in the prototype's own judging rows (variants,
  *   sized), then the same color pairs — temporary, while LogoSM's path drawing
@@ -37,21 +37,12 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { BoardPage } from "#/components/lab/logo/board";
 import { ConstructionBoard } from "#/components/lab/logo/ConstructionBoard";
+import { SizeLadderBoard } from "#/components/lab/logo/SizeLadderBoard";
 import { StudiesBoard } from "#/components/lab/logo/StudiesBoard";
 import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-import {
-  S,
-  SMALL_MAX_PX,
-  amber,
-  f,
-  renderLogo,
-  renderTile,
-  renderVals,
-  serif,
-  wm,
-} from "@prosodio/logo";
+import { S, amber, f, renderTile, renderVals, serif, wm } from "@prosodio/logo";
 import type { Base, SchemeKey, Tile, TileShape } from "@prosodio/logo";
 
 export const Route = createFileRoute("/lab/logo/")({
@@ -108,6 +99,7 @@ function LogoPage() {
         <BoardPage>
           <ConstructionBoard />
           <StudiesBoard />
+          <SizeLadderBoard />
         </BoardPage>
       </section>
       <section>
@@ -384,10 +376,23 @@ function DesignBoards() {
           <div className="flex flex-wrap items-center gap-x-14 gap-y-10">
             <Lockup L={L2} color={ink} />
             <div className="flex items-baseline" style={{ gap: bare.gap }}>
-              <LogoSM
-                drawing={bare.m}
-                style={{ width: bare.w, height: bare.h, color: ink }}
-              />
+              <svg
+                viewBox={bare.m.vb}
+                className="block flex-none"
+                style={{ width: bare.w, height: bare.h }}
+                aria-hidden
+              >
+                <path d={bare.m.pil} style={{ fill: ink }} />
+                <path
+                  d={bare.m.waves}
+                  style={{
+                    fill: "none",
+                    stroke: ink,
+                    strokeWidth: bare.m.sw,
+                    strokeLinecap: "round",
+                  }}
+                />
+              </svg>
               <Wordmark fs={bare.fs} lh={1} color={ink} />
             </div>
           </div>
@@ -669,22 +674,6 @@ function SmallPanel({ tone }: { tone: Tone }) {
         ))}
       </div>
 
-      <h4 className="mt-3 mb-1 text-xs opacity-60">
-        small drawing (≤{SMALL_MAX_PX} px)
-      </h4>
-      <div className="flex items-end gap-4">
-        {[SMALL_MAX_PX, 16, 12].map((size) => (
-          <div key={size} className="flex flex-col items-center gap-1">
-            <SmallLogo size={size} />
-            <Label>{size}</Label>
-          </div>
-        ))}
-        <div className="flex flex-col items-center gap-1">
-          <SmallLogo size={128} drawnAt={SMALL_MAX_PX} />
-          <Label>128 (small drawing, enlarged)</Label>
-        </div>
-      </div>
-
       <h4 className="mt-3 mb-1 text-xs opacity-60">tiles</h4>
       <div className="flex flex-wrap items-end gap-4">
         {TILES.flatMap(({ shape, sizes: tileSizes }) =>
@@ -719,25 +708,6 @@ function TileImage({ shape, size }: { shape: TileShape; size: number }) {
       width={size}
       height={size}
       alt={`${shape} tile`}
-    />
-  );
-}
-
-/** The renderer's bare logo drawn for `drawnAt` px (picking its drawing),
- * shown at `size`; inlined so `currentColor` works (it would not inside an
- * <img>). */
-function SmallLogo({
-  size,
-  drawnAt = size,
-}: {
-  size: number;
-  drawnAt?: number;
-}) {
-  return (
-    <span
-      className="block [&>svg]:h-full [&>svg]:w-full"
-      style={{ width: size, height: size }}
-      dangerouslySetInnerHTML={{ __html: renderLogo(drawnAt) }}
     />
   );
 }

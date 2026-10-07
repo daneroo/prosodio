@@ -60,6 +60,8 @@ export interface Logo {
   pilcrow: string;
   /** SVG path: the arcs' centre lines, to stroke with round caps. */
   arcs: string;
+  /** Number of arcs drawn. */
+  arcCount: number;
   /** Arc stroke width. */
   arcStroke: number;
   /** Common centre of the arcs. */
@@ -104,6 +106,7 @@ export function drawLogo(params: Partial<LogoParams> = {}): Logo {
   return {
     pilcrow,
     arcs,
+    arcCount,
     arcStroke: round(arcStroke),
     arcCenter: { x: cx, y: cy },
     box: {
@@ -118,4 +121,10 @@ export function drawLogo(params: Partial<LogoParams> = {}): Logo {
 /** Rounds to `digits` decimals, as written into paths (the source's `f`). */
 export function round(value: number, digits = 2): number {
   return +value.toFixed(digits);
+}
+
+/** The bare logo's SVG viewBox: its box, with 0.5u either side. */
+export function bareViewBox(logo: Logo): string {
+  const { left, top, right, bottom } = logo.box;
+  return `${round(left - 0.5)} ${round(top)} ${round(right - left + 1)} ${round(bottom - top)}`;
 }

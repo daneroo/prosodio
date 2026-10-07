@@ -7,6 +7,7 @@
 import {
   ARC,
   FIT_DEFAULTS,
+  LOGO_WIDTH_ON_TILE_RATIO,
   LOGO_DEFAULTS,
   PILCROW,
   drawLogo,
@@ -87,7 +88,10 @@ const readout = [
     k: "Logo size",
     v: `${round(width, 1)} × ${round(height, 1)}u (${round(width / height)} : 1)`,
   },
-  { k: "Tile fill", v: `logo fits a ${FIT_DEFAULTS.fill}% box` },
+  {
+    k: "Logo width on a tile",
+    v: `${LOGO_WIDTH_ON_TILE_RATIO} × tile width (LOGO_WIDTH_ON_TILE_RATIO)`,
+  },
   {
     k: "Optical offset",
     v: `${FIT_DEFAULTS.opticalY}% down, ${FIT_DEFAULTS.opticalX}% right of geometric centre`,

@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
-import { S, drawings, renderLogo, renderTile } from "./index.ts";
+import {
+  logoFor,
+  renderLogo,
+  renderTile,
+  tileLogoFor,
+  tileStyle,
+} from "./index.ts";
+import { placeOnTile } from "./construction.ts";
 
 /** Attributes of the first <rect> in an SVG string, or undefined. */
 function firstRect(svg: string): Record<string, string> | undefined {
@@ -19,17 +26,14 @@ describe("renderLogo", () => {
     expect(svg).not.toMatch(/#[0-9a-f]{3,6}\b/i);
   });
 
-  test("≤24 px selects the small drawing, larger the regular one", () => {
-    const { small, regular } = drawings;
-    expect(renderLogo(24)).toContain(small.waves);
-    expect(renderLogo(8)).toContain(small.waves);
-    expect(renderLogo(25)).toContain(regular.waves);
-    expect(renderLogo(128)).toContain(regular.waves);
-    expect(renderLogo(24)).not.toBe(renderLogo(25));
+  test("draws logoFor's variant at each size", () => {
+    for (const size of [8, 16, 24, 25, 32, 128]) {
+      expect(renderLogo(size)).toContain(logoFor(size).logo.arcs);
+    }
   });
 
   test("bare, the drawing sits in its own bounding box", () => {
-    expect(renderLogo(64)).toContain(`viewBox="${drawings.regular.vb}"`);
+    expect(renderLogo(64)).toContain(`viewBox="${logoFor(64).viewBox}"`);
   });
 
   test("is deterministic", () => {
@@ -47,7 +51,7 @@ describe("renderTile", () => {
     expect(rect!.height).toBe("100");
     expect(rect!.rx).toBeUndefined();
     expect(rect!.ry).toBeUndefined();
-    expect(rect!.fill).toBe(S.paper.flatBg);
+    expect(rect!.fill).toBe(tileStyle(180).background);
     expect(rect!["fill-opacity"]).toBeUndefined();
     expect(rect!.opacity).toBeUndefined();
   });
@@ -59,21 +63,21 @@ describe("renderTile", () => {
     expect(Number(rect!.ry)).toBeCloseTo(22.5);
   });
 
-  test("tile draws the logo in the scheme's color, not currentColor", () => {
+  test("tile draws the logo in the tile's color, not currentColor", () => {
     const svg = renderTile(32, "favicon");
-    expect(svg).toContain(`fill="${S.paper.fg}"`);
+    expect(svg).toContain(`fill="${tileStyle(32).color}"`);
     expect(svg).not.toContain("currentColor");
-    const dark = renderTile(32, "favicon", "midnight");
-    expect(dark).toContain(`fill="${S.midnight.fg}"`);
   });
 
   test("the tile places the drawing with its tile transform", () => {
-    expect(renderTile(24, "favicon")).toContain(
-      `transform="${drawings.small.tf}"`,
-    );
-    expect(renderTile(32, "favicon")).toContain(
-      `transform="${drawings.regular.tf}"`,
-    );
+    for (const size of [32, 48]) {
+      const { logo } = tileLogoFor(size);
+      expect(renderTile(size, "favicon")).toContain(
+        `transform="${placeOnTile(logo).transform}"`,
+      );
+    }
+    expect(renderTile(32, "favicon")).toContain(tileLogoFor(32).logo.arcs);
+    expect(tileLogoFor(32).variant).toBe("small");
   });
 
   test("is deterministic", () => {

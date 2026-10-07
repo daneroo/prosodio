@@ -1,22 +1,25 @@
-import { tileStyle } from "@prosodio/logo";
+import { tileLogoFor, tileStyle } from "@prosodio/logo";
+import type { Logo, TileFit } from "@prosodio/logo";
 import { placeOnTile } from "@prosodio/logo/construction";
-import type { Logo, TileFit } from "@prosodio/logo/construction";
 
 /**
- * The tile: `logo` on its own square background, `size` px. Placement
- * (`placeOnTile`, `@prosodio/logo/construction`) and look (`tileStyle`,
- * `@prosodio/logo`) come from the package; this only assembles them, with
- * the Claude Design source's markup. `logo` and `fit` are the detailed API
- * (lab boards); a size-only normal form comes with Board 2.
+ * The tile: the logo on its own square background, `size` px. Normal use:
+ * `size` alone, the variant picked by `tileLogoFor` (from the logo size on
+ * the tile). Placement (`placeOnTile`)
+ * and look (`tileStyle`) come from the package; this only assembles them,
+ * with the Claude Design source's markup.
+ *
+ * `logo` and `fit` override the variant: the detailed API, for the lab's
+ * boards only (Board 1 · Studies).
  */
 export function LogoTile({
-  logo,
   size,
+  logo = tileLogoFor(size).logo,
   fit,
   title,
 }: {
-  logo: Logo;
   size: number;
+  logo?: Logo;
   fit?: Partial<TileFit>;
   title?: string;
 }) {

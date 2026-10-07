@@ -6,5 +6,10 @@
  */
 export { ARC, LOGO_DEFAULTS, PILCROW, drawLogo, round } from "./geometry.ts";
 export type { Logo, LogoParams } from "./geometry.ts";
+export {
+  LOGO_WIDTH_ON_TILE_RATIO,
+  SMALL_LOGO_MAX_PX,
+  logoSizeOnTile,
+} from "./sizing.ts";
 export { FIT_DEFAULTS, TILE_SIZE, placeOnTile } from "./tile.ts";
 export type { TileFit, TilePlacement } from "./tile.ts";
