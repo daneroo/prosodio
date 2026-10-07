@@ -1,7 +1,9 @@
 /**
- * /lab/logo — the Logo judged by eye (spec #25). First the Claude Design
- * source's boards (`Prosodio Mark.dc.html`, ported once, on its own page
- * colors); then sections each on the slate shell and on a light background:
+ * /lab/logo — the Logo judged by eye (spec #25). First the logo's boards,
+ * rebuilt one at a time from @prosodio/logo (`components/lab/logo/`); then
+ * the Claude Design source's boards (`Prosodio Mark.dc.html`, ported once,
+ * on its own page colors) as the reference until all are rebuilt; then
+ * sections each on the slate shell and on a light background:
  *
  * - SM: LogoSM at several sizes beside the prototype's font-glyph original
  *   (LogoSMOrig), the small drawing at 16 px, and tile previews.
@@ -28,11 +30,14 @@ import {
   LogoMD,
   LogoSM,
   LogoSMOrig,
-  LogoTile,
   staffPositionCount,
 } from "@prosodio/logo-ui";
 import type { HeroOpening, LogoGlyphs, StaffNotes } from "@prosodio/logo-ui";
 import { createFileRoute } from "@tanstack/react-router";
+
+import { BoardPage } from "#/components/lab/logo/board";
+import { ConstructionBoard } from "#/components/lab/logo/ConstructionBoard";
+import { StudiesBoard } from "#/components/lab/logo/StudiesBoard";
 import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -99,8 +104,15 @@ function LogoPage() {
   return (
     <div className="flex flex-col gap-6 p-4">
       <section>
+        <h2 className="mb-2 text-sm font-medium text-slate-300">Logo (SM)</h2>
+        <BoardPage>
+          <ConstructionBoard />
+          <StudiesBoard />
+        </BoardPage>
+      </section>
+      <section>
         <h2 className="mb-2 text-sm font-medium text-slate-300">
-          Logo (SM, Claude Design)
+          Logo (SM, Claude Design) — reference, until every board is rebuilt
         </h2>
         <DesignBoards />
       </section>
@@ -425,7 +437,7 @@ function DesignBoards() {
         </div>
         <div className="flex flex-wrap items-end gap-7">
           {darkTiles.map((t) => (
-            <LogoTile key={`${t.fg}-${t.size}`} t={t} />
+            <DesignTile key={`${t.fg}-${t.size}`} t={t} />
           ))}
         </div>
       </div>
@@ -525,7 +537,7 @@ function Lockup({
 }) {
   return (
     <div className="flex items-center" style={{ gap: L.gap }}>
-      <LogoTile t={L.t} />
+      <DesignTile t={L.t} />
       {tag ? (
         <div className="flex flex-col" style={{ gap: L.tgap }}>
           <Wordmark fs={L.fs} lh={0.9} color={color} />
@@ -548,10 +560,52 @@ function Lockup({
   );
 }
 
+/** The source's tile markup for one `tile()` result: the reference boards'
+ * own copy, kept as it was while the boards are rebuilt. */
+function DesignTile({ t }: { t: Tile }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        flex: "none",
+        width: t.size,
+        height: t.size,
+        borderRadius: t.rad,
+        background: t.bg,
+        boxShadow: t.shadow,
+      }}
+    >
+      <svg
+        viewBox="0 0 100 100"
+        aria-hidden
+        style={{
+          display: "block",
+          width: "100%",
+          height: "100%",
+          filter: t.mf,
+        }}
+      >
+        <g transform={t.tf}>
+          <path d={t.pil} style={{ fill: t.fg }} />
+          <path
+            d={t.waves}
+            style={{
+              fill: "none",
+              stroke: t.fg,
+              strokeWidth: t.sw,
+              strokeLinecap: "round",
+            }}
+          />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 function LabeledTile({ t }: { t: Tile }) {
   return (
     <div className="flex flex-col items-center gap-2.5">
-      <LogoTile t={t} />
+      <DesignTile t={t} />
       <div className="text-[11px]" style={{ fontFamily: MONO, color: t.lc }}>
         {t.label}
       </div>

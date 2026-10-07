@@ -1,5 +1,5 @@
-import { VIEW_BOX_SIZE, drawingFor } from "./geometry.ts";
-import type { Drawing } from "./geometry.ts";
+import { VIEW_BOX_SIZE, drawingFor } from "./drawings.ts";
+import type { Drawing } from "./drawings.ts";
 import { renderVals } from "./prosodio-mark.ts";
 import type { SchemeKey } from "./prosodio-mark.ts";
 

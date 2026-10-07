@@ -1,12 +1,27 @@
-import type { Tile } from "@prosodio/logo";
+import { tileStyle } from "@prosodio/logo";
+import { placeOnTile } from "@prosodio/logo/construction";
+import type { Logo, TileFit } from "@prosodio/logo/construction";
 
 /**
- * The tile: the logo on its own square background. Renders one `Tile` (the
- * Claude Design source's `tile()` result: size, `rad` corners, `bg`, `shadow`,
- * the logo in `fg` placed by `tf`, `mf` filter) with the source's markup.
- * All values come from `@prosodio/logo`; this only assembles them.
+ * The tile: `logo` on its own square background, `size` px. Placement
+ * (`placeOnTile`, `@prosodio/logo/construction`) and look (`tileStyle`,
+ * `@prosodio/logo`) come from the package; this only assembles them, with
+ * the Claude Design source's markup. `logo` and `fit` are the detailed API
+ * (lab boards); a size-only normal form comes with Board 2.
  */
-export function LogoTile({ t, title }: { t: Tile; title?: string }) {
+export function LogoTile({
+  logo,
+  size,
+  fit,
+  title,
+}: {
+  logo: Logo;
+  size: number;
+  fit?: Partial<TileFit>;
+  title?: string;
+}) {
+  const { transform } = placeOnTile(logo, fit);
+  const { radius, background, color, shadow } = tileStyle(size);
   return (
     <div
       role={title ? "img" : undefined}
@@ -14,31 +29,26 @@ export function LogoTile({ t, title }: { t: Tile; title?: string }) {
       style={{
         position: "relative",
         flex: "none",
-        width: t.size,
-        height: t.size,
-        borderRadius: t.rad,
-        background: t.bg,
-        boxShadow: t.shadow,
+        width: size,
+        height: size,
+        borderRadius: radius,
+        background,
+        boxShadow: shadow,
       }}
     >
       <svg
         viewBox="0 0 100 100"
         aria-hidden
-        style={{
-          display: "block",
-          width: "100%",
-          height: "100%",
-          filter: t.mf,
-        }}
+        style={{ display: "block", width: "100%", height: "100%" }}
       >
-        <g transform={t.tf}>
-          <path d={t.pil} style={{ fill: t.fg }} />
+        <g transform={transform}>
+          <path d={logo.pilcrow} style={{ fill: color }} />
           <path
-            d={t.waves}
+            d={logo.arcs}
             style={{
               fill: "none",
-              stroke: t.fg,
-              strokeWidth: t.sw,
+              stroke: color,
+              strokeWidth: logo.arcStroke,
               strokeLinecap: "round",
             }}
           />
