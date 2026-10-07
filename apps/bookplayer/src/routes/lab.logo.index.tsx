@@ -3,11 +3,18 @@
  * slate shell and on a light background:
  *
  * - SM: LogoSM at several sizes beside the prototype's font-glyph original
- *   (bun-one `Logo.tsx`, ported locally here on purpose — not into the
- *   packages), the small drawing at 16 px, and tile previews.
+ *   (LogoSMOrig), the small drawing at 16 px, and tile previews.
+ * - Colors: the logo's color pairs (see below), drawn with LogoSM.
+ * - SM, prototype: LogoSMOrig in the prototype's own judging rows (variants,
+ *   sized), then the same color pairs — temporary, while LogoSM's path drawing
+ *   is not yet adequate (spec #25).
  * - MD: the prototype's judging rows — variants and sizes inside its gradient
  *   containers (`LogoContainer`, `SIZE_MAP`, its daisyUI light/dark colors) —
  *   plus the bare staff logo on the panel's own colors.
+ * - The color pairs: dark (rust and midnight blue, either way round) and light
+ *   (the hero's paper) — an experiment (#29), not app theming — as rounded
+ *   squares at 16–128 px (24: the header size) plus bare, every pair on both
+ *   pages.
  * - Hero: LogoHero with a chosen opening; the slate panel carries
  *   `data-theme="dark"`, the hero's dark-paper switch.
  *
@@ -19,19 +26,15 @@ import {
   LogoHero,
   LogoMD,
   LogoSM,
+  LogoSMOrig,
   staffPositionCount,
 } from "@prosodio/logo-ui";
-import type { HeroOpening, StaffNotes } from "@prosodio/logo-ui";
+import type { HeroOpening, LogoGlyphs, StaffNotes } from "@prosodio/logo-ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-import {
-  SMALL_MAX_PX,
-  VIEW_BOX_SIZE,
-  renderLogo,
-  renderTile,
-} from "@prosodio/logo";
+import { SMALL_MAX_PX, renderLogo, renderTile } from "@prosodio/logo";
 import type { TileShape } from "@prosodio/logo";
 
 export const Route = createFileRoute("/lab/logo/")({
@@ -87,6 +90,13 @@ function LogoPage() {
         title="Logo (SM)"
         render={(tone) => <SmallPanel tone={tone} />}
       />
+      <Section
+        title="Colors"
+        render={() => (
+          <SchemePanel logo={<LogoSM className="h-[72%] w-[72%]" />} />
+        )}
+      />
+      <Section title="Logo (SM, prototype)" render={() => <OrigPanel />} />
       <Section
         title="Staff logo (MD)"
         render={(tone) => <StaffPanel tone={tone} />}
@@ -213,7 +223,9 @@ function SmallPanel({ tone }: { tone: Tone }) {
           <div key={size} className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-1">
               <LogoSM style={{ width: size, height: size }} />
-              <GlyphLogo size={size} />
+              <div style={{ width: size, height: size }}>
+                <LogoSMOrig />
+              </div>
             </div>
             <Label>{size}</Label>
           </div>
@@ -284,46 +296,131 @@ function SmallLogo({ size }: { size: number }) {
   );
 }
 
-/** Prototype original (bun-one Logo.tsx `LogoSM`, glyphs `¶)`): a font-glyph
- * pilcrow plus three stroked arcs. Trimmed port (fixed gap and offset), local
- * to this page. */
-function GlyphLogo({ size }: { size: number }) {
-  const CENTER_X = 50;
-  const GAP = 3;
-  const ARCS_OFFSET = 6;
-  const rightEdge = CENTER_X + GAP / 2;
-  const leftEdge = CENTER_X - GAP / 2;
-  const arcsX = rightEdge + ARCS_OFFSET;
+// ============================================================================
+// Colors — the logo's two schemes, each a fg/bg pair (experiment, not app
+// theming). Light: LogoHero's paper. Dark: rust and midnight blue (im-qcic
+// v2 chromatic accents, dark and light), either way round: still open. Shown as the MD containers' rounded squares, solid, not gradient.
+// ============================================================================
+
+const RUST = "#c9803f";
+const MIDNIGHT_BLUE = "#1b3a6b";
+
+const SCHEMES: ReadonlyArray<{
+  name: string;
+  /** Hover detail: where the colors come from. */
+  source: string;
+  pairs: ReadonlyArray<{ fg: string; bg: string }>;
+}> = [
+  {
+    name: "dark: rust ⇄ midnight blue",
+    source: "rust: im-qcic chromatic dark accent; blue: its light accent",
+    pairs: [
+      { fg: RUST, bg: MIDNIGHT_BLUE },
+      { fg: MIDNIGHT_BLUE, bg: RUST },
+    ],
+  },
+  {
+    name: "light: ink / paper ✓",
+    source: "LogoHero light: amber-950 / amber-50",
+    pairs: [{ fg: "#461901", bg: "#fffbeb" }],
+  },
+];
+
+/** 6 (24 px) is the library header's LogoSM box (`h-6 w-6`). */
+const SCHEME_SIZES = [
+  4, 6, 8, 16, 32,
+] as const satisfies ReadonlyArray<LogoSize>;
+
+/** Hover hint for one square: its size, colors, and the header match. */
+function sizeHint(size: LogoSize, colors: string): string {
+  const px = size * 4;
+  return `${px}×${px} px${size === 6 ? " (header size)" : ""} — ${colors}`;
+}
+
+/** The color pairs as tiles and bare. `logo` fills its box: 72% for LogoSM,
+ * the tile renderer's logo share (TILE_LOGO_SCALE); the prototype original
+ * fills it whole, as in its containers. */
+function SchemePanel({ logo }: { logo: ReactNode }) {
   return (
-    <svg
-      viewBox={`0 0 ${VIEW_BOX_SIZE} ${VIEW_BOX_SIZE}`}
-      width={size}
-      height={size}
-      className="font-sans font-bold"
-      aria-hidden
-    >
-      <text
-        x={leftEdge}
-        y="50"
-        fontSize="50"
-        fill="currentColor"
-        textAnchor="end"
-        dominantBaseline="central"
-      >
-        ¶
-      </text>
-      <g
-        transform={`translate(${arcsX}, 50)`}
-        stroke="currentColor"
-        strokeWidth="6"
-        strokeLinecap="round"
-        fill="none"
-      >
-        <path d="M 0 -10 A 15 15 0 0 1 0 10" />
-        <path d="M 8 -15 A 25 25 0 0 1 8 15" />
-        <path d="M 16 -20 A 35 35 0 0 1 16 20" />
-      </g>
-    </svg>
+    <div className="flex flex-col gap-5">
+      {SCHEMES.map(({ name, source, pairs }) => (
+        <div key={name} title={source}>
+          <h4 className="mb-2 font-mono text-xs opacity-60">{name}</h4>
+          <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
+            {pairs.map(({ fg, bg }) => (
+              <div key={fg} className="flex items-end gap-4">
+                {SCHEME_SIZES.map((size) => (
+                  <div
+                    key={size}
+                    title={sizeHint(size, `${fg} on ${bg}`)}
+                    className={`${SIZE_MAP[size]} flex items-center justify-center shadow-xl ring-4 ring-(--proto-base-content)/10`}
+                    style={{ background: bg, color: fg }}
+                  >
+                    {logo}
+                  </div>
+                ))}
+              </div>
+            ))}
+            {/* Bare: the scheme's fg straight on the page, no tile. */}
+            <div
+              className="flex items-end gap-4"
+              style={{ color: pairs[0]?.fg }}
+            >
+              {SCHEME_SIZES.map((size) => (
+                <div
+                  key={size}
+                  title={sizeHint(size, `${pairs[0]?.fg ?? ""} bare`)}
+                  className={`${SIZE_MAP[size]} flex items-center justify-center`}
+                >
+                  {logo}
+                </div>
+              ))}
+              <Label>bare</Label>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
+// SM, prototype — temporary (spec #25): the original's own judging rows
+// ============================================================================
+
+const ORIG_VARIANTS: ReadonlyArray<LogoGlyphs> = ["¶)", "¶♫", "¶♪", "(¶", ")¶"];
+
+const ORIG_SIZES = [
+  8, 12, 16, 24, 32,
+] as const satisfies ReadonlyArray<LogoSize>;
+
+function OrigPanel() {
+  return (
+    <>
+      <h4 className="mb-2 text-xs opacity-60">variants</h4>
+      <div className="flex flex-wrap justify-center gap-8">
+        {ORIG_VARIANTS.map((glyphs, index) => (
+          <LogoContainer
+            key={glyphs}
+            label={`SVG-${index} (${glyphs})`}
+            size={16}
+          >
+            <LogoSMOrig glyphs={glyphs} />
+          </LogoContainer>
+        ))}
+      </div>
+
+      <h4 className="mt-6 mb-2 text-xs opacity-60">sized (¶))</h4>
+      <div className="mb-6 flex flex-wrap items-center justify-center gap-8">
+        {ORIG_SIZES.map((size) => (
+          <LogoContainer key={size} label={`${size * 4} px`} size={size}>
+            <LogoSMOrig />
+          </LogoContainer>
+        ))}
+      </div>
+
+      <SchemePanel logo={<LogoSMOrig />} />
+    </>
   );
 }
 
