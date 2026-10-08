@@ -39,15 +39,15 @@ values live in their components (`LogoMD.tsx`, `LogoHero.tsx`):
 
 ## Visual rules (provisional)
 
-Settled in Claude Design (`Prosodio Mark.dc.html`, ported in
-`prosodio-mark.ts`); the rationale is written when #29 closes.
+Settled in Claude Design (`Prosodio Mark.dc.html`); the rationale is written
+when #29 closes.
 
 - In the app the logo is bare: one color on a transparent background, in its own
   bounding box. The library header (3b): 24 px, amber `oklch(0.8 0.125 68)`, the
   name beside it in the serif, cream `#fffbeb`.
 - Two drawings from one construction (pilcrow cap height 60u, stem 9u; waves to
-  the right): small (24 px and below: two heavier arcs, filling more of the
-  tile) and regular (three arcs).
+  the right): small (a logo drawn at 24 px or below, bare or on a tile: two
+  heavier arcs) and regular (three arcs).
 - A tile is the logo on an opaque square background, for places with no page to
   take colors from. Lead scheme sepia `#461901` on cream `#fffbeb`; three others
   (cream on sepia, rust on midnight, midnight on rust). Finishes flat (default),
@@ -60,9 +60,8 @@ Settled in Claude Design (`Prosodio Mark.dc.html`, ported in
 
 ## Where things live
 
-- This package: the Claude Design source's Tweaks and generator
-  (`prosodio-mark.ts`, its names kept), the two drawings and the size to drawing
-  selector (`geometry.ts`), and a pure renderer returning SVG strings (bare logo
-  or tile).
+- This package: geometry (`geometry.ts`), tile placement and look (`tile.ts`),
+  sizing (`sizing.ts`), colors (`colors.ts`), the lockup (`lockup.ts`), and a
+  pure renderer returning SVG strings (`render.ts`).
 - `@prosodio/logo-ui` (`components/logo-ui`): the React components (`LogoSM`,
-  `LogoTile`, `LogoMD`, `LogoHero`) and the hero's openings.
+  `LogoTile`, `LogoLockup`, `LogoMD`, `LogoHero`) and the hero's openings.
