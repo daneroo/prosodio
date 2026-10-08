@@ -13,15 +13,15 @@ import {
 import { LogoSM, LogoTile } from "@prosodio/logo-ui";
 import type { ReactNode } from "react";
 
-import { Board, CARD, MONO } from "./board";
+import { Board, Card, MONO } from "./board";
 
 const SIZES = [16, 24, 32, 48, 64, 128] as const;
 const INK = "#461901";
 
 export function SizeLadderBoard() {
   return (
-    <Board number={2} title="Size ladder · rendered at 1×">
-      <div className="flex flex-col gap-7 px-10 py-8" style={CARD}>
+    <Board number={2} open={false} title="Size ladder · rendered at 1×">
+      <Card className="flex flex-col gap-7 px-10 py-8">
         <div
           className="text-[11px] text-[#6b6a72]"
           style={{ fontFamily: MONO }}
@@ -42,7 +42,7 @@ export function SizeLadderBoard() {
             caption: `${size}px · ${logoFor(size).variant}`,
           })}
         </Row>
-      </div>
+      </Card>
     </Board>
   );
 }

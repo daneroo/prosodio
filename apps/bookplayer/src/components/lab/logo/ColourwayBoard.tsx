@@ -12,15 +12,15 @@ import {
 import type { TileSchemeKey } from "@prosodio/logo";
 import { LogoTile } from "@prosodio/logo-ui";
 
-import { Board, CARD, MONO } from "./board";
+import { Board, Card, MONO } from "./board";
 
 const SIZE = 112;
 const SCHEME_KEYS = Object.keys(TILE_SCHEMES) as TileSchemeKey[];
 
 export function ColourwayBoard() {
   return (
-    <Board number={3} title={`Colourway × finish · ${SIZE}px`}>
-      <div className="flex flex-col gap-7 px-10 py-8" style={CARD}>
+    <Board number={3} open={false} title={`Colourway × finish · ${SIZE}px`}>
+      <Card className="flex flex-col gap-7 px-10 py-8">
         {SCHEME_KEYS.map((scheme) => (
           <div
             key={scheme}
@@ -55,7 +55,7 @@ export function ColourwayBoard() {
             </div>
           </div>
         ))}
-      </div>
+      </Card>
     </Board>
   );
 }

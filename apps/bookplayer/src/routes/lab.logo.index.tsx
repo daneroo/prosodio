@@ -1,8 +1,9 @@
 /**
- * /lab/logo — the Logo judged by eye (spec #25). First the logo's boards
- * (`components/lab/logo/`: construction, studies, size ladder, colourway ×
- * finish, lockups & top bar), drawn from @prosodio/logo; then sections each
- * on the slate shell and on a light background:
+ * /lab/logo — the Logo judged by eye (spec #25), in three sections of
+ * collapsible boards (`components/lab/logo/board.tsx`). First the SM logo's
+ * boards (construction open; studies, size ladder, colourway × finish,
+ * lockups & top bar closed), drawn from @prosodio/logo; then the MD and Hero
+ * logos, each on a dark and a light card:
  *
  * - MD: the staff logo's variants and sizes on tiles (`tileStyle`: sepia on
  *   cream on the light panel, rust on midnight on the dark one), then bare on
@@ -24,7 +25,7 @@ import { TILE_SCHEMES, tileStyle } from "@prosodio/logo";
 import type { TileSchemeKey } from "@prosodio/logo";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { BoardPage } from "#/components/lab/logo/board";
+import { Board, Card } from "#/components/lab/logo/board";
 import { ColourwayBoard } from "#/components/lab/logo/ColourwayBoard";
 import { ConstructionBoard } from "#/components/lab/logo/ConstructionBoard";
 import { LockupBoard } from "#/components/lab/logo/LockupBoard";
@@ -51,18 +52,16 @@ type Context = "dark" | "light";
  * logo color (rust on the dark panel, sepia on the light one). */
 const PANELS: ReadonlyArray<{
   context: Context;
-  className: string;
   scheme: TileSchemeKey;
   /** The prototype's theme switch; LogoHero reads it for its dark paper. */
   dataTheme?: "dark";
 }> = [
   {
     context: "dark",
-    className: "bg-slate-900",
     scheme: "rustOnMidnight",
     dataTheme: "dark",
   },
-  { context: "light", className: "bg-slate-100", scheme: "sepiaOnCream" },
+  { context: "light", scheme: "sepiaOnCream" },
 ];
 
 function LogoPage() {
@@ -74,24 +73,21 @@ function LogoPage() {
     );
   return (
     <div className="flex flex-col gap-6 p-4">
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-slate-300">Logo (SM)</h2>
-        <p className="mb-2 text-xs text-slate-500">
-          How the code is split: packages/logo/README.md, “Code: boundaries and
-          use”.
-        </p>
-        <BoardPage>
-          <ConstructionBoard />
-          <StudiesBoard />
-          <SizeLadderBoard />
-          <ColourwayBoard />
-          <LockupBoard />
-        </BoardPage>
-      </section>
       <Section
-        title="Staff logo (MD)"
-        render={(scheme) => <StaffPanel scheme={scheme} />}
-      />
+        title="Logo (SM)"
+        note="How the code is split: packages/logo/README.md, “Code: boundaries and use”."
+      >
+        <ConstructionBoard />
+        <StudiesBoard />
+        <SizeLadderBoard />
+        <ColourwayBoard />
+        <LockupBoard />
+      </Section>
+      <Section title="Staff logo (MD)">
+        <Board title="Variants, sizes, bare">
+          <Contexts render={(scheme) => <StaffPanel scheme={scheme} />} />
+        </Board>
+      </Section>
       <Section
         title="Hero logo"
         controls={
@@ -116,15 +112,22 @@ function LogoPage() {
             </span>
           </div>
         }
-        heading={(scheme) =>
-          scheme === "sepiaOnCream" ? "sepia on cream" : "warm gray on charcoal"
-        }
-        render={() => (
-          <div className="flex justify-center">
-            <LogoHero text={opening.text} />
-          </div>
-        )}
-      />
+      >
+        <Board title="Openings">
+          <Contexts
+            heading={(scheme) =>
+              scheme === "sepiaOnCream"
+                ? "sepia on cream"
+                : "warm gray on charcoal"
+            }
+            render={() => (
+              <div className="flex justify-center">
+                <LogoHero text={opening.text} />
+              </div>
+            )}
+          />
+        </Board>
+      </Section>
     </div>
   );
 }
@@ -165,17 +168,17 @@ function ChevronButton({
   );
 }
 
+/** A section of the page: its heading (and controls), then its boards. */
 function Section({
   title,
+  note,
   controls,
-  render,
-  heading = (scheme) => TILE_SCHEMES[scheme].name,
+  children,
 }: {
   title: string;
+  note?: string;
   controls?: ReactNode;
-  render: (scheme: TileSchemeKey) => ReactNode;
-  /** Each panel's heading; default: its scheme's name. */
-  heading?: (scheme: TileSchemeKey) => string;
+  children: ReactNode;
 }) {
   return (
     <section>
@@ -183,28 +186,43 @@ function Section({
         <h2 className="text-sm font-medium text-slate-300">{title}</h2>
         {controls}
       </div>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {PANELS.map(({ context, className, scheme, dataTheme }) => (
-          <div
-            key={context}
-            data-theme={dataTheme}
-            style={{ color: TILE_SCHEMES[scheme].logo }}
-            className={`rounded-lg border border-slate-700 p-3 ${className}`}
-          >
-            <h3 className="mb-2 text-xs font-medium opacity-60">
-              {heading(scheme)}
-            </h3>
-            {render(scheme)}
-          </div>
-        ))}
-      </div>
+      {note && <p className="mb-2 text-xs text-slate-500">{note}</p>}
+      <div className="flex flex-col gap-4">{children}</div>
     </section>
+  );
+}
+
+/** The dark and light pair: one card each, the content in its scheme's
+ * logo color. */
+function Contexts({
+  render,
+  heading = (scheme) => TILE_SCHEMES[scheme].name,
+}: {
+  render: (scheme: TileSchemeKey) => ReactNode;
+  /** Each card's heading; default: its scheme's name. */
+  heading?: (scheme: TileSchemeKey) => string;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {PANELS.map(({ context, scheme, dataTheme }) => (
+        <Card
+          key={context}
+          dark={context === "dark"}
+          label={heading(scheme)}
+          className="flex flex-col gap-3 p-6"
+          style={{ color: TILE_SCHEMES[scheme].logo }}
+          dataTheme={dataTheme}
+        >
+          {render(scheme)}
+        </Card>
+      ))}
+    </div>
   );
 }
 
 function Label({ children }: { children: ReactNode }) {
   return (
-    <span className="text-[10px] tabular-nums opacity-60">{children}</span>
+    <span className="text-[10px] tabular-nums text-slate-500">{children}</span>
   );
 }
 
@@ -287,7 +305,7 @@ const MD_BARE_SIZES = [48, 96, 192] as const;
 function StaffPanel({ scheme }: { scheme: TileSchemeKey }) {
   return (
     <>
-      <h4 className="mb-2 text-xs opacity-60">variants</h4>
+      <h4 className="mb-2 text-xs text-slate-500">variants</h4>
       <div className="flex flex-wrap justify-center gap-8">
         {MD_VARIANTS.map(({ label, random, ...staff }) => (
           <StaffTile
@@ -301,7 +319,7 @@ function StaffPanel({ scheme }: { scheme: TileSchemeKey }) {
         ))}
       </div>
 
-      <h4 className="mt-6 mb-2 text-xs opacity-60">sized (5 lines)</h4>
+      <h4 className="mt-6 mb-2 text-xs text-slate-500">sized (5 lines)</h4>
       <div className="flex flex-wrap items-center justify-center gap-8">
         {MD_SIZES.map((size) => (
           <StaffTile
@@ -315,7 +333,7 @@ function StaffPanel({ scheme }: { scheme: TileSchemeKey }) {
         ))}
       </div>
 
-      <h4 className="mt-6 mb-2 text-xs opacity-60">bare (5 lines)</h4>
+      <h4 className="mt-6 mb-2 text-xs text-slate-500">bare (5 lines)</h4>
       <div className="flex flex-wrap items-end justify-center gap-8">
         {MD_BARE_SIZES.map((size) => (
           <div key={size} className="flex flex-col items-center gap-1">

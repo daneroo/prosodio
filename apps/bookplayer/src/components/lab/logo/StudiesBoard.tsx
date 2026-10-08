@@ -83,7 +83,7 @@ const studies: ReadonlyArray<Study> = [
 
 export function StudiesBoard() {
   return (
-    <Board number={1} title="Studies · one variable at a time">
+    <Board number={1} open={false} title="Studies · one variable at a time">
       <div className="flex flex-wrap gap-6">
         {studies.map((study) => (
           <div

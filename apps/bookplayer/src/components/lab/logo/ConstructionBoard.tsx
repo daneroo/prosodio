@@ -15,7 +15,7 @@ import {
   round,
 } from "@prosodio/logo/construction";
 
-import { Board, MONO } from "./board";
+import { Board, Card, MONO } from "./board";
 
 /** The tile's side, px. */
 const SIZE = 420;
@@ -101,7 +101,7 @@ const readout = [
 export function ConstructionBoard() {
   return (
     <Board number={0} title="Construction">
-      <div className="flex flex-wrap items-start gap-12">
+      <Card className="flex flex-wrap items-start gap-12 p-10">
         <div
           className="relative max-w-full flex-none"
           style={{ width: 600, height: SIZE }}
@@ -166,7 +166,7 @@ export function ConstructionBoard() {
                   top: guide.labelTop,
                   fontFamily: MONO,
                   color: guide.color,
-                  background: "#f3f1ec",
+                  background: "#fff",
                 }}
               >
                 {guide.label}
@@ -191,7 +191,7 @@ export function ConstructionBoard() {
             dashed box is the logo&apos;s box after optical offset.
           </p>
         </div>
-      </div>
+      </Card>
     </Board>
   );
 }

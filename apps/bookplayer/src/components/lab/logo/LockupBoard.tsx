@@ -18,15 +18,15 @@ import {
 } from "@prosodio/logo";
 import { LogoLockup, LogoSM, LogoTile } from "@prosodio/logo-ui";
 
-import { Board, CARD, MONO } from "./board";
+import { Board, Card, MONO } from "./board";
 
 /** The library header's classes (routes/index.tsx), less its stickiness. */
 const HEADER = "border-b border-slate-700 bg-slate-900 px-4 py-3";
 
 export function LockupBoard() {
   return (
-    <Board number={4} title="Lockups & top bar">
-      <div className="flex flex-col gap-6 px-10 py-8" style={CARD}>
+    <Board number={4} open={false} title="Lockups & top bar">
+      <Card className="flex flex-col gap-6 px-10 py-8">
         <div
           className="text-[11px] text-[#6b6a72]"
           style={{ fontFamily: MONO }}
@@ -54,8 +54,8 @@ export function LockupBoard() {
             </div>
           ))}
         </div>
-      </div>
-      <div className="flex flex-col gap-10 p-10" style={CARD}>
+      </Card>
+      <Card className="flex flex-col gap-10 p-10">
         <div
           className="text-[11px] text-[#6b6a72]"
           style={{ fontFamily: MONO }}
@@ -67,7 +67,7 @@ export function LockupBoard() {
           <TileLockup tileSize={64} />
           <InlineLockup nameSize={56} />
         </div>
-      </div>
+      </Card>
     </Board>
   );
 }
