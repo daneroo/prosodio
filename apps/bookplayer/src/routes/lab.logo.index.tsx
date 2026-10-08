@@ -36,6 +36,7 @@ import type { HeroOpening, LogoGlyphs, StaffNotes } from "@prosodio/logo-ui";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { BoardPage } from "#/components/lab/logo/board";
+import { ColourwayBoard } from "#/components/lab/logo/ColourwayBoard";
 import { ConstructionBoard } from "#/components/lab/logo/ConstructionBoard";
 import { SizeLadderBoard } from "#/components/lab/logo/SizeLadderBoard";
 import { StudiesBoard } from "#/components/lab/logo/StudiesBoard";
@@ -100,6 +101,7 @@ function LogoPage() {
           <ConstructionBoard />
           <StudiesBoard />
           <SizeLadderBoard />
+          <ColourwayBoard />
         </BoardPage>
       </section>
       <section>

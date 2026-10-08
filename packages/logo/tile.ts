@@ -5,6 +5,8 @@
  */
 import { round } from "./geometry.ts";
 import type { Logo } from "./geometry.ts";
+import { TILE_FINISH, TILE_SCHEME, TILE_SCHEMES } from "./colors.ts";
+import type { TileFinish, TileScheme, TileSchemeKey } from "./colors.ts";
 import { LOGO_WIDTH_ON_TILE_RATIO } from "./sizing.ts";
 
 /** Side of the tile's viewBox. */
@@ -58,20 +60,62 @@ export interface TileStyle {
   background: string;
   /** The logo's color. */
   color: string;
-  /** CSS box-shadow: a soft drop shadow and a 1px edge. */
+  /** CSS box-shadow: a soft drop shadow, the edge if any, the finish's
+   * inner light. */
   shadow: string;
+  /** CSS filter on the logo: a faint drop shadow for sheen and glass from
+   * 32 px up, else `none`. */
+  logoFilter: string;
 }
 
 /** Corner radius, × tile size. */
 const CORNER = 0.225;
 
-/** The chosen tile: flat, sepia `#461901` on cream `#fffbeb` (`paper`). */
-export function tileStyle(sizePx: number): TileStyle {
-  const drop = `0 ${round(Math.max(1, sizePx * 0.01))}px ${round(Math.max(1, sizePx * 0.02))}px rgba(0,0,0,.1), 0 ${round(sizePx * 0.06)}px ${round(sizePx * 0.16)}px -${round(sizePx * 0.06)}px rgba(70,25,1,.22)`;
+/** A tile's look: `scheme` (colors.ts) with `finish`, both defaulting to
+ * the chosen ones. The design's `tile()`. */
+export function tileStyle(
+  sizePx: number,
+  scheme: TileSchemeKey = TILE_SCHEME,
+  finish: TileFinish = TILE_FINISH,
+): TileStyle {
+  const {
+    background: bg,
+    logo,
+    shadow,
+    edge,
+    light,
+  } = TILE_SCHEMES[scheme] as TileScheme;
+  const { L, C, H } = bg;
+  const lighten = light ? 0.012 : 0.07;
+  const darken = light ? 0.045 : 0.06;
+  const sheen = `radial-gradient(140% 110% at 22% 0%, ${oklch(L + lighten, C, H)} 0%, ${oklch(L, C, H)} 50%, ${oklch(L - darken, C, H)} 100%)`;
+  const glass = `linear-gradient(172deg, rgba(255,255,255,${light ? 0.7 : 0.26}) 0%, rgba(255,255,255,${light ? 0.25 : 0.07}) 46%, rgba(255,255,255,0) 47%), ${sheen}`;
+  const background =
+    finish === "flat" ? bg.flat : finish === "sheen" ? sheen : glass;
+
+  const drop = `0 ${round(Math.max(1, sizePx * 0.01))}px ${round(Math.max(1, sizePx * 0.02))}px rgba(0,0,0,.1), 0 ${round(sizePx * 0.06)}px ${round(sizePx * 0.16)}px -${round(sizePx * 0.06)}px ${shadow}`;
+  const edgeShadow = edge ? `, 0 0 0 1px ${edge}` : "";
+  const innerLight =
+    finish === "flat"
+      ? ""
+      : `, inset 0 ${round(Math.max(0.5, sizePx * 0.008))}px 0 rgba(255,255,255,${light ? 0.9 : 0.28}), inset 0 -${round(Math.max(0.5, sizePx * 0.012))}px ${round(sizePx * 0.03)}px rgba(0,0,0,${light ? 0.06 : 0.22})`;
+  const logoFilter =
+    finish === "flat" || sizePx < 32
+      ? "none"
+      : light
+        ? `drop-shadow(0 ${round(sizePx * 0.008)}px 0 rgba(255,255,255,.9))`
+        : `drop-shadow(0 ${round(sizePx * 0.008)}px ${round(sizePx * 0.01)}px rgba(0,0,0,.3))`;
+
   return {
     radius: round(sizePx * CORNER),
-    background: "#fffbeb",
-    color: "#461901",
-    shadow: `${drop}, 0 0 0 1px rgba(70,25,1,.14)`,
+    background,
+    color: logo,
+    shadow: drop + edgeShadow + innerLight,
+    logoFilter,
   };
+}
+
+/** An oklch color, lightness clamped to 0–1. */
+function oklch(L: number, C: number, H: number): string {
+  return `oklch(${round(Math.min(1, Math.max(0, L)), 3)} ${C} ${H})`;
 }

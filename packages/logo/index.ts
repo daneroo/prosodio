@@ -1,4 +1,11 @@
 export { logoFor, tileLogoFor } from "./sizing.ts";
+export {
+  TILE_FINISH,
+  TILE_FINISHES,
+  TILE_SCHEME,
+  TILE_SCHEMES,
+} from "./colors.ts";
+export type { TileFinish, TileSchemeKey } from "./colors.ts";
 export type { Logo } from "./geometry.ts";
 export { tileStyle } from "./tile.ts";
 export type { TileFit, TileStyle } from "./tile.ts";
