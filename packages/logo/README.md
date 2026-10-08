@@ -44,8 +44,12 @@ list of names, sizes and shapes, which the head links, the manifest test and
 Board 5 read:
 
 - `favicon.ico`: 16 and 32 px frames (the favicon shape, small variant);
-- `apple-touch-icon.png`: 180 px; `icon-192.png`, `icon-512.png`: the manifest's
-  (`manifest.webmanifest`, written by hand). Home-screen shape: opaque square.
+- `apple-touch-icon-152x152.png`, `apple-touch-icon-167x167.png`,
+  `apple-touch-icon.png` (180): one per device size, so iOS never resamples
+  (softer edges, seen on the iPad Air 4 with 180 only); Safari picks the closest
+  ([Apple](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html));
+- `icon-192.png`, `icon-512.png`: the manifest's (`manifest.webmanifest`,
+  written by hand). Home-screen shape: opaque square.
 
 The manifest's `background_color` and `theme_color` (`#0f172a`, slate-900) are
 the app shell's, not the logo's; its name and icons are checked against

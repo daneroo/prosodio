@@ -25,7 +25,11 @@ export const Route = createRootRoute({
         href: `/${ICONS.favicon.file}`,
         sizes: ICONS.favicon.sizes.map((s) => `${s}x${s}`).join(" "),
       },
-      { rel: "apple-touch-icon", href: `/${ICONS.appleTouch.file}` },
+      ...ICONS.appleTouch.map(({ file, size }) => ({
+        rel: "apple-touch-icon",
+        href: `/${file}`,
+        sizes: `${size}x${size}`,
+      })),
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),

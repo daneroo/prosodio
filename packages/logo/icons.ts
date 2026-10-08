@@ -23,12 +23,18 @@ export const ICONS = {
     sizes: [16, 32],
     shape: "favicon",
   },
-  /** iOS / iPadOS home screen; opaque, iPadOS applies its own mask. */
-  appleTouch: {
-    file: "apple-touch-icon.png",
-    size: 180,
-    shape: "home-screen",
-  },
+  /**
+   * iOS / iPadOS Home Screen; opaque, iPadOS applies its own mask. One per
+   * device size, so none is resampled: 152 iPad, 167 iPad Pro, 180 iPhone
+   * (Apple's sizes; Safari picks the closest). Which of 152 and 167 the iPad
+   * Air 4 uses is unconfirmed, so both. 180 keeps the name iOS probes for.
+   * https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html
+   */
+  appleTouch: [
+    { file: "apple-touch-icon-152x152.png", size: 152, shape: "home-screen" },
+    { file: "apple-touch-icon-167x167.png", size: 167, shape: "home-screen" },
+    { file: "apple-touch-icon.png", size: 180, shape: "home-screen" },
+  ],
   /** Listed in the web app manifest. */
   manifest: [
     { file: "icon-192.png", size: 192, shape: "home-screen" },
@@ -36,12 +42,12 @@ export const ICONS = {
   ],
 } as const satisfies {
   favicon: { file: string; sizes: readonly number[]; shape: TileShape };
-  appleTouch: PngIcon;
+  appleTouch: readonly PngIcon[];
   manifest: readonly PngIcon[];
 };
 
 /** Every PNG file (all but the .ico). */
 export const PNG_ICONS: readonly PngIcon[] = [
-  ICONS.appleTouch,
+  ...ICONS.appleTouch,
   ...ICONS.manifest,
 ];
