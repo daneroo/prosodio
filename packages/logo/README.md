@@ -35,9 +35,9 @@ Only the SM logo has geometry here. The staff and hero logos are ports of the
 prototype as they were, font glyphs and HTML rather than paths; their tuned
 values live in their components (`LogoMD.tsx`, `LogoHero.tsx`):
 
-- Staff logo: defaults are the prototype's MD-0, so it renders the same on the
-  server and the client. Random note positions are a lab-only, client-only
-  variation.
+- Staff logo: defaults are the fixed 5-line staff (the prototype's MD-0), so it
+  renders the same on the server and the client. Random note positions are a
+  lab-only, client-only variation.
 - Hero logo: its "physical paper" colors are its own, not the page's; the dark
   paper follows a `data-theme="dark"` ancestor, the prototype's switch. The text
   is a prop; the default is the opening of _The Name of the Wind_ (the
