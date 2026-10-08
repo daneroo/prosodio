@@ -1,0 +1,17 @@
+{
+  "name": "@prosodio/logo",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./construction": "./construction.ts"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  },
+  "scripts": {
+    "icons": "bun scripts/write-icons.ts ../../apps/bookplayer/public"
+  }
+}

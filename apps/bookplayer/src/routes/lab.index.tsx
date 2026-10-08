@@ -62,6 +62,12 @@ const SURFACES: Array<SurfaceCard> = [
     to: "/lab/locate",
   },
   {
+    title: "Logo",
+    description:
+      "LogoSM at several sizes beside the prototype's font glyphs, plus tile previews, on dark and light.",
+    to: "/lab/logo",
+  },
+  {
     title: "Parsers",
     description: "Reserved: parser equivalence/swappability.",
   },

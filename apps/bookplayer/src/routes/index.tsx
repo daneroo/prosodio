@@ -2,6 +2,8 @@ import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
 import { BookOpenText, RefreshCw, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { LogoLockup } from "@prosodio/logo-ui";
+
 import {
   applyFilters,
   compareBy,
@@ -97,8 +99,7 @@ function Home() {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="sticky top-0 z-10 border-b border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur-sm sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <BookOpenText className="h-6 w-6 shrink-0 text-cyan-400" />
-          <h1 className="text-xl font-bold tracking-tight">BookPlayer</h1>
+          <LogoLockup heading />
           {import.meta.env.DEV && (
             <a
               href="/lab"
@@ -358,8 +359,7 @@ function LoadingState() {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="border-b border-slate-700 px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <BookOpenText className="h-6 w-6 text-cyan-400" />
-          <h1 className="text-xl font-bold tracking-tight">BookPlayer</h1>
+          <LogoLockup heading />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-6">
@@ -378,8 +378,7 @@ function ErrorState({ error }: { error: unknown }) {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="border-b border-slate-700 px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <BookOpenText className="h-6 w-6 text-cyan-400" />
-          <h1 className="text-xl font-bold tracking-tight">BookPlayer</h1>
+          <LogoLockup heading />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-10 text-center">

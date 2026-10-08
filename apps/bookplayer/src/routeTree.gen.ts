@@ -21,6 +21,7 @@ import { Route as LabCorporaIndexRouteImport } from './routes/lab.corpora.index'
 import { Route as LabEpubIndexRouteImport } from './routes/lab.epub.index'
 import { Route as LabLocateIndexRouteImport } from './routes/lab.locate.index'
 import { Route as LabLocateBookIdRouteImport } from './routes/lab.locate.$bookId'
+import { Route as LabLogoIndexRouteImport } from './routes/lab.logo.index'
 import { Route as LabVttIndexRouteImport } from './routes/lab.vtt.index'
 
 const IndexRoute = IndexRouteImport.update({
@@ -83,6 +84,11 @@ const LabLocateBookIdRoute = LabLocateBookIdRouteImport.update({
   path: '/locate/$bookId',
   getParentRoute: () => LabRoute,
 } as any)
+const LabLogoIndexRoute = LabLogoIndexRouteImport.update({
+  id: '/logo/',
+  path: '/logo/',
+  getParentRoute: () => LabRoute,
+} as any)
 const LabVttIndexRoute = LabVttIndexRouteImport.update({
   id: '/vtt/',
   path: '/vtt/',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/lab/corpora/': typeof LabCorporaIndexRoute
   '/lab/epub/': typeof LabEpubIndexRoute
   '/lab/locate/': typeof LabLocateIndexRoute
+  '/lab/logo/': typeof LabLogoIndexRoute
   '/lab/vtt/': typeof LabVttIndexRoute
 }
 export interface FileRoutesByTo {
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/lab/corpora': typeof LabCorporaIndexRoute
   '/lab/epub': typeof LabEpubIndexRoute
   '/lab/locate': typeof LabLocateIndexRoute
+  '/lab/logo': typeof LabLogoIndexRoute
   '/lab/vtt': typeof LabVttIndexRoute
 }
 export interface FileRoutesById {
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/lab/corpora/': typeof LabCorporaIndexRoute
   '/lab/epub/': typeof LabEpubIndexRoute
   '/lab/locate/': typeof LabLocateIndexRoute
+  '/lab/logo/': typeof LabLogoIndexRoute
   '/lab/vtt/': typeof LabVttIndexRoute
 }
 export interface FileRouteTypes {
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/lab/corpora/'
     | '/lab/epub/'
     | '/lab/locate/'
+    | '/lab/logo/'
     | '/lab/vtt/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/lab/corpora'
     | '/lab/epub'
     | '/lab/locate'
+    | '/lab/logo'
     | '/lab/vtt'
   id:
     | '__root__'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/lab/corpora/'
     | '/lab/epub/'
     | '/lab/locate/'
+    | '/lab/logo/'
     | '/lab/vtt/'
   fileRoutesById: FileRoutesById
 }
@@ -274,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabLocateBookIdRouteImport
       parentRoute: typeof LabRoute
     }
+    '/lab/logo/': {
+      id: '/lab/logo/'
+      path: '/logo'
+      fullPath: '/lab/logo/'
+      preLoaderRoute: typeof LabLogoIndexRouteImport
+      parentRoute: typeof LabRoute
+    }
     '/lab/vtt/': {
       id: '/lab/vtt/'
       path: '/vtt'
@@ -293,6 +312,7 @@ interface LabRouteChildren {
   LabCorporaIndexRoute: typeof LabCorporaIndexRoute
   LabEpubIndexRoute: typeof LabEpubIndexRoute
   LabLocateIndexRoute: typeof LabLocateIndexRoute
+  LabLogoIndexRoute: typeof LabLogoIndexRoute
   LabVttIndexRoute: typeof LabVttIndexRoute
 }
 
@@ -305,6 +325,7 @@ const LabRouteChildren: LabRouteChildren = {
   LabCorporaIndexRoute: LabCorporaIndexRoute,
   LabEpubIndexRoute: LabEpubIndexRoute,
   LabLocateIndexRoute: LabLocateIndexRoute,
+  LabLogoIndexRoute: LabLogoIndexRoute,
   LabVttIndexRoute: LabVttIndexRoute,
 }
 

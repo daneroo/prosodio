@@ -21,6 +21,19 @@ and
 
 - `bun run dev` — dev server on port 3000, reachable on all LAN interfaces
   (`--host`; e.g. `http://galois:3000` via MagicDNS) (run from this directory)
+- iPad over HTTPS (stopgap until production exists): the screen wake lock needs
+  a secure context
+  ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API))
+  and `http://galois:3000` is not one
+  - enable HTTPS certificates on the tailnet (admin console → DNS → HTTPS
+    Certificates; [Tailscale](https://tailscale.com/kb/1153/enabling-https)),
+    run `tailscale serve 3000` alongside `bun run dev` (on macOS the CLI is
+    `/Applications/Tailscale.app/Contents/MacOS/Tailscale`)
+    ([Tailscale](https://tailscale.com/kb/1312/serve)), open
+    `https://galois.<tailnet>.ts.net` on the iPad (Add to Home Screen from
+    there)
+  - each origin has its own browser storage: positions, settings and the
+    audiobookshelf API key start empty
 - `bun run build` then `bun run start` — production build + serve
 - `bun run scripts/burn-in --help` — private-corpus browser and RSS probe
 - Quality gates are root-level: `bun run ci` from the repo root

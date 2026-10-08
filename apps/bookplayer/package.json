@@ -18,6 +18,8 @@
     "@prosodio/align": "workspace:*",
     "@prosodio/config": "workspace:*",
     "@prosodio/corpus": "workspace:*",
+    "@prosodio/logo": "workspace:*",
+    "@prosodio/logo-ui": "workspace:*",
     "@prosodio/vtt": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-router": "^1.170.40",
