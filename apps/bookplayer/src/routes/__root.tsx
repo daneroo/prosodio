@@ -5,7 +5,7 @@ import {
   createRootRoute,
 } from "@tanstack/react-router";
 
-import { LOGO_NAME } from "@prosodio/logo";
+import { ICONS, LOGO_NAME } from "@prosodio/logo";
 
 import { READER_THEME_ATTR, READER_THEME_KEY } from "#/lib/reader-theme";
 import appCss from "../styles.css?url";
@@ -17,7 +17,17 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: LOGO_NAME },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      // The .ico holds a 16 and a 32 px frame; `sizes` lets the browser pick.
+      {
+        rel: "icon",
+        href: `/${ICONS.favicon.file}`,
+        sizes: ICONS.favicon.sizes.map((s) => `${s}x${s}`).join(" "),
+      },
+      { rel: "apple-touch-icon", href: `/${ICONS.appleTouch.file}` },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+    ],
   }),
   shellComponent: RootDocument,
 });

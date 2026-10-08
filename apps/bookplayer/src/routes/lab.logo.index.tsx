@@ -2,8 +2,8 @@
  * /lab/logo — the Logo judged by eye (spec #25), in three sections of
  * collapsible boards (`components/lab/logo/board.tsx`). First the SM logo's
  * boards (construction open; studies, size ladder, colourway × finish,
- * lockups & top bar closed), drawn from @prosodio/logo; then the MD and Hero
- * logos, each on a dark and a light card:
+ * lockups & top bar, icons closed), drawn from @prosodio/logo; then the MD
+ * and Hero logos, each on a dark and a light card:
  *
  * - MD: the staff logo's variants and sizes on tiles (`tileStyle`: sepia on
  *   cream on the light panel, rust on midnight on the dark one), then bare on
@@ -28,6 +28,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Board, Card } from "#/components/lab/logo/board";
 import { ColourwayBoard } from "#/components/lab/logo/ColourwayBoard";
 import { ConstructionBoard } from "#/components/lab/logo/ConstructionBoard";
+import { IconsBoard } from "#/components/lab/logo/IconsBoard";
 import { LockupBoard } from "#/components/lab/logo/LockupBoard";
 import { SizeLadderBoard } from "#/components/lab/logo/SizeLadderBoard";
 import { StudiesBoard } from "#/components/lab/logo/StudiesBoard";
@@ -82,6 +83,7 @@ function LogoPage() {
         <SizeLadderBoard />
         <ColourwayBoard />
         <LockupBoard />
+        <IconsBoard />
       </Section>
       <Section title="Staff logo (MD)">
         <Board title="Variants, sizes, bare">

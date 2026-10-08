@@ -14,3 +14,4 @@ export { tileStyle } from "./tile.ts";
 export type { TileFit, TileStyle } from "./tile.ts";
 export { renderLogo, renderTile } from "./render.ts";
 export type { TileShape } from "./render.ts";
+export { ICONS, PNG_ICONS } from "./icons.ts";

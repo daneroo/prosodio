@@ -37,6 +37,44 @@ values live in their components (`LogoMD.tsx`, `LogoHero.tsx`):
   is a prop; the default is the opening of _The Name of the Wind_ (the
   prototype's).
 
+## Icons
+
+The tile as files, in `apps/bookplayer/public/`; `ICONS` (`icons.ts`) is the one
+list of names, sizes and shapes, which the head links, the manifest test and
+Board 5 read:
+
+- `favicon.ico`: 16 and 32 px frames (the favicon shape, small variant);
+- `apple-touch-icon.png`: 180 px; `icon-192.png`, `icon-512.png`: the manifest's
+  (`manifest.webmanifest`, written by hand). Home-screen shape: opaque square.
+
+The manifest's `background_color` and `theme_color` (`#0f172a`, slate-900) are
+the app shell's, not the logo's; its name and icons are checked against
+`LOGO_NAME` and `ICONS` by Bookplayer's `test/manifest.test.ts`.
+
+Regenerate with `bun run icons` in `packages/logo`, then commit the files; `ci`
+does not regenerate them. Each is rasterised at its exact size, no downscaling.
+Our own encoder (`scripts/ico.ts`) writes the ICO: PNG frames in an ICO
+container, supported since Windows Vista
+([layout](<https://en.wikipedia.org/wiki/ICO_(file_format)>)).
+
+The file set follows Evil Martians,
+[How to Favicon](https://evilmartians.com/chronicles/how-to-favicon-in-2021-six-files-that-fit-most-needs),
+which also recommends a separate simplified 16 px drawing rather than a
+downscale: `tileLogoFor` provides it.
+
+Rasteriser: `@resvg/resvg-js` (a devDependency of this package).
+
+- resvg renders with tiny-skia, a Rust port of a Skia subset whose stated goal
+  is to "produce exactly the same results as Skia", Chrome's rasteriser
+  ([tiny-skia](https://github.com/linebender/tiny-skia)).
+- No system libraries, so "the produced image will be identical" on every
+  platform: deterministic, reviewable outputs
+  ([resvg](https://github.com/linebender/resvg)).
+- Ahead of librsvg (what sharp uses) in quality and speed by Wikimedia's 2021
+  tests ([T40010](https://phabricator.wikimedia.org/T40010)); per-feature
+  results against browsers:
+  [resvg test suite](https://linebender.org/resvg-test-suite/svg-support-table.html).
+
 ## Code: boundaries and use
 
 The single description of how the logo's code is split; `components/logo-ui` and
@@ -70,6 +108,7 @@ Files, one concern each:
 | `colors.ts`   | the color language (sepia, cream, midnight, rust, amber), tile schemes, lockup colors       |
 | `lockup.ts`   | the name and its typography beside the logo                                                 |
 | `render.ts`   | the bare logo and the tile as SVG text, for icon files                                      |
+| `icons.ts`    | the icon files as data: names, sizes, shapes (the files: `scripts/`, see Icons)             |
 
 Components, normal use:
 
@@ -82,7 +121,7 @@ Components, normal use:
 `LogoTile`'s `logo` and `fit` props are the detailed API, for the lab only.
 
 `/lab/logo` shows each layer as a board, bottom up: 0 Construction, 1 Studies, 2
-Size ladder, 3 Colourway × finish, 4 Lockups & top bar. A board may use
+Size ladder, 3 Colourway × finish, 4 Lockups & top bar, 5 Icons. A board may use
 `/construction`; values it holds itself are exploration nothing uses yet (Board
 4's lockups on light).
 

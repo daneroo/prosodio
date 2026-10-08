@@ -7,5 +7,11 @@
   "exports": {
     ".": "./index.ts",
     "./construction": "./construction.ts"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  },
+  "scripts": {
+    "icons": "bun scripts/write-icons.ts ../../apps/bookplayer/public"
   }
 }
