@@ -10,18 +10,123 @@ import {
   LOGO_WIDTH_ON_TILE_RATIO,
   LOGO_DEFAULTS,
   PILCROW,
+  TILE_SIZE,
   drawLogo,
   placeOnTile,
   round,
 } from "@prosodio/logo/construction";
+import { TILE_SCHEMES, tileStyle } from "@prosodio/logo";
 
 import { Board, Card, MONO } from "./board";
+
+export function ConstructionBoard() {
+  return (
+    <Board number={0} title="Construction">
+      <Card className="flex flex-wrap items-start gap-12 p-10">
+        <div
+          className="relative max-w-full flex-none"
+          style={{ width: 600, height: SIZE }}
+        >
+          <div
+            className="absolute top-0 left-0"
+            style={{
+              width: SIZE,
+              height: SIZE,
+              borderRadius: radius,
+              background,
+              boxShadow: EDGE,
+            }}
+          >
+            <svg
+              viewBox={`0 0 ${TILE_SIZE} ${TILE_SIZE}`}
+              className="block h-full w-full"
+            >
+              <rect
+                x={round(placement.x + placement.scale * left)}
+                y={round(placement.y + placement.scale * top)}
+                width={round(placement.scale * width)}
+                height={round(placement.scale * height)}
+                style={{
+                  fill: "none",
+                  stroke: "oklch(0.6 0.02 270)",
+                  strokeWidth: 0.25,
+                  strokeDasharray: "1 1",
+                }}
+              />
+              <g transform={placement.transform}>
+                <path d={logo.pilcrow} style={{ fill: SEPIA }} />
+                <path
+                  d={logo.arcs}
+                  style={{
+                    fill: "none",
+                    stroke: SEPIA,
+                    strokeWidth: logo.arcStroke,
+                    strokeLinecap: "round",
+                  }}
+                />
+              </g>
+              <circle
+                cx="50"
+                cy="50"
+                r=".9"
+                style={{ fill: "oklch(0.6 0.2 25)" }}
+              />
+            </svg>
+          </div>
+          {placedGuides.map((guide) => (
+            <div key={guide.label}>
+              <div
+                className="absolute left-0 max-w-full opacity-90"
+                style={{
+                  width: 600,
+                  top: guide.lineTop,
+                  borderTop: `1px dashed ${guide.color}`,
+                }}
+              />
+              <div
+                className="absolute px-1 text-[11px] leading-4 whitespace-nowrap"
+                style={{
+                  left: SIZE + 16,
+                  top: guide.labelTop,
+                  fontFamily: MONO,
+                  color: guide.color,
+                  background: "#fff",
+                }}
+              >
+                {guide.label}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex max-w-[420px] flex-[1_1_280px] flex-col gap-3.5">
+          {readout.map(({ k, v }) => (
+            <div
+              key={k}
+              className="grid gap-3 border-b border-black/[.07] pb-3 text-[13px] leading-snug"
+              style={{ gridTemplateColumns: "150px minmax(0,1fr)" }}
+            >
+              <div className="text-[#6b6a72]">{k}</div>
+              <div>{v}</div>
+            </div>
+          ))}
+          <p className="m-0 text-xs leading-normal text-[#6b6a72]">
+            u = construction unit; pilcrow cap height {PILCROW.height}u, stem{" "}
+            {PILCROW.stem}u. Red dot is the tile&apos;s geometric centre; the
+            dashed box is the logo&apos;s box after optical offset.
+          </p>
+        </div>
+      </Card>
+    </Board>
+  );
+}
 
 /** The tile's side, px. */
 const SIZE = 420;
 /** px per tile unit. */
-const PX = SIZE / 100;
-const INK = "#461901";
+const PX = SIZE / TILE_SIZE;
+/** The lead tile, flat: sepia on cream, its corners, its edge. */
+const { radius, background, color: SEPIA } = tileStyle(SIZE, "sepiaOnCream");
+const EDGE = `0 0 0 1px ${TILE_SCHEMES.sepiaOnCream.edge}`;
 
 const logo = drawLogo();
 const placement = placeOnTile(logo);
@@ -97,101 +202,3 @@ const readout = [
     v: `${FIT_DEFAULTS.opticalY}% down, ${FIT_DEFAULTS.opticalX}% right of geometric centre`,
   },
 ];
-
-export function ConstructionBoard() {
-  return (
-    <Board number={0} title="Construction">
-      <Card className="flex flex-wrap items-start gap-12 p-10">
-        <div
-          className="relative max-w-full flex-none"
-          style={{ width: 600, height: SIZE }}
-        >
-          <div
-            className="absolute top-0 left-0"
-            style={{
-              width: SIZE,
-              height: SIZE,
-              borderRadius: 94,
-              background: "#fffbeb",
-              boxShadow: "0 0 0 1px rgba(70,25,1,.12)",
-            }}
-          >
-            <svg viewBox="0 0 100 100" className="block h-full w-full">
-              <rect
-                x={round(placement.x + placement.scale * left)}
-                y={round(placement.y + placement.scale * top)}
-                width={round(placement.scale * width)}
-                height={round(placement.scale * height)}
-                style={{
-                  fill: "none",
-                  stroke: "oklch(0.6 0.02 270)",
-                  strokeWidth: 0.25,
-                  strokeDasharray: "1 1",
-                }}
-              />
-              <g transform={placement.transform}>
-                <path d={logo.pilcrow} style={{ fill: INK }} />
-                <path
-                  d={logo.arcs}
-                  style={{
-                    fill: "none",
-                    stroke: INK,
-                    strokeWidth: logo.arcStroke,
-                    strokeLinecap: "round",
-                  }}
-                />
-              </g>
-              <circle
-                cx="50"
-                cy="50"
-                r=".9"
-                style={{ fill: "oklch(0.6 0.2 25)" }}
-              />
-            </svg>
-          </div>
-          {placedGuides.map((guide) => (
-            <div key={guide.label}>
-              <div
-                className="absolute left-0 max-w-full opacity-90"
-                style={{
-                  width: 600,
-                  top: guide.lineTop,
-                  borderTop: `1px dashed ${guide.color}`,
-                }}
-              />
-              <div
-                className="absolute px-1 text-[11px] leading-4 whitespace-nowrap"
-                style={{
-                  left: SIZE + 16,
-                  top: guide.labelTop,
-                  fontFamily: MONO,
-                  color: guide.color,
-                  background: "#fff",
-                }}
-              >
-                {guide.label}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex max-w-[420px] flex-[1_1_280px] flex-col gap-3.5">
-          {readout.map(({ k, v }) => (
-            <div
-              key={k}
-              className="grid gap-3 border-b border-black/[.07] pb-3 text-[13px] leading-snug"
-              style={{ gridTemplateColumns: "150px minmax(0,1fr)" }}
-            >
-              <div className="text-[#6b6a72]">{k}</div>
-              <div>{v}</div>
-            </div>
-          ))}
-          <p className="m-0 text-xs leading-normal text-[#6b6a72]">
-            u = construction unit; pilcrow cap height {PILCROW.height}u, stem{" "}
-            {PILCROW.stem}u. Red dot is the tile&apos;s geometric centre; the
-            dashed box is the logo&apos;s box after optical offset.
-          </p>
-        </div>
-      </Card>
-    </Board>
-  );
-}

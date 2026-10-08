@@ -123,8 +123,17 @@ export function round(value: number, digits = 2): number {
   return +value.toFixed(digits);
 }
 
-/** The bare logo's SVG viewBox: its box, with 0.5u either side. */
-export function bareViewBox(logo: Logo): string {
+/** Margin either side of the bare logo's box, u. */
+const BARE_MARGIN = 0.5;
+
+/** The bare logo's frame, u: its box, with `BARE_MARGIN` either side. */
+export function bareFrame(logo: Logo): { width: number; height: number } {
   const { left, top, right, bottom } = logo.box;
-  return `${round(left - 0.5)} ${round(top)} ${round(right - left + 1)} ${round(bottom - top)}`;
+  return { width: right - left + 2 * BARE_MARGIN, height: bottom - top };
+}
+
+/** The bare logo's SVG viewBox: its frame. */
+export function bareViewBox(logo: Logo): string {
+  const { width, height } = bareFrame(logo);
+  return `${round(logo.box.left - BARE_MARGIN)} ${round(logo.box.top)} ${round(width)} ${round(height)}`;
 }

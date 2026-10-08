@@ -50,11 +50,11 @@ The single description of how the logo's code is split; `components/logo-ui` and
 
 Three layers. Values live in exactly one of them.
 
-| Layer                                      | Holds                                                       | Never                                      |
-| ------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------ |
-| `@prosodio/logo` (this package)            | every value and computation: geometry, sizes, colors, fonts | React, DOM                                 |
-| `@prosodio/logo-ui` (`components/logo-ui`) | React components that assemble this package's values        | values of their own (colors, sizes, fonts) |
-| apps (Bookplayer)                          | components, placed                                          | logo values; imports of `/construction`    |
+| Layer                                      | Holds                                                       | Never                                           |
+| ------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------- |
+| `@prosodio/logo` (this package)            | every value and computation: geometry, sizes, colors, fonts | React, DOM                                      |
+| `@prosodio/logo-ui` (`components/logo-ui`) | React components that assemble this package's values        | logo values of their own (colors, sizes, fonts) |
+| apps (Bookplayer)                          | components, placed                                          | logo values; imports of `/construction`         |
 
 This package has two entry points:
 

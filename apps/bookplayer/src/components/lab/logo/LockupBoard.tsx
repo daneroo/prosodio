@@ -16,6 +16,7 @@ import {
   TILE_SCHEMES,
   logoFor,
 } from "@prosodio/logo";
+import { PILCROW, bareFrame } from "@prosodio/logo/construction";
 import { LogoLockup, LogoSM, LogoTile } from "@prosodio/logo-ui";
 
 import { Board, Card, MONO } from "./board";
@@ -147,11 +148,9 @@ function TileLockup({
 /** Bare logo, its pilcrow (60u) on the name's baseline at
  * `inline.capHeight` of the name size: the logo reads as the first glyph. */
 function InlineLockup({ nameSize }: { nameSize: number }) {
-  const { box } = logoFor(Infinity).logo;
-  const frameWidth = box.right - box.left + 1; // the bare frame, u
-  const frameHeight = box.bottom - box.top;
-  const pxPerU = (nameSize * DESIGN_1A.inline.capHeight) / 60;
-  const logoSize = frameWidth * pxPerU;
+  const frame = bareFrame(logoFor(Infinity).logo);
+  const pxPerU = (nameSize * DESIGN_1A.inline.capHeight) / PILCROW.height;
+  const logoSize = frame.width * pxPerU;
   return (
     <div
       className="flex items-baseline"
@@ -159,7 +158,7 @@ function InlineLockup({ nameSize }: { nameSize: number }) {
     >
       <LogoSM
         size={logoSize}
-        style={{ height: frameHeight * pxPerU, color: SEPIA }}
+        style={{ height: frame.height * pxPerU, color: SEPIA }}
       />
       <Name size={nameSize} lineHeight={1} />
     </div>

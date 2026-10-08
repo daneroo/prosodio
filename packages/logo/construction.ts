@@ -4,7 +4,14 @@
  * package's internals only. Normal use is `@prosodio/logo`, where only the
  * variant (regular or small) changes.
  */
-export { ARC, LOGO_DEFAULTS, PILCROW, drawLogo, round } from "./geometry.ts";
+export {
+  ARC,
+  LOGO_DEFAULTS,
+  PILCROW,
+  bareFrame,
+  drawLogo,
+  round,
+} from "./geometry.ts";
 export type { Logo, LogoParams } from "./geometry.ts";
 export {
   LOGO_WIDTH_ON_TILE_RATIO,

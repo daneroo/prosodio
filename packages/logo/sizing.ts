@@ -10,7 +10,7 @@
  * - logo size on a tile: the logo size the logo inside a tile is drawn at.
  */
 import type { Logo, LogoParams } from "./geometry.ts";
-import { bareViewBox, drawLogo } from "./geometry.ts";
+import { bareFrame, bareViewBox, drawLogo } from "./geometry.ts";
 
 /**
  * CRITICAL, tuned on Board 2. Small-variant threshold: a logo drawn at or
@@ -63,10 +63,11 @@ export function logoFor(logoSizePx: number) {
  * threshold.
  */
 export function logoSizeOnTile(tileSizePx: number): number {
-  const { left, right } = SIZED.regular.logo.box;
-  const boxWidth = right - left;
-  const frameWidth = boxWidth + 1;
-  return tileSizePx * LOGO_WIDTH_ON_TILE_RATIO * (frameWidth / boxWidth);
+  const { logo } = SIZED.regular;
+  const boxWidth = logo.box.right - logo.box.left;
+  return (
+    tileSizePx * LOGO_WIDTH_ON_TILE_RATIO * (bareFrame(logo).width / boxWidth)
+  );
 }
 
 /** The logo to draw on a tile of `tileSizePx`: decided by the logo size on

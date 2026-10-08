@@ -5,7 +5,12 @@
  * tile; a tile's logo size is its size × the logo width on a tile. Claude
  * Design's "Size ladder · rendered at 1×", less its 3-arcs-everywhere row.
  */
-import { logoFor, tileLogoFor } from "@prosodio/logo";
+import {
+  TILE_SCHEME,
+  TILE_SCHEMES,
+  logoFor,
+  tileLogoFor,
+} from "@prosodio/logo";
 import {
   LOGO_WIDTH_ON_TILE_RATIO,
   SMALL_LOGO_MAX_PX,
@@ -16,7 +21,8 @@ import type { ReactNode } from "react";
 import { Board, Card, MONO } from "./board";
 
 const SIZES = [16, 24, 32, 48, 64, 128] as const;
-const INK = "#461901";
+/** Sepia: the chosen tile's logo color. */
+const SEPIA = TILE_SCHEMES[TILE_SCHEME].logo;
 
 export function SizeLadderBoard() {
   return (
@@ -38,7 +44,7 @@ export function SizeLadderBoard() {
         </Row>
         <Row label="Bare">
           {(size) => ({
-            node: <LogoSM size={size} style={{ color: INK }} />,
+            node: <LogoSM size={size} style={{ color: SEPIA }} />,
             caption: `${size}px · ${logoFor(size).variant}`,
           })}
         </Row>

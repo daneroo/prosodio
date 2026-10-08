@@ -1,6 +1,6 @@
 import { tileLogoFor, tileStyle } from "@prosodio/logo";
 import type { Logo, TileFinish, TileFit, TileSchemeKey } from "@prosodio/logo";
-import { placeOnTile } from "@prosodio/logo/construction";
+import { TILE_SIZE, placeOnTile } from "@prosodio/logo/construction";
 
 /**
  * The tile: the logo on its own square background, `size` px. Normal use:
@@ -49,7 +49,7 @@ export function LogoTile({
       }}
     >
       <svg
-        viewBox="0 0 100 100"
+        viewBox={`0 0 ${TILE_SIZE} ${TILE_SIZE}`}
         aria-hidden
         style={{
           display: "block",
