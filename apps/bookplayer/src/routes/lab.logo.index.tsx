@@ -38,6 +38,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BoardPage } from "#/components/lab/logo/board";
 import { ColourwayBoard } from "#/components/lab/logo/ColourwayBoard";
 import { ConstructionBoard } from "#/components/lab/logo/ConstructionBoard";
+import { LockupBoard } from "#/components/lab/logo/LockupBoard";
 import { SizeLadderBoard } from "#/components/lab/logo/SizeLadderBoard";
 import { StudiesBoard } from "#/components/lab/logo/StudiesBoard";
 import { useEffect, useState } from "react";
@@ -102,6 +103,7 @@ function LogoPage() {
           <StudiesBoard />
           <SizeLadderBoard />
           <ColourwayBoard />
+          <LockupBoard />
         </BoardPage>
       </section>
       <section>

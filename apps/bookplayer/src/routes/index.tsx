@@ -2,13 +2,14 @@ import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
 import { BookOpenText, RefreshCw, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { LogoLockup } from "@prosodio/logo-ui";
+
 import {
   applyFilters,
   compareBy,
   formatDuration,
   searchRows,
 } from "#/lib/browse";
-import { Brand } from "#/components/Brand";
 import { fetchLibrary, triggerRescan } from "#/server/library";
 import type { SortKey } from "#/lib/browse";
 import type { BookRow } from "#/server/library";
@@ -98,7 +99,7 @@ function Home() {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="sticky top-0 z-10 border-b border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur-sm sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <Brand />
+          <LogoLockup heading />
           {import.meta.env.DEV && (
             <a
               href="/lab"
@@ -358,7 +359,7 @@ function LoadingState() {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="border-b border-slate-700 px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <Brand />
+          <LogoLockup heading />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-6">
@@ -377,7 +378,7 @@ function ErrorState({ error }: { error: unknown }) {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="border-b border-slate-700 px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <Brand />
+          <LogoLockup heading />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-10 text-center">

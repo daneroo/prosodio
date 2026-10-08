@@ -1,9 +1,11 @@
 /**
- * The tile's colors: the logo's color language is sepia, cream, midnight and
- * rust. A tile has no page behind it, so its colors are the logo's own; the
- * bare logo instead takes `currentColor` from the page it sits on.
+ * The logo's colors: its color language is sepia, cream, midnight, rust and
+ * amber. Tiles and the lockup use the logo's own colors (a tile has no page
+ * behind it; the lockup is the logo's identity); the bare logo instead takes
+ * `currentColor` from the page it sits on.
  *
- * Settled in Claude Design (`Prosodio Mark.dc.html`, its `S` schemes); the
+ * Settled in Claude Design (`Prosodio Mark.dc.html`: its `S` schemes, the
+ * in-app bar 3b); the
  * design's names in comments. `tileStyle` (tile.ts) turns a scheme and a
  * finish into CSS.
  */
@@ -16,6 +18,9 @@ export interface TileBackground {
   C: number;
   H: number;
 }
+
+/** Design "amber": the lockup's logo on the app's dark bar (3b). */
+const amber = "oklch(0.8 0.125 68)";
 
 const cream: TileBackground = { flat: "#fffbeb", L: 0.985, C: 0.025, H: 95 };
 const sepia: TileBackground = { flat: "#461901", L: 0.29, C: 0.08, H: 45 };
@@ -93,3 +98,7 @@ export const TILE_SCHEME: TileSchemeKey = "sepiaOnCream";
 
 /** The chosen finish. */
 export const TILE_FINISH: TileFinish = "flat";
+
+/** The lockup's colors (design 3b): the logo in amber, the name in cream,
+ * for the app's dark bar. */
+export const LOCKUP_COLORS = { logo: amber, name: cream.flat } as const;
