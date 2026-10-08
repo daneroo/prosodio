@@ -3,15 +3,9 @@
 The Prosodio logo: what it means, how it looks, and its geometry. No React and
 no DOM; the React components are in `@prosodio/logo-ui`.
 
-## Prototype
+## Design source
 
-The idea was prototyped in ai-garden, `bun-one/apps/vite-one/src/pages/Logo.tsx`
-(commits from 2026-01-18 through `fa86449be` on 2026-01-19). They hold the SM
-`¶)` variant and the hero. Drawn with font glyphs and theme colors there; here
-it is paths. This pointer is removed at the end of spec #25.
-
-The SM logo, its tiles and lockups were then reworked in Claude Design
-(2026-10-07):
+The SM logo, its tiles and lockups were designed in Claude Design (2026-10-07):
 [Prosodio Logo and Lockup, `Prosodio Mark.dc.html`](https://claude.ai/design/p/9f4e4cbd-ef67-4a7a-9712-f0483c2402be?file=Prosodio+Mark.dc.html).
 Org-only and live: it may have moved on since; `/lab/logo` and the tests pinned
 to its output are the record of what was built.

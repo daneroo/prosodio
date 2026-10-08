@@ -75,16 +75,29 @@ _Avoid_: follow bar
 ## Logo
 
 One design effort in three sizes, each its own thing: logo (SM), staff logo
-(MD), hero logo (Hero).
+(MD), hero logo (Hero). The logo is used in three forms: bare, on a tile, or in
+the lockup. A tile and a lockup each contain the logo; neither is the logo.
 
 **Logo**: Prosodio's symbol: a pilcrow with sound waves radiating from it —
-prose and the voice reading it. Bare, it takes the colors of the page it sits
-on.\
+prose and the voice reading it. Bare, it has no background and takes the color
+of the page it sits on.\
 _Avoid_: mark, icon, glyph
 
-**Tile**: The logo on its own opaque square background, for places where there
-is no page to take colors from (favicon, home-screen icon).\
+**Tile**: The logo on its own opaque square background, in the logo's own
+colors, for places with no page behind it (favicon, Home Screen icon).\
 _Avoid_: app icon, badge
+
+**Lockup**: The logo with the name "Prosodio" beside it, in the logo's own font
+and colors; the app's identity in its header. It holds the logo, never a tile.\
+_Avoid_: brand, wordmark, logo with title
+
+**Small variant**: The simplified logo, with fewer and heavier sound waves,
+drawn wherever the logo is small: bare, on a tile, or in the lockup.
+
+**Tile scheme**: A tile's logo color on its background, read as "‹logo› on
+‹background›".
+
+**Finish**: How a tile's background is lit: flat, sheen or glass.
 
 **Staff logo**: The pilcrow as clef at the head of a musical staff, with letters
 and notes on the lines; for medium and large sizes.
