@@ -4,9 +4,9 @@
  * finish, lockups & top bar), drawn from @prosodio/logo; then sections each
  * on the slate shell and on a light background:
  *
- * - MD: the prototype's judging rows — variants and sizes inside its gradient
- *   containers (`LogoContainer`, `SIZE_MAP`, its daisyUI light/dark colors) —
- *   plus the bare staff logo on the panel's own colors.
+ * - MD: the staff logo's variants and sizes on tiles (`tileStyle`: sepia on
+ *   cream on the light panel, rust on midnight on the dark one), then bare on
+ *   the panel's own color (sepia or rust).
  * - Hero: LogoHero with a chosen opening; the slate panel carries
  *   `data-theme="dark"`, the hero's dark-paper switch.
  *
@@ -20,6 +20,8 @@ import {
   staffPositionCount,
 } from "@prosodio/logo-ui";
 import type { HeroOpening, StaffNotes } from "@prosodio/logo-ui";
+import { TILE_SCHEMES, tileStyle } from "@prosodio/logo";
+import type { TileSchemeKey } from "@prosodio/logo";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { BoardPage } from "#/components/lab/logo/board";
@@ -29,7 +31,7 @@ import { LockupBoard } from "#/components/lab/logo/LockupBoard";
 import { SizeLadderBoard } from "#/components/lab/logo/SizeLadderBoard";
 import { StudiesBoard } from "#/components/lab/logo/StudiesBoard";
 import { useEffect, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export const Route = createFileRoute("/lab/logo/")({
   component: LogoRoute,
@@ -42,34 +44,26 @@ function LogoRoute() {
   return <LogoPage />;
 }
 
-type Tone = "slate" | "light";
+/** The page each panel stands for. */
+type Context = "dark" | "light";
 
+/** Each panel's tile scheme: its MD tiles, and its text in that scheme's
+ * logo color (rust on the dark panel, sepia on the light one). */
 const PANELS: ReadonlyArray<{
-  tone: Tone;
+  context: Context;
   className: string;
+  scheme: TileSchemeKey;
   /** The prototype's theme switch; LogoHero reads it for its dark paper. */
   dataTheme?: "dark";
 }> = [
-  { tone: "slate", className: "bg-slate-900 text-cyan-400", dataTheme: "dark" },
-  { tone: "light", className: "bg-slate-100 text-slate-900" },
+  {
+    context: "dark",
+    className: "bg-slate-900",
+    scheme: "rustOnMidnight",
+    dataTheme: "dark",
+  },
+  { context: "light", className: "bg-slate-100", scheme: "sepiaOnCream" },
 ];
-
-/** The prototype's daisyUI 5.5 theme colors (light / dark) for its
- * containers, as CSS variables on each panel. */
-const PROTOTYPE_THEME: Record<Tone, CSSProperties> = {
-  slate: {
-    "--proto-primary": "oklch(58% 0.233 277.117)",
-    "--proto-primary-content": "oklch(96% 0.018 272.314)",
-    "--proto-secondary": "oklch(65% 0.241 354.308)",
-    "--proto-base-content": "oklch(97.807% 0.029 256.847)",
-  } as CSSProperties,
-  light: {
-    "--proto-primary": "oklch(45% 0.24 277.023)",
-    "--proto-primary-content": "oklch(93% 0.034 272.788)",
-    "--proto-secondary": "oklch(65% 0.241 354.308)",
-    "--proto-base-content": "oklch(21% 0.006 285.885)",
-  } as CSSProperties,
-};
 
 function LogoPage() {
   const [openingIndex, setOpeningIndex] = useState(0);
@@ -96,7 +90,7 @@ function LogoPage() {
       </section>
       <Section
         title="Staff logo (MD)"
-        render={(tone) => <StaffPanel tone={tone} />}
+        render={(scheme) => <StaffPanel scheme={scheme} />}
       />
       <Section
         title="Hero logo"
@@ -121,6 +115,9 @@ function LogoPage() {
               {openingIndex + 1}/{OPENING_KEYS.length}
             </span>
           </div>
+        }
+        heading={(scheme) =>
+          scheme === "sepiaOnCream" ? "sepia on cream" : "warm gray on charcoal"
         }
         render={() => (
           <div className="flex justify-center">
@@ -172,10 +169,13 @@ function Section({
   title,
   controls,
   render,
+  heading = (scheme) => TILE_SCHEMES[scheme].name,
 }: {
   title: string;
   controls?: ReactNode;
-  render: (tone: Tone) => ReactNode;
+  render: (scheme: TileSchemeKey) => ReactNode;
+  /** Each panel's heading; default: its scheme's name. */
+  heading?: (scheme: TileSchemeKey) => string;
 }) {
   return (
     <section>
@@ -184,15 +184,17 @@ function Section({
         {controls}
       </div>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {PANELS.map(({ tone, className, dataTheme }) => (
+        {PANELS.map(({ context, className, scheme, dataTheme }) => (
           <div
-            key={tone}
+            key={context}
             data-theme={dataTheme}
-            style={PROTOTYPE_THEME[tone]}
+            style={{ color: TILE_SCHEMES[scheme].logo }}
             className={`rounded-lg border border-slate-700 p-3 ${className}`}
           >
-            <h3 className="mb-2 text-xs font-medium opacity-60">{tone}</h3>
-            {render(tone)}
+            <h3 className="mb-2 text-xs font-medium opacity-60">
+              {heading(scheme)}
+            </h3>
+            {render(scheme)}
           </div>
         ))}
       </div>
@@ -207,50 +209,44 @@ function Label({ children }: { children: ReactNode }) {
 }
 
 // ============================================================================
-// MD — the prototype's judging rows, verbatim
+// MD — the staff logo on tiles and bare
 // ============================================================================
 
-/**
- * The prototype's container: its outer shape, gradient and hover effect.
- * Sizes are Tailwind spacing units (24 = 96 px), as there.
- */
-const SIZE_MAP = {
-  4: "w-4 h-4 rounded-sm", // 16px (Favicon/Micro)
-  6: "w-6 h-6 rounded-md", // 24px (Toolbar/Menu)
-  8: "w-8 h-8 rounded-lg", // 32px (Icon)
-  10: "w-10 h-10 rounded-xl", // 40px
-  12: "w-12 h-12 rounded-xl", // 48px
-  16: "w-16 h-16 rounded-2xl", // 64px
-  24: "w-24 h-24 rounded-2xl", // 96px (Default)
-  32: "w-32 h-32 rounded-3xl", // 128px
-  48: "w-48 h-48 rounded-[2.5rem]", // 192px
-  64: "w-64 h-64 rounded-[3rem]", // 256px
-} as const;
-
-type LogoSize = keyof typeof SIZE_MAP;
-
-function LogoContainer({
+/** The staff logo on a tile (`tileStyle`), `size` px; grows on hover, as
+ * in the prototype. */
+function StaffTile({
   label,
+  size,
+  scheme,
   children,
-  size = 24,
 }: {
   label: string;
+  size: number;
+  scheme: TileSchemeKey;
   children: ReactNode;
-  size?: LogoSize;
 }) {
+  const { radius, background, color, shadow } = tileStyle(size, scheme);
   return (
     <div className="group flex cursor-pointer flex-col items-center gap-4">
       <div
-        className={`${SIZE_MAP[size]} relative flex items-center justify-center overflow-hidden bg-linear-to-tr from-(--proto-secondary) to-(--proto-primary) text-(--proto-primary-content) shadow-xl ring-4 shadow-(color:--proto-primary)/20 ring-(--proto-base-content)/10 transition-transform group-hover:scale-110`}
+        className="flex items-center justify-center overflow-hidden transition-transform group-hover:scale-110"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: radius,
+          background,
+          color,
+          boxShadow: shadow,
+        }}
       >
         {children}
       </div>
-      <span className="text-sm opacity-70">{label}</span>
+      <Label>{label}</Label>
     </div>
   );
 }
 
-/** MD-0, the fixed reference; the rest random per mount (client-only). */
+/** The fixed default first; the rest random per mount (client-only). */
 const MD_VARIANTS: ReadonlyArray<{
   label: string;
   staffLines: number;
@@ -258,24 +254,23 @@ const MD_VARIANTS: ReadonlyArray<{
   maxY: number;
   random: boolean;
 }> = [
-  { label: "MD-0 (5-Line)", staffLines: 5, minY: 30, maxY: 70, random: false },
-  { label: "MD-1 (Rand A)", staffLines: 5, minY: 30, maxY: 70, random: true },
+  { label: "5 lines ●", staffLines: 5, minY: 30, maxY: 70, random: false },
   {
-    label: "MD-1.1 (4-Line Rand)",
+    label: "5 lines · random",
+    staffLines: 5,
+    minY: 30,
+    maxY: 70,
+    random: true,
+  },
+  {
+    label: "4 lines · random",
     staffLines: 4,
     minY: 35,
     maxY: 65,
     random: true,
   },
   {
-    label: "MD-2 (3-Line Rand B)",
-    staffLines: 3,
-    minY: 35,
-    maxY: 65,
-    random: true,
-  },
-  {
-    label: "MD-3 (3-Line Rand C)",
+    label: "3 lines · random",
     staffLines: 3,
     minY: 35,
     maxY: 65,
@@ -283,32 +278,46 @@ const MD_VARIANTS: ReadonlyArray<{
   },
 ];
 
-const MD_SIZES = [16, 24, 48, 64] as const satisfies ReadonlyArray<LogoSize>;
+/** Variant tiles, px. */
+const MD_VARIANT_SIZE = 96;
+/** Tile and bare sizes, px. */
+const MD_SIZES = [64, 96, 192, 256] as const;
+const MD_BARE_SIZES = [48, 96, 192] as const;
 
-function StaffPanel({ tone }: { tone: Tone }) {
+function StaffPanel({ scheme }: { scheme: TileSchemeKey }) {
   return (
     <>
       <h4 className="mb-2 text-xs opacity-60">variants</h4>
       <div className="flex flex-wrap justify-center gap-8">
         {MD_VARIANTS.map(({ label, random, ...staff }) => (
-          <LogoContainer key={`${tone}-${label}`} label={label}>
+          <StaffTile
+            key={label}
+            label={label}
+            size={MD_VARIANT_SIZE}
+            scheme={scheme}
+          >
             {random ? <RandomLogoMD {...staff} /> : <LogoMD {...staff} />}
-          </LogoContainer>
+          </StaffTile>
         ))}
       </div>
 
-      <h4 className="mt-6 mb-2 text-xs opacity-60">sized (MD-0)</h4>
+      <h4 className="mt-6 mb-2 text-xs opacity-60">sized (5 lines)</h4>
       <div className="flex flex-wrap items-center justify-center gap-8">
         {MD_SIZES.map((size) => (
-          <LogoContainer key={size} label={`${size * 4} px`} size={size}>
+          <StaffTile
+            key={size}
+            label={`${size} px`}
+            size={size}
+            scheme={scheme}
+          >
             <LogoMD />
-          </LogoContainer>
+          </StaffTile>
         ))}
       </div>
 
-      <h4 className="mt-6 mb-2 text-xs opacity-60">bare (MD-0)</h4>
+      <h4 className="mt-6 mb-2 text-xs opacity-60">bare (5 lines)</h4>
       <div className="flex flex-wrap items-end justify-center gap-8">
-        {[48, 96, 192].map((size) => (
+        {MD_BARE_SIZES.map((size) => (
           <div key={size} className="flex flex-col items-center gap-1">
             <div style={{ width: size, height: size }}>
               <LogoMD />

@@ -86,5 +86,7 @@ Size ladder, 3 Colourway × finish, 4 Lockups & top bar. A board may use
 `/construction`; values it holds itself are exploration nothing uses yet (Board
 4's lockups on light).
 
-Not yet within these boundaries: `LogoMD` and `LogoHero` still hold their own
-values (spec #25, #29).
+Two exceptions, by decision (#29): `LogoMD` keeps its own staff drawing (font
+glyphs, `currentColor`), and `LogoHero` its paper colors as Tailwind classes
+(amber-50 and amber-950, the same as cream and sepia; stone for its dark paper),
+for its `data-theme="dark"` switch.

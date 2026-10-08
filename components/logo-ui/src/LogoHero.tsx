@@ -15,9 +15,10 @@ const NUM_LINES = 4;
  * one after each text line).
  *
  * Deliberate "physical paper" colors, independent of the page it sits on:
- * cream paper and brown ink (amber-50, amber-950), or warm charcoal and warm
- * gray (stone-950, stone-200) inside a `data-theme="dark"` ancestor, the
- * prototype's dark-mode switch.
+ * cream paper and sepia ink (Tailwind's amber-50, amber-950: the logo's cream
+ * `#fffbeb` and sepia `#461901`, colors.ts), or warm charcoal and warm gray
+ * (stone-950, stone-200) inside a `data-theme="dark"` ancestor, the
+ * prototype's dark-mode switch. Kept as Tailwind classes for that switch.
  */
 export function LogoHero({
   text = HERO_OPENINGS.nameOfTheWind.text,
