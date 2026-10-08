@@ -37,31 +37,54 @@ values live in their components (`LogoMD.tsx`, `LogoHero.tsx`):
   is a prop; the default is the opening of _The Name of the Wind_ (the
   prototype's).
 
-## Visual rules (provisional)
+## Code: boundaries and use
 
-Settled in Claude Design (`Prosodio Mark.dc.html`); the rationale is written
-when #29 closes.
+The single description of how the logo's code is split; `components/logo-ui` and
+`/lab/logo` point here.
 
-- In the app the logo is bare: one color on a transparent background, in its own
-  bounding box. The library header (3b): 24 px, amber `oklch(0.8 0.125 68)`, the
-  name beside it in the serif, cream `#fffbeb`.
-- Two drawings from one construction (pilcrow cap height 60u, stem 9u; waves to
-  the right): small (a logo drawn at 24 px or below, bare or on a tile: two
-  heavier arcs) and regular (three arcs).
-- A tile is the logo on an opaque square background, for places with no page to
-  take colors from. Lead scheme sepia `#461901` on cream `#fffbeb`; three others
-  (cream on sepia, rust on midnight, midnight on rust). Finishes flat (default),
-  sheen and glass; icons use flat.
-- Favicon tile: 22.5% rounded corners, transparent only at the corners. Home
-  Screen tile: opaque full-bleed square, no rounded corners (iPadOS applies its
-  own mask and renders transparent pixels as black).
-- No raster of the bare logo: a fixed color would vanish on one of the two
-  themes.
+Three layers. Values live in exactly one of them.
 
-## Where things live
+| Layer                                      | Holds                                                       | Never                                      |
+| ------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------ |
+| `@prosodio/logo` (this package)            | every value and computation: geometry, sizes, colors, fonts | React, DOM                                 |
+| `@prosodio/logo-ui` (`components/logo-ui`) | React components that assemble this package's values        | values of their own (colors, sizes, fonts) |
+| apps (Bookplayer)                          | components, placed                                          | logo values; imports of `/construction`    |
 
-- This package: geometry (`geometry.ts`), tile placement and look (`tile.ts`),
-  sizing (`sizing.ts`), colors (`colors.ts`), the lockup (`lockup.ts`), and a
-  pure renderer returning SVG strings (`render.ts`).
-- `@prosodio/logo-ui` (`components/logo-ui`): the React components (`LogoSM`,
-  `LogoTile`, `LogoLockup`, `LogoMD`, `LogoHero`) and the hero's openings.
+This package has two entry points:
+
+- `@prosodio/logo`, normal use: `logoFor(logo size)` and
+  `tileLogoFor(tile size)` (which variant), `tileStyle`, the tile schemes and
+  finishes, the lockup (`LOGO_NAME`, `lockupStyle`), and `renderLogo` /
+  `renderTile` (SVG text, for icon files).
+- `@prosodio/logo/construction`, the detailed API: every variable (`drawLogo`,
+  `placeOnTile`, `PILCROW`, `ARC`, the defaults, the two critical sizing
+  values). For the lab's boards and `logo-ui`'s `LogoTile` only.
+
+Files, one concern each:
+
+| File          | Concern                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `geometry.ts` | the drawing, in u: pilcrow (locked), arcs (`LogoParams`, settled defaults), box, bare frame |
+| `tile.ts`     | the logo on a tile: placement (optical offset) and look (`tileStyle`: scheme × finish)      |
+| `sizing.ts`   | CRITICAL: `SMALL_LOGO_MAX_PX`, `LOGO_WIDTH_ON_TILE_RATIO`; which variant at a size          |
+| `colors.ts`   | the color language (sepia, cream, midnight, rust, amber), tile schemes, lockup colors       |
+| `lockup.ts`   | the name and its typography beside the logo                                                 |
+| `render.ts`   | the bare logo and the tile as SVG text, for icon files                                      |
+
+Components, normal use:
+
+```tsx
+<LogoSM size={24} />           // bare: takes the page's color (currentColor)
+<LogoTile size={32} />          // the chosen tile; scheme / finish optional
+<LogoLockup heading />          // the header: logo + name, all values from lockup.ts
+```
+
+`LogoTile`'s `logo` and `fit` props are the detailed API, for the lab only.
+
+`/lab/logo` shows each layer as a board, bottom up: 0 Construction, 1 Studies, 2
+Size ladder, 3 Colourway × finish, 4 Lockups & top bar. A board may use
+`/construction`; values it holds itself are exploration nothing uses yet (Board
+4's lockups on light).
+
+Not yet within these boundaries: `LogoMD` and `LogoHero` still hold their own
+values (spec #25, #29).

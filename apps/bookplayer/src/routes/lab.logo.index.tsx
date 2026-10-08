@@ -82,6 +82,10 @@ function LogoPage() {
     <div className="flex flex-col gap-6 p-4">
       <section>
         <h2 className="mb-2 text-sm font-medium text-slate-300">Logo (SM)</h2>
+        <p className="mb-2 text-xs text-slate-500">
+          How the code is split: packages/logo/README.md, “Code: boundaries and
+          use”.
+        </p>
         <BoardPage>
           <ConstructionBoard />
           <StudiesBoard />
