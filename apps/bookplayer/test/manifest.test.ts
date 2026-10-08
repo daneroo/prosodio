@@ -13,12 +13,20 @@ describe("manifest.webmanifest", () => {
     expect(manifest.short_name).toBe(LOGO_NAME);
   });
 
-  test("lists exactly the manifest icons", () => {
+  test("lists exactly the manifest icons, maskable only for that shape", () => {
     const listed = manifest.icons.map(
-      (icon: { src: string; sizes: string }) => [icon.src, icon.sizes],
+      (icon: { src: string; sizes: string; purpose: string }) => [
+        icon.src,
+        icon.sizes,
+        icon.purpose,
+      ],
     );
     expect(listed).toEqual(
-      ICONS.manifest.map(({ file, size }) => [`/${file}`, `${size}x${size}`]),
+      ICONS.manifest.map(({ file, size, shape }) => [
+        `/${file}`,
+        `${size}x${size}`,
+        shape === "maskable" ? "maskable" : "any",
+      ]),
     );
   });
 

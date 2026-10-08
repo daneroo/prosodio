@@ -35,10 +35,15 @@ export const ICONS = {
     { file: "apple-touch-icon-167x167.png", size: 167, shape: "home-screen" },
     { file: "apple-touch-icon.png", size: 180, shape: "home-screen" },
   ],
-  /** Listed in the web app manifest. */
+  /**
+   * Listed in the web app manifest: purpose `any`, plus one `maskable` for
+   * Android, which otherwise shrinks the icon onto a white disc. iOS and
+   * iPadOS use `appleTouch`, not these.
+   */
   manifest: [
     { file: "icon-192.png", size: 192, shape: "home-screen" },
     { file: "icon-512.png", size: 512, shape: "home-screen" },
+    { file: "icon-maskable-512.png", size: 512, shape: "maskable" },
   ],
 } as const satisfies {
   favicon: { file: string; sizes: readonly number[]; shape: TileShape };

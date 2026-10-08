@@ -18,5 +18,11 @@ export {
   SMALL_LOGO_MAX_PX,
   logoSizeOnTile,
 } from "./sizing.ts";
-export { FIT_DEFAULTS, TILE_SIZE, placeOnTile } from "./tile.ts";
+export {
+  FIT_DEFAULTS,
+  SAFE_ZONE_RADIUS,
+  TILE_SIZE,
+  placeInSafeZone,
+  placeOnTile,
+} from "./tile.ts";
 export type { TileFit, TilePlacement } from "./tile.ts";

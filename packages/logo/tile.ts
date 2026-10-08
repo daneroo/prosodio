@@ -33,16 +33,17 @@ export interface TilePlacement {
   transform: string;
 }
 
-/** Scales the logo's box to `LOGO_WIDTH_ON_TILE_RATIO` of the tile's width,
- * centres it, then adds the optical offset (any of `fit` left out take
- * `FIT_DEFAULTS`). */
+/** Scales the logo's box to `widthRatio` of the tile's width (by default
+ * `LOGO_WIDTH_ON_TILE_RATIO`), centres it, then adds the optical offset (any
+ * of `fit` left out take `FIT_DEFAULTS`). */
 export function placeOnTile(
   logo: Logo,
   fit: Partial<TileFit> = {},
+  widthRatio: number = LOGO_WIDTH_ON_TILE_RATIO,
 ): TilePlacement {
   const { opticalX, opticalY } = { ...FIT_DEFAULTS, ...fit };
   const { left, top, right, bottom } = logo.box;
-  const scale = (LOGO_WIDTH_ON_TILE_RATIO * TILE_SIZE) / (right - left);
+  const scale = (widthRatio * TILE_SIZE) / (right - left);
   const x = TILE_SIZE / 2 - (scale * (left + right)) / 2 + opticalX;
   const y = TILE_SIZE / 2 - (scale * (top + bottom)) / 2 + opticalY;
   return {
@@ -51,6 +52,31 @@ export function placeOnTile(
     y,
     transform: `translate(${round(x)} ${round(y)}) scale(${round(scale, 4)})`,
   };
+}
+
+/**
+ * The maskable icon's safe zone, in tile units: a centred circle of radius
+ * 2/5 of the icon, the only part every platform mask keeps. W3C, Web
+ * Application Manifest, "Icon masks":
+ * https://www.w3.org/TR/appmanifest/#icon-masks
+ */
+export const SAFE_ZONE_RADIUS = 0.4 * TILE_SIZE;
+
+/**
+ * `placeOnTile` for a maskable icon: the logo as large as fits with its
+ * box's farthest corner, optical offset included, on the safe zone's circle.
+ * The box's half-width w and the offset (ox, oy) solve
+ * (ox + w)² + (oy + w·h/w)² = R²; nothing new to tune.
+ */
+export function placeInSafeZone(logo: Logo): TilePlacement {
+  const { opticalX: ox, opticalY: oy } = FIT_DEFAULTS;
+  const { left, top, right, bottom } = logo.box;
+  const aspect = (bottom - top) / (right - left);
+  const a = 1 + aspect * aspect;
+  const b = 2 * (ox + oy * aspect);
+  const c = ox * ox + oy * oy - SAFE_ZONE_RADIUS * SAFE_ZONE_RADIUS;
+  const halfWidth = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+  return placeOnTile(logo, FIT_DEFAULTS, (2 * halfWidth) / TILE_SIZE);
 }
 
 /** One tile's look at `sizePx`, CSS values. */

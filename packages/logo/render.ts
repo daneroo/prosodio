@@ -1,13 +1,15 @@
 import type { Logo } from "./geometry.ts";
-import { TILE_SIZE, placeOnTile, tileStyle } from "./tile.ts";
+import { TILE_SIZE, placeInSafeZone, placeOnTile, tileStyle } from "./tile.ts";
 import { logoFor, tileLogoFor } from "./sizing.ts";
 
 /**
  * Which tile: `favicon` has rounded corners (transparent only there);
  * `home-screen` is an opaque full-bleed square, because iPadOS applies its
- * own mask and renders transparent pixels as black.
+ * own mask and renders transparent pixels as black; `maskable` is the same
+ * square with the logo inside the safe zone (`placeInSafeZone`), for
+ * Android's masks.
  */
-export type TileShape = "favicon" | "home-screen";
+export type TileShape = "favicon" | "home-screen" | "maskable";
 
 /** The bare logo: `currentColor` on a transparent background, in its own
  * frame, centered in a `sizePx` square. */
@@ -27,7 +29,9 @@ export function renderTile(sizePx: number, shape: TileShape): string {
   const corner = (radius / sizePx) * TILE_SIZE;
   const corners = shape === "favicon" ? ` rx="${corner}" ry="${corner}"` : "";
   const rect = `<rect width="${TILE_SIZE}" height="${TILE_SIZE}"${corners} fill="${background}"/>`;
-  const placed = `<g transform="${placeOnTile(logo).transform}">${logoMarkup(logo, color)}</g>`;
+  const placement =
+    shape === "maskable" ? placeInSafeZone(logo) : placeOnTile(logo);
+  const placed = `<g transform="${placement.transform}">${logoMarkup(logo, color)}</g>`;
   return svg(sizePx, `0 0 ${TILE_SIZE} ${TILE_SIZE}`, rect + placed);
 }
 

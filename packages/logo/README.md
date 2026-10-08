@@ -49,7 +49,13 @@ Board 5 read:
   (softer edges, seen on the iPad Air 4 with 180 only); Safari picks the closest
   ([Apple](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html));
 - `icon-192.png`, `icon-512.png`: the manifest's (`manifest.webmanifest`,
-  written by hand). Home-screen shape: opaque square.
+  written by hand), purpose `any`. Home-screen shape: opaque square.
+- `icon-maskable-512.png`: the manifest's purpose `maskable`, for Android, which
+  otherwise shrinks the icon onto a white disc
+  ([web.dev](https://web.dev/articles/maskable-icon)). The same square, the logo
+  scaled so its box fits the safe zone, the centred circle of radius 40%
+  ([W3C](https://www.w3.org/TR/appmanifest/#icon-masks)). iOS and iPadOS use the
+  apple-touch-icons, not the manifest's icons.
 
 The manifest's `background_color` and `theme_color` (`#0f172a`, slate-900) are
 the app shell's, not the logo's; its name and icons are checked against
