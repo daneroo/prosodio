@@ -17,6 +17,14 @@ issue. Promote to a GitHub issue, then delete the line. Rules:
       epub.js while async `Rendition.start`/`replaceCss` work is still running,
       emitting warnings. Separate from the resolved OOM and locate-sweep console
       noise.
+- [ ] bookplayer-epub-unclosed-anchor — self-closing page markers
+      (`<a id="page_567"/>`) don't close in the reader, so the anchor swallows
+      the rest of the section and `light`/`dark` paint it link-teal. Seen
+      2026-10-17 validating the font override: Cryptonomicon `chapter_54.html`
+      (7 markers; manifest says `application/xhtml+xml`), Neuromancer
+      `TOCREF-20.html` (5). Points at the section being parsed as HTML, not
+      XHTML, somewhere between epub.js load and the iframe; `epub-sanitize.ts`
+      is a string transform, not the parser.
 - [ ] bookplayer-ebook-renderer — keep the EPUB renderer swappable; evaluate
       epub.js alternatives when search/highlight or theming becomes a real
       limitation. Why: epub.js 0.3.x is old and weakly typed (search/highlight
