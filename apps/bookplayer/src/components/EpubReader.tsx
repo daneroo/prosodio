@@ -128,16 +128,15 @@ export interface ReaderController {
    * `setTheme`, same reasoning (design §6 decision 6).
    *
    * The one place this differs from `setTheme`: whether the change is
-   * actually INJECTED depends on the current theme. `themes.font()` is
-   * `themes.override("font-family", ..., true)` under the hood
-   * (themes.js:254-256) — override state is global and independent of
-   * `themes.select`, re-applied to every future content load by its own
-   * content hook regardless of which theme is selected. Left unguarded, a
-   * font choice made once would leak into `default` forever, breaking the
-   * "book default is genuinely unstyled" guarantee (design §3, §6 decision
-   * 1). So the font is only ever handed to `themes.font()` while `light`/
-   * `dark` is selected; under `default` the standing override is actively
-   * cleared instead. See `applyFont` below.
+   * actually INJECTED depends on the current theme. The stack travels as
+   * the `--reader-font` custom property, set with `themes.override` —
+   * override state is global and independent of `themes.select`, re-applied
+   * to every future content load by its own content hook regardless of
+   * which theme is selected. Left unguarded, a font choice made once would
+   * leak into `default` forever, breaking the "book default is genuinely
+   * unstyled" guarantee (design §3, §6 decision 1). So the property is only
+   * ever set while `light`/`dark` is selected; under `default` the standing
+   * override is actively cleared instead. See `applyFont` below.
    */
   setFont: (name: FontName) => void;
 }
@@ -334,6 +333,25 @@ const FONT_STACKS: Record<FontName, string> = {
   georgia: 'Georgia, "Nimbus Roman No9 L", serif',
 };
 
+// Carries the chosen stack into the content document (see `applyFont`);
+// `fontRule` reads it on every element so book rules can't outrank it.
+const READER_FONT_PROPERTY = "--reader-font";
+
+/** The light/dark font rule, scoped to the theme's body class like the
+ * colors. Every element, not just body: an inherited font loses to any book
+ * rule on the element itself. pre/code/kbd/samp/tt (and their descendants)
+ * keep the book's own styling — not `revert` to UA monospace (Readium CSS's
+ * pattern): publishers use <samp>/<code> as styling hooks for headings,
+ * captions and TOC entries (e.g. The Prime Number Conspiracy: 591 <samp>). */
+function fontRule(themeClass: string): Record<string, Record<string, string>> {
+  const scope = `body.${themeClass}`;
+  return {
+    [`${scope}, ${scope} :not(pre, code, kbd, samp, tt, pre *, code *)`]: {
+      "font-family": `var(${READER_FONT_PROPERTY}) !important`,
+    },
+  };
+}
+
 // Toolbar display label per face (plan T2): the user is on an iPad with no
 // tooltip, so the toolbar button must show the current pick as visible text.
 export const FONT_LABELS: Record<FontName, string> = {
@@ -458,14 +476,21 @@ export function EpubReader({
       }
     };
     // Keeps book-default honest (plan T2, `ReaderController.setFont` doc
-    // above): `themes.font()` is `themes.override("font-family", ..., true)`
-    // — override state is global, independent of `themes.select`, and
-    // re-applied to every future content load regardless of which theme is
-    // current (themes.js:22,145-150,232-240). So the font is only ever
-    // handed to `themes.font()` while `light`/`dark` is selected; switching
-    // TO `default` actively clears the standing override instead of leaving
-    // it to leak through. `removeOverride` exists at runtime (themes.js:218)
-    // but isn't in epubjs's .d.ts, hence the cast.
+    // above): `themes.override` state is global, independent of
+    // `themes.select`, and re-applied to every future content load
+    // regardless of which theme is current (themes.js:22,145-150,232-240).
+    // So `--reader-font` is only ever set while `light`/`dark` is selected;
+    // switching TO `default` actively clears the standing override instead
+    // of leaving it to leak through. `removeOverride` exists at runtime
+    // (themes.js:218) but isn't in epubjs's .d.ts, hence the cast.
+    //
+    // Why a custom property and not `themes.font()`: that sets an inline
+    // `font-family !important` on <body> (contents.js:251-255), which
+    // children only INHERIT — and any book rule naming the element directly
+    // beats an inherited value, `!important` or not. PRH's 1873 sets
+    // `font-family: serif` on `.p` and 66 other classes, so the cycle never
+    // reached its paragraphs. The themes' `fontRule` reads the property on
+    // every element instead.
     const applyFont = (themeName: ThemeName, fontName: FontName) => {
       if (!rendition) return;
       if (themeName === "default") {
@@ -473,9 +498,9 @@ export function EpubReader({
           rendition.themes as unknown as {
             removeOverride: (name: string) => void;
           }
-        ).removeOverride("font-family");
+        ).removeOverride(READER_FONT_PROPERTY);
       } else {
-        rendition.themes.font(FONT_STACKS[fontName]);
+        rendition.themes.override(READER_FONT_PROPERTY, FONT_STACKS[fontName]);
       }
     };
     const cacheSection = (href: string, document: Document) => {
@@ -676,6 +701,7 @@ export function EpubReader({
             "body.light a, body.light a:link, body.light a:visited": {
               color: "#0e7490 !important",
             },
+            ...fontRule("light"),
           },
           dark: {
             "body.dark": {
@@ -685,14 +711,15 @@ export function EpubReader({
             "body.dark a, body.dark a:link, body.dark a:visited": {
               color: "#22d3ee !important",
             },
+            ...fontRule("dark"),
           },
         });
-        // Font-family is intentionally NOT part of these rule objects: it's
-        // applied separately below via `applyFont`, as a `themes.font()`
-        // override gated on the current theme (see the doc on
-        // `ReaderController.setFont`) — that's the only way to keep
-        // `default` genuinely un-injected while still letting the font cycle
-        // independently of the theme cycle.
+        // The font STACK is intentionally NOT part of these rule objects
+        // (only the `fontRule` that reads it): it's applied separately below
+        // via `applyFont`, as a `--reader-font` override gated on the current
+        // theme (see the doc on `ReaderController.setFont`) — that's the
+        // only way to keep `default` genuinely un-injected while still
+        // letting the font cycle independently of the theme cycle.
         //
         // themeRef/fontRef, not a fresh localStorage read (design §4): the
         // lazy `useState` initializers already read them once,
