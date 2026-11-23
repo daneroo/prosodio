@@ -50,6 +50,14 @@ _Avoid_: delay, latency, lag
 **Top bar**: The strip across the top of the player: navigation, book identity,
 and toggles.
 
+**Status bar**: The device's strip above the app, with the clock and battery
+(iPad, Pixel). Not part of the app: the app can only color it.\
+_Avoid_: top bar (for this strip)
+
+**Browser toolbar**: The browser's own address and tab strip (Safari, Brave),
+present when Prosodio runs in a tab rather than from the Home Screen icon.\
+_Avoid_: top bar (for this strip)
+
 **Ebook panel**: The EPUB view, including its toolbar and search.\
 _Avoid_: reader pane, reader band
 
