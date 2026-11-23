@@ -15,6 +15,15 @@ body {
   margin: 0;
 }
 
+/* Page color on html and body themselves, not only on a wrapper div (#34):
+   Safari 26 colors the status bar and its toolbar from the body background,
+   not from theme-color. Same value as the `bg-slate-900` page class.
+   manifest.webmanifest repeats it as hex #0f172a (JSON has no var()). */
+html,
+body {
+  background-color: var(--color-slate-900);
+}
+
 /* Reader surface background (see docs/bookplayer/reader-iframe.md and the
    pre-hydration script in routes/__root.tsx). Driven by an attribute on
    <html>, not by React state: the stored theme lives in localStorage, which
